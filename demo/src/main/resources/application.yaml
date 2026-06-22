@@ -1,50 +1,38 @@
-spring:
+﻿spring:
   application:
-    name: demo
+    name: pet-store
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/artsail_admin
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-  session:
-    timeout: 86400
+    url: jdbc:mysql://127.0.0.1:3306/pet_store?useSSL=false&serverTimezone=Asia/Shanghai
+    username: 
+    password: 
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
-  rabbitmq:
-    host: 127.0.0.1
-    port: 15672
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:123456}
-    virtual-host: /
-
-
-    mybatis:
-      configuration:
-        map-underscore-to-camel-case: true
-
-    mybatis-plus:
-      configuration:
-        map-underscore-to-camel-case: true
-      global-config:
-        db-config:
-          logic-delete-field: isDelete
-          logic-delete-value: 1
-          logic-not-delete-value: 0
-
-    ai:
-      detection:
-        url: http://127.0.0.1:9001/detect
-      upload-dir: uploads/ai
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+  ai:
+    deepseek:
+      api-key: 
+      base-url: 
       chat:
-        api-key: ${DEEPSEEK_API_KEY}
-        base-url: ${DEEPSEEK_BASE_URL}
-        model-name: ${DEEPSEEK_MODEL}
-        temperature: ${DEEPSEEK_TEMPERATURE:0.3}
-        timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
+        model: 
+        temperature: 
+        timeout: 
 
-    mqtt:
-      broker: tcp://127.0.0.1:1883
-      client-id: aquaculture-backend
-      topic: aquaculture/+/+/data
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
