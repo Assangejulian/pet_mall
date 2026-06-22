@@ -1,6 +1,7 @@
 package com.pat.common.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.common.domain.BaseEntity;
@@ -78,7 +79,7 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
     }
 
     @GetMapping("/search")
-    public Result<Page<VO>> search(P param, Page<E> page) {
+    public Result<IPage<VO>> search(P param, Page<E> page) {
         Page<E> result = baseService.page(page, buildQueryWrapper(param));
         return Result.success(result.convert(this::toVO));
     }
