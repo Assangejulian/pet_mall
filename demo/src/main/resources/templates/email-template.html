@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登录验证码</title>
+</head>
+<body>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h3>您的登录验证码</h3>
+    <p>验证码：<strong th:text="${verificationCode}">[验证码]</strong></p>
+    <p>有效期2分钟，请勿泄露给他人</p>
+</div>
+</body>
+</html>

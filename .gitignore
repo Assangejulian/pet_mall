@@ -1,0 +1,44 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.classpath
+bin/
+.gradle/
+build/
+
+# Vue / Node
+node_modules/
+dist/
+.vite/
+.cache/
+*.log
+.DS_Store
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Environment variables
+.env

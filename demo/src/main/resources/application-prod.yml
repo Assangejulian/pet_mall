@@ -1,0 +1,28 @@
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: admin
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/artsail_admin
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:777}
+  session:
+    timeout: 86400
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+ai:
+  detection:
+    url: http://127.0.0.1:9001/detect
+  upload-dir: uploads/ai
+  chat:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+    model-name: ${DEEPSEEK_MODEL:deepseek-chat}
+    temperature: ${DEEPSEEK_TEMPERATURE:0.3}
+    timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
