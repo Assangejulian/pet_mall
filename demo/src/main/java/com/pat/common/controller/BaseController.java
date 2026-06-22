@@ -1,125 +1,127 @@
 package com.pat.common.controller;
 
-import com.pat.common.domain.Result;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import jakarta.validation.constraints.NotNull;
-import org.springframework.beans.BeanUtils;
+import com.pat.common.domain.Result;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 /**
- * 通用控制器基类，封装了标准的增删改查及分页查询逻辑
- * @param <S> Service层接口，需继承IService<T>
- * @param <T> 实体类类型（用于 CRUD 操作）
- * @param <V> VO类型（用于查询返回，可与 T 相同）
- * @param <Q> 查询条件对象类型
+ * 通用 CRUD 控制器基类。
+ *
+ * <p>子类只需实现 3 个抽象方法，即可获得 10 个 REST 接口（6核心 + 4扩展）：</p>
+ * <pre>
+ *  GET   /{id}        查单个
+ *  POST  /            新增
+ *  PUT   /{id}        更新
+ *  DELETE /{id}       删除
+ *  DELETE /batch      批量删
+ *  GET   /search      分页条件查
+ *  GET   /list        不分页查
+ *  GET   /by-ids      按ID批量查
+ *  POST  /batch       批量增
+ *  PUT   /batch       批量改
+ * </pre>
+ *
+ * @param <S> Service，需继承 IService&lt;E&gt;，如 ProductService extends IService&lt;Product&gt;
+ * @param <E> Entity 实体类，对应数据库表
+ * @param <V> VO 视图对象，前端交互用，查询返回 VO，保存/更新接收 VO
+ * @param <Q> Query 查询条件对象，前端传参 &amp; buildQueryWrapper 构造条件用
  */
-@RestController
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-public abstract class BaseController<S extends IService<T>, T, V, Q> {
-
-    protected S baseService;
+@SuppressWarnings({"unchecked", "SpringJavaInjectionPointsAutowiringInspection"})
+public abstract class BaseController<S extends IService<E>, E, V, Q> {
 
     @Autowired
-    public void setBaseService(S baseService) {
-        this.baseService = baseService;
-    }
+    protected S baseService;
 
-    /**
-     * 根据ID查询单个实体
-     */
+    // ==================== 子类必须实现的抽象方法 ====================
+
+    /** Entity 转 VO（查出来给前端） */
+    protected abstract V toVO(E entity);
+
+    /** VO 转 Entity（前端传进来存库），含更新时的 id 赋值 */
+    protected abstract E toEntity(V vo);
+
+    /** 构造 MyBatis-Plus 查询条件（分页 / 列表共用） */
+    protected abstract QueryWrapper<E> buildQueryWrapper(Q query);
+
+    // ==================== 可选的钩子方法 ====================
+
+    protected void preSave(V vo) {}
+    protected void postSave(E entity, boolean ok) {}
+    protected void preUpdate(V vo) {}
+    protected void postUpdate(E entity, boolean ok) {}
+
+    // ==================== 核心 CRUD（6个） ====================
+
     @GetMapping("/{id}")
-    public Result<V> getById(@PathVariable @NotNull Long id) {
-        T entity = baseService.getById(id);
-        if (entity == null) {
-            return Result.error("数据不存在");
-        }
-        V vo = convertToVO(entity);
-        return Result.success(vo);
+    public Result<V> getById(@PathVariable Long id) {
+        E entity = baseService.getById(id);
+        return entity == null ? Result.error("数据不存在") : Result.success(toVO(entity));
     }
 
-    /**
-     * 实体转VO
-     */
-    @SuppressWarnings("unchecked")
-    protected V convertToVO(T entity) {
-        try {
-            Class<V> voClass = (Class<V>) ((java.lang.reflect.ParameterizedType) getClass()
-                    .getGenericSuperclass()).getActualTypeArguments()[2];
-            V vo = voClass.getDeclaredConstructor().newInstance();
-            BeanUtils.copyProperties(entity, vo);
-            return vo;
-        } catch (Exception e) {
-            throw new RuntimeException("VO转换失败", e);
-        }
-    }
-
-    /**
-     * 新增实体
-     */
     @PostMapping
-    public Result<Boolean> save(@RequestBody @Validated T entity) {
-        boolean success = baseService.save(entity);
-        if (!success) {
-            return Result.error("新增失败");
-        }
-        return Result.success(success);
+    public Result<Boolean> save(@RequestBody @Valid V vo) {
+        preSave(vo);
+        E entity = toEntity(vo);
+        boolean ok = baseService.save(entity);
+        postSave(entity, ok);
+        return Result.success(ok);
     }
 
-    /**
-     * 根据ID更新实体
-     */
     @PutMapping("/{id}")
-    public Result<Boolean> update(@PathVariable @NotNull Long id, @RequestBody @Validated T entity) {
-        // 使用 Spring ReflectionUtils 安全查找字段（自动向上查找父类）
-        Field idField = ReflectionUtils.findField(entity.getClass(), "id");
-        if (idField != null) {
-            ReflectionUtils.makeAccessible(idField);
-            ReflectionUtils.setField(idField, entity, id);
-        }
-        boolean success = baseService.updateById(entity);
-        return Result.success(success);
+    public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid V vo) {
+        preUpdate(vo);
+        E entity = toEntity(vo);
+        boolean ok = baseService.updateById(entity);
+        postUpdate(entity, ok);
+        return Result.success(ok);
     }
 
-    /**
-     * 根据ID删除实体
-     */
     @DeleteMapping("/{id}")
-    public Result<Void> remove(@PathVariable @NotNull Long id) {
-        boolean success = baseService.removeById(id);
-        if (!success) {
-            return Result.error("删除失败");
-        }
-        return Result.success(null);
+    public Result<Boolean> remove(@PathVariable Long id) {
+        return Result.success(baseService.removeById(id));
     }
 
-    /**
-     * 批量删除实体
-     */
     @DeleteMapping("/batch")
     public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Result.error("ID列表不能为空");
-        }
-        boolean success = baseService.removeByIds(ids);
-        return Result.success(success);
+        return Result.success(baseService.removeByIds(ids));
     }
 
-    /**
-     * 分页及条件查询
-     * 注意：此方法需要子类实现，因为每个实体的查询逻辑不同
-     */
     @GetMapping("/search")
-    public abstract Result<Page<V>> search(Page<V> page, Q query);
+    public Result<Page<V>> search(Q query, Page<E> page) {
+        Page<E> result = baseService.page(page, buildQueryWrapper(query));
+        return Result.success((Page<V>) result.convert(this::toVO));
+    }
 
+    // ==================== 扩展 CRUD（4个） ====================
 
+    @GetMapping("/list")
+    public Result<List<V>> getList(Q query) {
+        List<E> list = baseService.list(buildQueryWrapper(query));
+        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+    }
 
+    @GetMapping("/by-ids")
+    public Result<List<V>> getByIds(@RequestParam List<Long> ids) {
+        List<E> list = baseService.listByIds(ids);
+        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+    }
 
+    @PostMapping("/batch")
+    public Result<Boolean> saveBatch(@RequestBody @Valid List<V> voList) {
+        List<E> entities = voList.stream().map(this::toEntity).collect(Collectors.toList());
+        return Result.success(baseService.saveBatch(entities));
+    }
+
+    @PutMapping("/batch")
+    public Result<Boolean> updateBatch(@RequestBody @Valid List<V> voList) {
+        List<E> entities = voList.stream().map(this::toEntity).collect(Collectors.toList());
+        return Result.success(baseService.updateBatchById(entities));
+    }
 }
