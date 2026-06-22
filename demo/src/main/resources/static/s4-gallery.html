@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetNest · 暖窝</title>
+<style>
+/* ==========================================
+   PetNest · 暖窝
+   温馨治愈 · 宠物生活艺廊
+   
+   🎯 动画接入点（已就绪）：
+   — data-reveal       → 滚动入场（下方 3 种方向）
+   — data-stagger      → 子元素依次递进
+   — data-parallax     → 视差滚动
+   — data-hover-3d     → 3D 悬停倾斜
+   — .smooth-enter     → 加载渐入
+   — .ripple           → 涟漪效果
+   — .counter          → 数字递增
+   — page 过渡          → 路由滑入/滑出
+   ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600&display=swap');
+
+:root{
+  --bg:#FDF7F2; --card:#FFFFFF; --text:#2D1F18; --text2:#9A7B6E; --text3:#CBB5A8;
+  --accent:#E8927C; --accent2:#F5C8B8; --accent3:#FCE8DE; --accent4:#FFF0E8;
+  --border:#F0E2D8; --shadow:0 8px 40px rgba(232,146,124,.08);
+  --dur-fast:.2s; --dur-base:.4s; --dur-slow:.6s; --dur-reveal:.8s;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --stagger-delay:70ms;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+/* ----- Noise Texture Overlay ----- */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+.pet-img {
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+/* ----- Noise Texture Overlay ----- */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+.pet-img {
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Inter','PingFang SC',sans-serif;overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#fff}
+
+/* ===== 滚动入场（默认隐藏，JS 控制） ===== */
+[data-reveal]{opacity:0;transform:translateY(30px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+[data-reveal].visible{opacity:1;transform:translateY(0)}
+
+[data-reveal-left]{opacity:0;transform:translateX(-30px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+[data-reveal-left].visible{opacity:1;transform:translateX(0)}
+
+[data-reveal-right]{opacity:0;transform:translateX(30px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+[data-reveal-right].visible{opacity:1;transform:translateX(0)}
+
+/* stagger 递进 */
+[data-stagger]>*{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+[data-stagger].visible>*{opacity:1;transform:translateY(0)}
+
+/* 视差 */
+[data-parallax]{will-change:transform}
+
+/* 3D 悬停 */
+[data-hover-3d]{transition:transform .6s var(--ease);will-change:transform}
+
+/* 加载渐入 */
+.smooth-enter{opacity:0;transform:translateY(20px);animation:smoothIn .8s var(--ease) forwards}
+@keyframes smoothIn{to{opacity:1;transform:translateY(0)}}
+
+/* cursor */
+.cd{width:6px;height:6px;background:var(--accent);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+.cr{width:40px;height:40px;border:1.5px solid var(--accent3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .4s var(--ease),opacity .3s}
+
+/* ===== NAV ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 56px;height:72px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(253,247,242,.88);backdrop-filter:blur(24px);border-bottom:1px solid transparent;transition:border-color .3s;z-index:1000}
+nav.scrolled{border-color:var(--border)}
+nav .logo{font-family:'Noto Serif SC',serif;font-size:18px;font-weight:900;letter-spacing:2px;display:flex;align-items:center;gap:6px;cursor:pointer}
+nav .logo span{color:var(--accent)}
+.nav-links{display:flex;gap:32px;justify-self:center}
+.nav-actions{display:flex;align-items:center;gap:8px;justify-self:end}
+.nav-cart{position:relative;cursor:pointer;padding:8px;border-radius:50%;transition:.3s}
+.nav-cart:hover{background:var(--accent4)}
+.cart-icon{font-size:20px}
+.cart-badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 2px 6px rgba(232,146,124,.4)}
+.nav-user{position:relative;flex-shrink:0}
+.nav-links a{text-decoration:none;color:var(--text2);font-size:13px;letter-spacing:1.5px;cursor:pointer;font-weight:500;padding:4px 0;position:relative;transition:color .3s}
+.nav-links a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:var(--accent);border-radius:2px;transition:width .4s var(--ease)}
+.nav-links a:hover{color:var(--text)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-links a.active::after{width:100%}
+
+.nav-user{position:relative;flex-shrink:0}
+
+
+.nav-user-trigger{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 14px 6px 10px;border-radius:40px;transition:.3s}
+.nav-user-trigger:hover{background:var(--accent4)}
+.user-arrow{font-size:10px;color:var(--text3);transition:transform .3s}
+.nav-user:hover .user-arrow{transform:rotate(180deg)}
+.nav-dropdown{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border-radius:16px;border:1px solid var(--border);padding:8px;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .3s var(--ease);z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.06)}
+.nav-user:hover .nav-dropdown{opacity:1;visibility:visible;transform:translateY(0)}
+.nav-dropdown a{display:block;padding:10px 16px;border-radius:12px;font-size:13px;color:var(--text2);text-decoration:none;cursor:pointer;transition:.2s}
+.nav-dropdown a:hover{background:var(--accent4);color:var(--text);padding-left:20px}
+.nav-dropdown-divider{height:1px;background:var(--border);margin:4px 8px}
+
+.nav-user:hover{background:var(--accent4)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;transition:.3s}
+.nav-user:hover .user-avatar{transform:scale(1.1)}
+.user-name{font-size:13px;font-weight:500;color:var(--text2);transition:.3s}
+.nav-user:hover .user-name{color:var(--text)}
+
+/* ===== 页面容器 ===== */
+#app{position:fixed;top:72px;left:0;right:0;bottom:0;overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);will-change:transform,opacity}
+.page::-webkit-scrollbar{width:4px}
+.page::-webkit-scrollbar-thumb{background:var(--accent3);border-radius:4px}
+.page.hide{display:none}
+
+/* ===== 路由过渡类 ===== */
+/* 前进 */
+.forward-enter{animation:fwdIn .45s var(--ease) both}
+@keyframes fwdIn{0%{transform:translateX(40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+.forward-leave{animation:fwdOut .35s var(--ease) both}
+@keyframes fwdOut{0%{transform:translateX(0);opacity:1}100%{transform:translateX(-30px);opacity:0}}
+
+/* 后退 */
+.back-enter{animation:bckIn .45s var(--ease) both}
+@keyframes bckIn{0%{transform:translateX(-40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+.back-leave{animation:bckOut .35s var(--ease) both}
+@keyframes bckOut{0%{transform:translateX(0);opacity:1}100%{transform:translateX(30px);opacity:0}}
+
+/* ===== 首页 ===== */
+.hero-section{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px 56px 80px;position:relative;overflow:hidden}
+.hero-section::before{content:'';position:absolute;top:-200px;right:-200px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,184,.3),transparent 70%)}
+.hero-section::after{content:'';position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(252,232,222,.3),transparent 70%)}
+.hero-inner{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center;position:relative;z-index:1}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:2px;color:var(--accent);font-weight:600;margin-bottom:20px;padding:6px 16px;background:var(--accent4);border-radius:40px}
+.hero-left h1{font-family:'Noto Serif SC',serif;font-size:64px;font-weight:900;line-height:1.1;margin-bottom:16px;letter-spacing:-2px}
+.hero-left h1 em{font-style:normal;color:var(--accent)}
+.hero-left .sub{font-size:15px;color:var(--text2);line-height:1.9;margin-bottom:36px;max-width:400px}
+.hero-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 40px;background:var(--accent);color:#fff;border:none;border-radius:40px;font-size:14px;font-weight:600;cursor:pointer;transition:gap .5s var(--ease),background .3s,transform .3s,box-shadow .3s;box-shadow:0 4px 20px rgba(232,146,124,.3)}
+.hero-btn:hover{gap:20px;background:#D47A66;transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,146,124,.4)}
+.hero-btn .arr{transition:transform .4s var(--ease);display:inline-block}
+.hero-btn:hover .arr{transform:translateX(6px)}
+
+/* Hero 层叠卡片 */
+.hero-right{position:relative;height:520px}
+.hero-stack{position:relative;width:100%;height:100%}
+.hero-stack .hi{position:absolute;border-radius:28px;overflow:hidden;cursor:pointer;transition:transform .6s var(--ease),box-shadow .3s;will-change:transform}
+.hero-stack .hi:nth-child(1){width:360px;height:440px;top:0;right:10px;z-index:3;box-shadow:0 20px 60px rgba(232,146,124,.15)}
+.hero-stack .hi:nth-child(2){width:270px;height:330px;top:70px;right:280px;z-index:2;box-shadow:0 16px 40px rgba(232,146,124,.1)}
+.hero-stack .hi:nth-child(3){width:210px;height:250px;top:180px;right:190px;z-index:1;box-shadow:0 12px 30px rgba(232,146,124,.08)}
+.hero-stack .hi:hover{z-index:10;transform:scale(1.03)!important}
+.hi .hbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;transition:transform .6s var(--ease)}
+.hi:hover .hbg{transform:scale(1.05)}
+.hi .hl{position:absolute;bottom:24px;left:24px;color:#fff;font-weight:600;font-size:14px;text-shadow:0 2px 12px rgba(0,0,0,.15)}
+.hi .hp{position:absolute;bottom:24px;right:24px;color:#fff;font-size:12px;background:rgba(232,146,124,.35);backdrop-filter:blur(12px);padding:4px 14px;border-radius:20px}
+
+/* 通用 */
+section{padding:100px 56px}
+.sh{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px}
+.sh .l{flex:1}
+.st{font-size:11px;letter-spacing:3px;color:var(--accent);font-weight:600;margin-bottom:10px}
+.sh h2{font-family:'Noto Serif SC',serif;font-size:36px;font-weight:900;letter-spacing:-1px}
+.sh .desc{color:var(--text2);font-size:14px;line-height:1.7;margin-top:10px;max-width:400px}
+.sh .link{text-decoration:none;color:var(--text);font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer;transition:gap .4s var(--ease),color .3s;white-space:nowrap}
+.sh .link:hover{gap:14px;color:var(--accent)}
+
+/* 作品网格 */
+.portfolio{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;grid-auto-rows:260px}
+.port{border-radius:24px;overflow:hidden;position:relative;cursor:pointer;background:var(--card);transition:transform .6s var(--ease),box-shadow .3s;box-shadow:0 4px 20px rgba(232,146,124,.04)}
+.port:hover{transform:translateY(-8px);box-shadow:0 16px 48px rgba(232,146,124,.1)}
+.port .pb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;transition:transform .6s var(--ease)}
+.port:hover .pb{transform:scale(1.06)}
+.port .po{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(45,31,24,.55));opacity:0;transition:opacity .5s}
+.port:hover .po{opacity:1}
+.port .pi{position:absolute;bottom:0;left:0;right:0;padding:24px;color:#fff;transform:translateY(12px);opacity:0;transition:transform .5s var(--ease),opacity .5s}
+.port:hover .pi{transform:translateY(0);opacity:1}
+.port .pi h3{font-size:17px;font-weight:600;margin-bottom:2px}
+.port .pi p{font-size:12px;opacity:.65}
+.port .pt{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.92);padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;color:var(--text)}
+.w2{grid-column:span 7;grid-row:span 2}
+.m2{grid-column:span 5;grid-row:span 2}
+.t2{grid-column:span 3;grid-row:span 2}
+.h2{grid-column:span 4;grid-row:span 1}
+
+/* 过渡区 */
+.ts{position:relative;padding:120px 56px;background:linear-gradient(135deg,var(--text),#3D2C23);color:#fff;overflow:hidden}
+.ts::before{content:'';position:absolute;top:-60px;left:0;right:0;height:120px;background:var(--bg);border-radius:0 0 50% 50%}
+.ts::after{content:'';position:absolute;bottom:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(232,146,124,.08),transparent 70%)}
+.ti{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;position:relative;z-index:1}
+.ti .tl .st2{color:var(--accent2);font-size:11px;letter-spacing:3px;font-weight:600;margin-bottom:14px}
+.ti .tl h2{font-family:'Noto Serif SC',serif;font-size:34px;font-weight:900;line-height:1.25;letter-spacing:-1px}
+.ti .tl h2 em{font-style:normal;color:var(--accent2)}
+.ti .tl p{color:rgba(255,255,255,.4);margin-top:14px;line-height:1.8;font-size:14px;max-width:380px}
+.ti .tr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ti .tr .tc{padding:24px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.4s;cursor:pointer}
+.ti .tr .tc:hover{background:rgba(232,146,124,.06);border-color:rgba(232,146,124,.2);transform:translateY(-2px)}
+.tc .tic{font-size:26px;margin-bottom:8px;display:block}
+.tc h4{font-size:15px;font-weight:600;margin-bottom:3px}
+.tc p{font-size:12px;color:rgba(255,255,255,.35)}
+
+/* 市集 */
+.scroll{display:flex;gap:20px;overflow-x:auto;padding:12px 0 20px;scroll-snap-type:x mandatory}
+.scroll::-webkit-scrollbar{height:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--accent3);border-radius:4px}
+.sc{min-width:340px;border-radius:24px;overflow:hidden;background:var(--card);scroll-snap-align:start;flex-shrink:0;border:1px solid var(--border);transition:transform .5s var(--ease),box-shadow .3s,border-color .3s;cursor:pointer}
+.sc:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(232,146,124,.08);border-color:var(--accent2)}
+.sc .si{height:180px;display:flex;align-items:center;justify-content:center;font-size:52px}
+.sc .sb{padding:20px 24px}
+.sc .sb h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.sc .sb .ad{font-size:12px;color:var(--text2);margin-bottom:8px}
+.sc .sb .tags{display:flex;gap:6px;flex-wrap:wrap}
+.sc .sb .tags span{background:var(--accent4);padding:3px 12px;border-radius:12px;font-size:11px;color:var(--accent);font-weight:500}
+
+/* Footer */
+footer{padding:60px 56px 32px;border-top:1px solid var(--border)}
+.fg{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.fb h3{font-family:'Noto Serif SC',serif;font-size:18px;font-weight:900;margin-bottom:10px;letter-spacing:1px}
+.fb h3 span{color:var(--accent)}
+.fb p{color:var(--text2);font-size:13px;line-height:1.8;max-width:280px}
+.fc h4{font-size:11px;letter-spacing:2px;font-weight:600;margin-bottom:14px}
+.fc a{display:block;color:var(--text2);text-decoration:none;font-size:13px;margin-bottom:9px;cursor:pointer;transition:color .3s,padding-left .3s}
+.fc a:hover{color:var(--accent);padding-left:4px}
+.fb2{display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid var(--border);font-size:13px;color:var(--text3)}
+
+/* ===== 作品页 ===== */
+.gallery-page{padding:40px 56px 60px}
+.gallery-page .filters{display:flex;gap:10px;margin-bottom:36px;flex-wrap:wrap}
+.gallery-page .filter{padding:8px 22px;border-radius:40px;border:1.5px solid var(--border);background:var(--card);font-size:13px;color:var(--text2);cursor:pointer;transition:.3s;font-weight:500}
+.gallery-page .filter:hover{border-color:var(--accent2);color:var(--text)}
+.gallery-page .filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.g-item{border-radius:20px;overflow:hidden;position:relative;cursor:pointer;background:var(--card);transition:.5s;box-shadow:0 4px 20px rgba(232,146,124,.04)}
+.g-item:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(232,146,124,.1)}
+.g-item .gb{height:260px;display:flex;align-items:center;justify-content:center;font-size:56px;transition:.6s}
+.g-item:hover .gb{transform:scale(1.04)}
+.g-item .go{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(45,31,24,.55));opacity:0;transition:.4s}
+.g-item:hover .go{opacity:1}
+.g-item .gi{position:absolute;bottom:0;left:0;right:0;padding:20px;color:#fff;transform:translateY(10px);opacity:0;transition:.4s}
+.g-item:hover .gi{transform:translateY(0);opacity:1}
+.g-item .gi h3{font-size:15px;font-weight:600}
+.g-item .gi p{font-size:11px;opacity:.65;margin-top:2px}
+.g-item .gi .pr{font-size:14px;font-weight:600;margin-top:4px;color:var(--accent2)}
+.g-item .gt{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.92);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;color:var(--text)}
+.gp-footer{margin-top:36px;display:flex;justify-content:center;gap:8px}
+.gp-footer .pgn{padding:8px 16px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:13px;color:var(--text2);cursor:pointer;transition:.3s}
+.gp-footer .pgn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ===== 市集页 ===== */
+.market-page{padding:40px 56px 60px}
+.fs-banner{border-radius:24px;overflow:hidden;margin-bottom:40px;background:linear-gradient(135deg,var(--text),#3D2C23);color:#fff;display:grid;grid-template-columns:1fr 1fr;min-height:240px}
+.fs-banner .fsl{padding:40px;display:flex;flex-direction:column;justify-content:center}
+.fs-banner .fsl .fst{font-size:11px;letter-spacing:3px;color:var(--accent2);font-weight:600;margin-bottom:10px}
+.fs-banner .fsl h2{font-family:'Noto Serif SC',serif;font-size:26px;font-weight:900;margin-bottom:8px}
+.fs-banner .fsl p{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:16px}
+.fs-banner .fsl a{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;background:var(--accent);color:#fff;border-radius:40px;text-decoration:none;font-size:13px;font-weight:600;cursor:pointer;transition:.3s}
+.fs-banner .fsl a:hover{gap:14px}
+.fs-banner .fsr{display:flex;align-items:center;justify-content:center;font-size:72px}
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:40px}
+.sgc{border-radius:20px;overflow:hidden;background:var(--card);border:1px solid var(--border);transition:.4s;cursor:pointer}
+.sgc:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(232,146,124,.08);border-color:var(--accent2)}
+.sgc .sgt{height:140px;display:flex;align-items:center;justify-content:center;font-size:44px;position:relative}
+.sgc .sgt .sgtag{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.92);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;color:var(--text)}
+.sgc .sgb{padding:16px 20px}
+.sgc .sgb h3{font-size:15px;font-weight:600;margin-bottom:3px}
+.sgc .sgb .sad{font-size:12px;color:var(--text2);margin-bottom:6px}
+.sgc .sgb .stags{display:flex;gap:6px;flex-wrap:wrap}
+.sgc .sgb .stags span{background:var(--accent4);padding:2px 12px;border-radius:12px;font-size:11px;color:var(--accent);font-weight:500}
+
+/* 市集页优化 */
+.mk-tabs{display:flex;gap:4px;background:var(--card);padding:4px;border-radius:40px;border:1px solid var(--border)}
+.mk-tab{padding:6px 18px;border-radius:40px;font-size:12px;color:var(--text2);cursor:pointer}
+.mk-tab.active{background:var(--accent);color:#fff}
+.mk-search-wrap{position:sticky;top:0;z-index:10;padding:12px 0;margin-bottom:16px;background:rgba(253,247,242,.55);backdrop-filter:blur(16px)}
+.mk-search{display:flex;gap:8px;margin:0}
+.mk-search input{flex:1;padding:10px 16px 10px 38px;border-radius:40px;border:1.5px solid rgba(240,226,216,.35);background:rgba(255,255,255,.55);font-size:13px;outline:none}
+.mk-search input:focus{border-color:var(--accent2);background:rgba(255,255,255,.95)}
+.mk-search-icon{position:absolute;margin:8px 0 0 14px;font-size:14px;z-index:1}
+.mk-search button{padding:10px 24px;border-radius:40px;border:none;background:rgba(232,146,124,.7);color:#fff;font-weight:600;font-size:12px;cursor:pointer}
+.mk-search button:hover{background:var(--accent)}
+.mk-banner{border-radius:24px;overflow:hidden;margin-bottom:28px;background:linear-gradient(135deg,var(--text),#3D2C23);color:#fff;display:grid;grid-template-columns:1.3fr 1fr;min-height:180px}
+.mkb-left{padding:36px;display:flex;flex-direction:column;justify-content:center}
+.mkb-badge{display:inline-block;padding:4px 14px;border-radius:20px;background:rgba(232,146,124,.25);color:var(--accent2);font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:12px;width:fit-content}
+.mkb-left h3{font-family:'Noto Serif SC',serif;font-size:24px;font-weight:900;margin-bottom:8px}
+.mkb-left p{color:rgba(255,255,255,.5);font-size:13px;line-height:1.7;margin-bottom:14px}
+.mkb-info{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:rgba(255,255,255,.4);margin-bottom:16px}
+.mkb-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 28px;background:var(--accent);color:#fff;border-radius:40px;font-size:13px;font-weight:600;width:fit-content;cursor:pointer}
+.mkb-btn:hover{gap:14px}
+.mk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:36px}
+.mk-row{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
+.mk-col-left{min-width:0}
+.mk-col-right{position:sticky;top:80px}
+.mk-map{border-radius:16px;overflow:hidden;background:var(--card);border:1px solid var(--border)}
+.mk-map-inner{height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;background:rgba(252,232,222,.3)}
+.mk-map-icon{font-size:36px;margin-bottom:6px}
+.mk-map-pins{position:absolute;inset:0;pointer-events:none}
+.mk-pin{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px}
+.mk-pin span{font-size:16px}
+.mk-pin small{font-size:9px;background:rgba(255,255,255,.9);padding:1px 6px;border-radius:6px;color:var(--text);white-space:nowrap}
+.mk-nearby-list{padding:12px 16px}
+.mn-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)}
+.mn-item:last-child{border-bottom:none}
+.mn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+@media(max-width:1024px){
+  .mk-row{grid-template-columns:1fr}
+  .mk-col-right{position:static}
+}
+.mk-card{border-radius:16px;overflow:hidden;background:rgba(255,255,255,.65);backdrop-filter:blur(8px);border:1px solid rgba(240,226,216,.3);transition:.4s;cursor:pointer}
+.mk-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(232,146,124,.08);border-color:var(--accent2)}
+.mkc-top{height:80px;display:flex;align-items:flex-start;justify-content:space-between;padding:10px 14px;position:relative}
+.mkc-body{padding:12px 16px 16px}
+.mkc-hdr h3{font-size:14px;font-weight:600}
+.mkc-dist{font-size:11px;color:var(--text2);margin-bottom:3px}
+.mkc-dist strong{color:var(--accent)}
+.mkc-time{font-size:10px;color:var(--text3);margin-bottom:6px}
+.mkc-tags{gap:4px;margin-bottom:6px}
+.mkc-tags span{padding:2px 10px;font-size:10px}
+.mkc-pets{font-size:10px;color:var(--text3)}
+.mkc-pets span{color:var(--text2);font-weight:500}
+.mk-card .mkc-rating{font-size:11px}
+.mk-banner{min-height:180px}
+.mkb-left{padding:28px}
+.mkb-left h3{font-size:20px}
+.mkb-left p{font-size:12px;margin-bottom:10px}
+.mkb-info{gap:12px;font-size:11px;margin-bottom:12px}
+.mkb-btn{padding:8px 22px;font-size:12px}
+.mkb-right{font-size:60px}
+
+/* 搜索栏滚动固定 */
+.mk-search-wrap{position:sticky;top:0;z-index:10;padding:12px 0;margin-bottom:16px;background:rgba(253,247,242,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.mk-search{display:flex;gap:8px;margin:0}
+.mk-search input{padding:10px 16px 10px 38px;border-radius:40px;border:1.5px solid rgba(240,226,216,.35);background:rgba(255,255,255,.55);font-size:13px;outline:none}
+.mk-search input:focus{border-color:var(--accent2);background:rgba(255,255,255,.95)}
+.mk-search-icon{position:absolute;margin:8px 0 0 14px;font-size:14px;z-index:1}
+.mk-search button{padding:10px 24px;border-radius:40px;border:none;background:rgba(232,146,124,.7);color:#fff;font-weight:600;font-size:12px;cursor:pointer}
+.mk-search button:hover{background:var(--accent)}
+
+/* 地图透明度 */
+.mk-map-inner{background:rgba(252,232,222,.3)}
+.mk-map-inner p{font-size:13px}
+.mk-map-hint{font-size:10px}
+.mkb-right{display:flex;align-items:center;justify-content:center;font-size:80px;background:rgba(255,255,255,.03)}
+.mk-section-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.mk-count{font-size:12px;font-weight:400;color:var(--text3)}
+
+
+
+.mkc-top{height:100px;display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px;position:relative}
+.mkc-badge{padding:3px 12px;border-radius:12px;background:var(--accent);color:#fff;font-size:10px;font-weight:600}
+.mkc-like{font-size:18px;cursor:pointer;transition:.3s;color:rgba(255,255,255,.6)}
+.mkc-like:hover{color:#fff;transform:scale(1.2)}
+.mkc-body{padding:16px 20px 20px}
+.mkc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.mkc-hdr h3{font-size:15px;font-weight:600}
+.mkc-rating{font-size:12px;color:var(--accent);font-weight:600}
+.mkc-dist{font-size:12px;color:var(--text2);margin-bottom:4px}
+.mkc-dist strong{color:var(--accent)}
+.mkc-time{font-size:11px;color:var(--text3);margin-bottom:8px}
+.mkc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.mkc-tags span{background:var(--accent4);padding:2px 12px;border-radius:12px;font-size:11px;color:var(--accent);font-weight:500}
+.mkc-pets{font-size:11px;color:var(--text3)}
+.mkc-pets span{color:var(--text2);font-weight:500}
+.mk-map{border-radius:24px;overflow:hidden;background:var(--card);border:1px solid var(--border);height:280px}
+.mk-map-inner{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;background:var(--accent3)}
+.mk-map-icon{font-size:48px;margin-bottom:8px}
+.mk-map-inner p{font-size:14px;color:var(--text2)}
+.mk-map-hint{font-size:11px;color:var(--text3);margin-top:4px}
+.mk-map-pins{position:absolute;inset:0;pointer-events:none}
+.mk-pin{position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mk-pin span{font-size:20px}
+.mk-pin small{font-size:10px;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:8px;color:var(--text);white-space:nowrap}
+@media(max-width:1024px){
+  .mk-grid{grid-template-columns:1fr}
+  .mk-banner{grid-template-columns:1fr}
+  .mk-tabs{display:none}
+}
+.map-box{border-radius:24px;overflow:hidden;background:var(--accent3);height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:44px;color:var(--text3)}
+.map-box p{font-size:13px;color:var(--text2);margin-top:8px}
+
+/* ===== 社区页 ===== */
+.community-page{padding:40px 56px 60px}
+
+/* 社区三栏布局 */
+.community-layout{display:grid;grid-template-columns:240px 1fr 280px;gap:24px;align-items:start}
+.comm-left{position:sticky;top:0}
+.profile-card{background:var(--card);border-radius:20px;padding:24px;text-align:center;border:1px solid var(--border);margin-bottom:16px}
+.profile-card .pc-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px}
+.profile-card h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.profile-card .pc-meta{font-size:12px;color:var(--text2);margin-bottom:16px}
+.profile-card .pc-stats{display:flex;justify-content:center;gap:24px;margin-bottom:16px}
+.profile-card .pc-stats strong{display:block;font-size:18px;font-weight:700}
+.profile-card .pc-stats span{font-size:11px;color:var(--text3)}
+.profile-card .pc-btn{width:100%;padding:8px;border-radius:40px;border:1.5px solid var(--border);background:var(--card);font-size:12px;color:var(--text2);cursor:pointer}
+.profile-card .pc-btn:hover{border-color:var(--accent);color:var(--accent)}
+.my-list{background:var(--card);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+.my-item{padding:12px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border)}
+.my-item:hover{background:var(--accent4);color:var(--text);padding-left:24px}
+.my-item.active{background:var(--accent4);color:var(--accent);font-weight:600}
+.my-pets{background:var(--card);border-radius:16px;padding:16px 20px;border:1px solid var(--border)}
+.mp-title{font-size:13px;font-weight:600;margin-bottom:12px}
+.mp-grid{display:flex;gap:12px}
+.mp-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.mp-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.mp-item:hover .mp-av{transform:scale(1.1)}
+.mp-item span{font-size:11px;color:var(--text2)}
+.comm-right{position:sticky;top:0;display:flex;flex-direction:column;gap:16px}
+.side-card{background:var(--card);border-radius:20px;border:1px solid var(--border);padding:20px}
+.sc-title{font-size:14px;font-weight:600;margin-bottom:14px}
+.topic-item{display:flex;justify-content:space-between;padding:8px 12px;border-radius:12px;cursor:pointer}
+.topic-item:hover{background:var(--accent4)}
+.ti-tag{font-size:13px;font-weight:500}
+.ti-count{font-size:11px;color:var(--text3)}
+.rank-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;cursor:pointer}
+.rank-item:hover{background:var(--accent4)}
+.ri-num{width:22px;height:22px;border-radius:50%;background:var(--accent3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
+.rank-item:nth-child(1) .ri-num{background:var(--accent);color:#fff}
+.ri-av{font-size:22px}
+.ri-info h4{font-size:13px;font-weight:600}
+.ri-info span{font-size:11px;color:var(--text3)}
+.comment-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.comment-item:last-child{border-bottom:none}
+.ci-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ci-body{flex:1}
+.ci-body strong{font-size:12px;font-weight:600}
+.ci-body p{font-size:12px;color:var(--text2);margin-top:2px}
+.ci-time{font-size:10px;color:var(--text3)}
+@media(max-width:1024px){
+  .community-layout{grid-template-columns:1fr}
+  .comm-left,.comm-right{position:static}
+}
+
+.stories{display:flex;gap:14px;margin-bottom:36px;overflow-x:auto;padding-bottom:4px}
+.stories::-webkit-scrollbar{height:3px}
+.stories::-webkit-scrollbar-thumb{background:var(--accent3);border-radius:4px}
+.story{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0}
+.story .sa{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:3px solid var(--accent2);transition:.3s}
+.story:hover .sa{border-color:var(--accent)}
+.story .sn{font-size:11px;color:var(--text2);white-space:nowrap}
+.feed{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.post{border-radius:20px;overflow:hidden;background:var(--card);border:1px solid var(--border);transition:.3s}
+.post:hover{border-color:var(--accent2);box-shadow:0 8px 32px rgba(232,146,124,.06)}
+.post .ph{display:flex;align-items:center;gap:10px;padding:16px 20px}
+.post .ph .pa{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.post .ph .pi{flex:1}
+.post .ph .pi h4{font-size:14px;font-weight:600}
+.post .ph .pi span{font-size:11px;color:var(--text3)}
+.post .pimg{height:300px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative}
+.post .pimg .pit{position:absolute;bottom:14px;left:14px;background:rgba(0,0,0,.25);color:#fff;padding:4px 14px;border-radius:20px;font-size:11px}
+.post .pbody{padding:12px 20px 16px}
+.post .pbody p{font-size:14px;line-height:1.7}
+.post .pact{display:flex;gap:20px;padding:0 20px 14px}
+.post .pact span{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;transition:.3s}
+.post .pact span:hover{color:var(--accent)}
+
+/* ===== 笔记页 ===== */
+.notes-page{padding:36px 56px 60px}
+.notes-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+.notes-search input{width:260px;padding:10px 20px;border-radius:40px;border:1.5px solid var(--border);background:rgba(255,255,255,.55);font-size:13px;outline:none}
+.notes-search input:focus{border-color:var(--accent2);background:rgba(255,255,255,.85)}
+
+.notes-cats-row{display:flex;gap:12px;margin-bottom:36px;overflow-x:auto;padding-bottom:4px}
+.nc-card{display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:16px;cursor:pointer;transition:.3s;min-width:140px;flex-shrink:0}
+.nc-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(232,146,124,.12)}
+.nc-icon{font-size:28px}
+.nc-info h4{font-size:14px;font-weight:600}
+.nc-info span{font-size:11px;color:var(--text2);opacity:.7}
+
+.notes-subtitle{font-size:16px;font-weight:700;margin-bottom:16px}
+.articles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
+.article-card{border-radius:16px;padding:20px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:.4s}
+.article-card:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(232,146,124,.08);border-color:var(--accent2)}
+.ac-tag{display:inline-block;padding:2px 10px;border-radius:8px;font-size:10px;font-weight:600;margin-bottom:10px}
+.article-card h4{font-size:14px;font-weight:600;margin-bottom:6px;line-height:1.4}
+.article-card p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.ac-meta{display:flex;gap:14px;font-size:11px;color:var(--text3)}
+
+.ai-bar{display:flex;align-items:center;gap:20px;padding:16px 24px;border-radius:20px;background:rgba(255,255,255,.65);backdrop-filter:blur(12px);border:1px solid var(--border)}
+.ai-bar-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ai-bar-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px}
+.ai-bar-left strong{font-size:13px;font-weight:600}
+.ai-bar-status{font-size:11px;color:#7BC87E;margin-left:6px}
+.ai-bar-input{flex:1;display:flex;gap:8px}
+.ai-bar-input input{flex:1;padding:10px 16px;border-radius:40px;border:1.5px solid rgba(240,226,216,.35);background:rgba(255,255,255,.55);font-size:13px;outline:none}
+.ai-bar-input input:focus{border-color:var(--accent2);background:rgba(255,255,255,.85)}
+.ai-bar-input button{padding:10px 24px;border-radius:40px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer}
+.ai-bar-input button:hover{background:#D47A66}
+
+@media(max-width:1024px){
+  .articles-grid{grid-template-columns:repeat(2,1fr)}
+  .notes-header{flex-direction:column;gap:12px}
+  .notes-search input{width:100%}
+  .ai-bar{flex-direction:column;align-items:stretch;gap:12px}
+}
+@media(max-width:640px){
+  .articles-grid{grid-template-columns:1fr}
+}
+  .hero-stack .hi:nth-child(3){width:160px;height:200px;right:150px;top:150px}
+  nav{padding:0 20px}
+  .nav-links{gap:20px}
+  .nav-links a{font-size:12px}
+  section{padding:60px 20px}
+  .portfolio{grid-template-columns:repeat(6,1fr)}
+  .w2{grid-column:span 6;grid-row:span 2}
+  .m2{grid-column:span 6;grid-row:span 2}
+  .t2{grid-column:span 3;grid-row:span 2}
+  .h2{grid-column:span 3;grid-row:span 1}
+  .ti{grid-template-columns:1fr}
+  .fg{grid-template-columns:1fr 1fr}
+  .hero-left h1{font-size:40px}
+  .gallery-grid{grid-template-columns:repeat(2,1fr)}
+  .sg{grid-template-columns:1fr}
+  .notes-page{grid-template-columns:1fr}
+  .market-page,.gallery-page,.community-page{padding:30px 20px 40px}
+  .fs-banner{grid-template-columns:1fr}
+}
+
+/* ===== 强制修复：社区和笔记页面显示 ===== */
+
+.notes-page .notes-cats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 36px;
+  overflow-x: auto;
+}
+
+
+.profile-page{padding:0 56px 60px}
+.pp-header{background:var(--card);border-radius:24px;overflow:hidden;border:1px solid var(--border);margin-bottom:24px;margin-top:32px}
+.pp-cover{height:100px;background:linear-gradient(135deg,#FCE8DE,#F5C8B8,#E8F4FC)}
+.pp-user{display:flex;align-items:center;gap:20px;padding:0 32px;margin-top:-32px}
+.pp-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:32px;border:4px solid var(--card);flex-shrink:0}
+.pp-info{flex:1}
+.pp-info h2{font-size:20px;font-weight:700}
+.pp-info span{font-size:13px;color:var(--text2)}
+.pp-level{display:inline-block;padding:2px 12px;border-radius:12px;background:var(--accent4);color:var(--accent);font-size:11px;font-weight:600;margin-top:4px}
+.pp-edit{padding:8px 24px;border-radius:40px;border:1.5px solid var(--border);background:var(--card);font-size:13px;color:var(--text2);cursor:pointer}
+.pp-edit:hover{border-color:var(--accent);color:var(--accent)}
+.pp-stats{display:flex;gap:32px;padding:16px 32px 20px;border-top:1px solid var(--border);margin-top:12px}
+.pp-stats div{text-align:center}
+.pp-stats strong{display:block;font-size:20px;font-weight:700}
+.pp-stats span{font-size:12px;color:var(--text3)}
+
+.pp-body{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pp-card{background:var(--card);border-radius:20px;padding:24px;border:1px solid var(--border);margin-bottom:20px}
+.pp-card h4{font-size:15px;font-weight:600;margin-bottom:16px}
+
+.pp-pets{display:flex;flex-direction:column;gap:12px}
+.pp-pet{display:flex;align-items:center;gap:12px;padding:8px;border-radius:12px;cursor:pointer}
+.pp-pet:hover{background:var(--accent4)}
+.pp-pet-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.pp-pet span{font-size:14px;font-weight:600}
+.pp-pet small{font-size:11px;color:var(--text2);margin-left:auto}
+
+.pp-menu{background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden}
+.pp-menu-item{padding:14px 24px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border)}
+.pp-menu-item:last-child{border-bottom:none}
+.pp-menu-item:hover{background:var(--accent4);color:var(--text);padding-left:28px}
+.pp-menu-item.active{background:var(--accent4);color:var(--accent);font-weight:600}
+
+.pp-tl-item{display:flex;gap:12px;margin-bottom:16px;position:relative}
+.pp-tl-item:last-child{margin-bottom:0}
+.pp-tl-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0}
+.pp-tl-item:not(:last-child)::after{content:'';position:absolute;left:4px;top:18px;width:2px;height:calc(100% - 4px);background:var(--accent3)}
+.pp-tl-item strong{font-size:13px;font-weight:600}
+.pp-tl-item p{font-size:12px;color:var(--text2);margin-top:2px}
+.pp-tl-item small{font-size:11px;color:var(--text3);display:block;margin-top:4px}
+
+.pp-rec{display:flex;flex-direction:column;gap:12px}
+.pp-rec-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer}
+.pp-rec-item:hover{background:var(--accent4)}
+.pp-rec-item span{font-size:24px}
+.pp-rec-item strong{font-size:13px;font-weight:600;display:block;margin-bottom:2px}
+.pp-rec-item p{font-size:12px;color:var(--text2)}
+
+@media(max-width:1024px){
+  .pp-body{grid-template-columns:1fr}
+  .profile-page{padding:0 20px 40px}
+  .pp-user{flex-wrap:wrap}
+  .pp-stats{gap:16px}
+}
+
+
+.order-btn{display:inline-block;margin-top:8px;padding:4px 14px;border-radius:40px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer;transition:.3s}
+.order-btn:hover{background:#D47A66;transform:scale(1.05)}
+.mk-order-btn{display:inline-block;margin-top:6px;padding:4px 14px;border-radius:40px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;transition:.3s}
+.mk-order-btn:hover{background:var(--accent);color:#fff}
+
+
+.cart-page{padding:36px 56px 60px}
+.cart-list{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.cart-item{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--card);border-radius:16px;border:1px solid var(--border);transition:.3s}
+.cart-item:hover{border-color:var(--accent2);box-shadow:0 4px 16px rgba(232,146,124,.04)}
+.ci-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex-shrink:0}
+.ci-img{width:60px;height:60px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.ci-info h4{font-size:15px;font-weight:600;margin-bottom:2px}
+.ci-shop{font-size:11px;color:var(--text3);display:block;margin-bottom:2px}
+.ci-tag{font-size:11px;color:var(--accent);background:var(--accent4);padding:1px 8px;border-radius:6px;display:inline-block}
+.ci-qty{display:flex;align-items:center;gap:8px}
+.ci-qty button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.ci-qty button:hover{border-color:var(--accent);color:var(--accent)}
+.ci-qty span{font-size:14px;font-weight:600;min-width:20px;text-align:center}
+.ci-price{font-size:18px;font-weight:700;color:var(--text);min-width:80px;text-align:right}
+.ci-del{font-size:16px;cursor:pointer;opacity:.3;transition:.3s;flex-shrink:0}
+.ci-del:hover{opacity:1}
+
+.cart-footer{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:var(--card);border-radius:16px;border:1px solid var(--border);position:sticky;bottom:0}
+.cf-left{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2)}
+.cf-check{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer}
+.cf-del{cursor:pointer}
+.cf-del:hover{color:var(--accent)}
+.cf-right{display:flex;align-items:center;gap:20px}
+.cf-btn{padding:12px 36px;border-radius:40px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:15px;cursor:pointer;transition:.3s;box-shadow:0 4px 16px rgba(232,146,124,.3)}
+.cf-btn:hover{background:#D47A66;transform:translateY(-1px);box-shadow:0 6px 24px rgba(232,146,124,.4)}
+
+@media(max-width:1024px){
+  .cart-page{padding:30px 20px 40px}
+  .cart-item{flex-wrap:wrap;gap:10px}
+  .ci-price{min-width:auto}
+  .cart-footer{flex-direction:column;gap:12px}
+}
+
+
+/* ===== 打字机动画 ===== */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.typewriter-cursor{border-right:2px solid var(--accent);animation:blink .8s step-end infinite;display:inline;padding-right:2px}
+
+/* ===== 点赞弹跳 ===== */
+@keyframes heartPop{0%{transform:scale(1)}25%{transform:scale(1.4)}50%{transform:scale(.9)}75%{transform:scale(1.15)}100%{transform:scale(1)}}
+.heart-anim{animation:heartPop .45s var(--ease);color:var(--accent)!important}
+
+/* ===== 卡片 stagger 增强 ===== */
+[data-stagger].visible>*{opacity:1;transform:translateY(0)}
+[data-stagger]>*{opacity:0;transform:translateY(24px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+
+
+
+.mkc-top { position: relative; overflow: hidden; }
+.mkc-top .mkc-badge { position: relative; z-index: 2; }
+.mkc-top .mkc-like { position: relative; z-index: 2; }
+
+/* ----- Image loading fade-in ----- */
+.pet-img, [style*="background:url"] {
+  animation: imgFadeIn .6s ease both;
+}
+@keyframes imgFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ----- Hide emoji text when background image is present ----- */
+.hbg {
+  color: transparent !important;
+  font-size: 0 !important;
+}
+/* Show labels on hero images */
+.hi .hl {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-shadow: 0 2px 12px rgba(0,0,0,.5);
+  z-index: 2;
+}
+.hi .hp {
+  z-index: 2;
+}
+
+/* ----- Fix page visibility for all non-home pages ----- */
+.page[data-page="community"]:not(.hide),
+.page[data-page="notes"]:not(.hide),
+.page[data-page="market"]:not(.hide),
+.page[data-page="cart"]:not(.hide),
+.page[data-page="profile"]:not(.hide) {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+/* ----- Fix notes page internal layout ----- */
+.page[data-page="notes"]:not(.hide) .notes-page {
+  display: block;
+  width: 100%;
+}
+
+/* ----- Hide emoji text when background image is present ----- */
+.pb, .gb, .hbg, .sgt, .mkc-top, .nc-card {
+  color: transparent !important;
+  font-size: 0 !important;
+  overflow: hidden;
+}
+/* Keep labels visible on portfolio items */
+.port .pi, .g-item .gi, .hi .hl, .hi .hp {
+  position: relative;
+  z-index: 3;
+}
+/* Better hero image cards */
+.hi {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,.12);
+}
+.hi .hbg {
+  transition: transform .6s cubic-bezier(.22,1,.36,1);
+}
+.hi:hover .hbg {
+  transform: scale(1.08);
+}
+</style>
+</head>
+<body>
+
+<div class="cd" id="cursorDot"></div>
+<div class="cr" id="cursorRing"></div>
+
+<nav id="nav">
+  <div class="logo" onclick="goPage('home')">🧡 Pet<span>Nest</span></div>
+  <div class="nav-links">
+    <a class="active" onclick="goPage('home')">作品</a>
+    <a onclick="goPage('market')">市集</a>
+    <a onclick="goPage('community')">社区</a>
+    <a onclick="goPage('notes')">笔记</a>
+  </div>
+  <div class="nav-actions">
+    <div class="nav-cart" onclick="goPage('cart')">
+      <span class="cart-icon">🛒</span>
+      <span class="cart-badge">3</span>
+    </div>
+    <div class="nav-user">
+    <div class="nav-user-trigger">
+      <div class="user-avatar">🙋</div>
+      <span class="user-name">个人中心</span>
+      <span class="user-arrow">▾</span>
+    </div>
+    <div class="nav-dropdown">
+      <a onclick="goPage('profile')">🙋 我的主页</a>
+      <a onclick="goPage('profile')">🐱 我的毛孩子</a>
+      <a onclick="goPage('profile')">📦 我的订单</a>
+      <a onclick="goPage('profile')">❤️ 我的收藏</a>
+      <a onclick="goPage('profile')">📝 我的动态</a>
+      <div class="nav-dropdown-divider"></div>
+      <a onclick="goPage('profile')">⚙️ 账号设置</a>
+      <div class="nav-dropdown-divider"></div>
+      <a style="color:var(--accent);font-weight:600;display:flex;align-items:center;gap:6px">
+        <span style="font-size:16px">🏪</span> 我是商家 · 入驻暖窝
+      </a>
+      <a style="color:var(--accent)">🚪 退出登录</a>
+    </div>
+  </div>
+  </div>
+</nav>
+
+<div id="app" style="height:100vh;overflow-y:auto;position:relative;">
+
+<!-- ===== 首页 ===== -->
+<div class="page" data-page="home" id="pageHome">
+  <!-- Hero -->
+  <div class="hero-section">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-tag smooth-enter">🧡 宠物生活艺廊</div>
+        <h1 class="smooth-enter" style="animation-delay:.1s" id="heroTitle">每一个生命<br>都值得一个<em>暖窝</em></h1>
+        <p class="sub smooth-enter" style="animation-delay:.2s">它们不是宠物，是家人、是治愈、是回家时最温柔的等候。</p>
+        <button class="hero-btn smooth-enter" style="animation-delay:.3s" onclick="goPage('market')">
+          探索市集 <span class="arr">→</span>
+        </button>
+      </div>
+      <div class="hero-right">
+        <div class="hero-stack" data-parallax>
+          <div class="hi" data-hover-3d style="top:0;right:10px"><div class="hbg" style="background:url("https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=500&fit=crop") center/cover">🐱</div><div class="hl">布偶猫·糯米</div><div class="hp">¥2,800</div></div>
+          <div class="hi" data-hover-3d style="top:70px;right:280px"><div class="hbg" style="background:url("https://images.unsplash.com/photo-1568572933382-74d440642117?w=300&h=400&fit=crop") center/cover">🐶</div><div class="hl">柴犬·柚子</div><div class="hp">¥3,800</div></div>
+          <div class="hi" data-hover-3d style="top:180px;right:190px"><div class="hbg" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=250&h=300&fit=crop") center/cover">🐹</div><div class="hl">金丝熊·团子</div><div class="hp">¥68</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 作品 -->
+  <section data-reveal>
+    <div class="sh">
+      <div class="l"><div class="st">🧡 作品</div><h2>精选集</h2><p class="desc">慢慢翻阅，也许命中注定的他/她就在下一幅。</p></div>
+      <a class="link" onclick="goPage('home')">浏览全部 <span>→</span></a>
+    </div>
+    <div class="portfolio" data-stagger>
+      <div class="port w2" style="--i:0"><div class="pb" style="background:url("https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=500&h=520&fit=crop") center/cover">🐱</div><div class="po"></div><span class="pt">猫咪·2个月</span><div class="pi"><h3>布偶猫·糯米</h3><p>Ragdoll·温柔亲人·已驱虫</p></div></div>
+      <div class="port m2" style="--i:1"><div class="pb" style="background:url("https://images.unsplash.com/photo-1504006833117-8886a355efbf?w=400&h=520&fit=crop") center/cover">🐶</div><div class="po"></div><span class="pt">狗狗·3个月</span><div class="pi"><h3>柴犬·柚子</h3><p>Shiba Inu·活泼好动</p></div></div>
+      <div class="port h2" style="--i:2"><div class="pb" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=300&h=260&fit=crop") center/cover">🐹</div><div class="po"></div><span class="pt">小宠</span><div class="pi"><h3>金丝熊·团子</h3></div></div>
+      <div class="port h2" style="--i:3"><div class="pb" style="background:url("https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=300&h=260&fit=crop") center/cover">🐦</div><div class="po"></div><span class="pt">鸟类</span><div class="pi"><h3>玄凤鹦鹉·蓝蓝</h3></div></div>
+      <div class="port t2" style="--i:4"><div class="pb" style="background:url("https://images.unsplash.com/photo-1520366498724-709889c0c685?w=300&h=520&fit=crop") center/cover">🐟</div><div class="po"></div><span class="pt">水族</span><div class="pi"><h3>龙鱼·赤焰</h3><p>亚洲红龙·极品发色</p></div></div>
+      <div class="port h2" style="--i:5"><div class="pb" style="background:url("https://images.unsplash.com/photo-1535241749838-299277b6305f?w=300&h=260&fit=crop") center/cover">🐰</div><div class="po"></div><span class="pt">小宠</span><div class="pi"><h3>垂耳兔·棉花</h3></div></div>
+      <div class="port h2" style="--i:6"><div class="pb" style="background:linear-gradient(135deg,#F0E8F0,#D8C8D8)">🐱</div><div class="po"></div><span class="pt">猫咪·2个月</span><div class="pi"><h3>暹罗猫·奶茶</h3></div></div>
+    </div>
+  </section>
+
+  <!-- 过渡区 -->
+  <div class="ts" data-reveal>
+    <div class="ti">
+      <div class="tl"><div class="st2">🧡 遇见</div><h2>从欣赏<br>到成为<em>一家人</em></h2><p>看看市集、逛逛社区、翻翻笔记——总有一种方式让它住进你心里。</p></div>
+      <div class="tr" data-stagger>
+        <div class="tc" style="--i:0" onclick="goPage('market')"><span class="tic">🏪</span><h4>逛市集</h4><p>品质商家·实地看宠</p></div>
+        <div class="tc" style="--i:1" onclick="goPage('community')"><span class="tic">💬</span><h4>进社区</h4><p>萌宠日常·养宠交流</p></div>
+        <div class="tc" style="--i:2" onclick="goPage('notes')"><span class="tic">📖</span><h4>翻笔记</h4><p>养宠百科·随时问答</p></div>
+        <div class="tc" style="--i:3"><span class="tic">🛒</span><h4>带回家</h4><p>极速配送上门</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 市集 -->
+  <section data-reveal>
+    <div class="sh"><div class="l"><div class="st">🏪 市集</div><h2>推荐门店</h2><p class="desc">品质商家·健康保障·欢迎实地看看</p></div><a class="link" onclick="goPage('market')">查看全部 <span>→</span></a></div>
+    <div class="scroll" data-stagger>
+      <div class="sc" style="--i:0"><div class="si" style="background:linear-gradient(135deg,#FCE8DE,#F5C8B8)">🏪</div><div class="sb"><h3>暖窝·思明店</h3><div class="ad">📍 思明区中山路128号</div><div class="tags"><span>🐱 猫咪</span><span>🐶 狗狗</span><span>🐹 小宠</span></div></div></div>
+      <div class="sc" style="--i:1"><div class="si" style="background:linear-gradient(135deg,#F5E8E0,#E0C8B8)">🏪</div><div class="sb"><h3>暖窝·湖里店</h3><div class="ad">📍 湖里万达广场3F</div><div class="tags"><span>🐱 猫咪</span><span>🐦 鸟类</span><span>🐟 水族</span></div></div></div>
+      <div class="sc" style="--i:2"><div class="si" style="background:linear-gradient(135deg,#E8F4FC,#C8DCF0)">🏪</div><div class="sb"><h3>暖窝·集美店</h3><div class="ad">📍 集美区石鼓路56号</div><div class="tags"><span>🐟 水族</span><span>🐹 小宠</span></div></div></div>
+      <div class="sc" style="--i:3"><div class="si" style="background:linear-gradient(135deg,#F0E8FC,#D8C8F0)">🏪</div><div class="sb"><h3>暖窝·翔安店</h3><div class="ad">📍 翔安区新兴街99号</div><div class="tags"><span>🐦 鸟类</span></div></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fg">
+      <div class="fb"><h3>🧡 Pet<span>Nest</span></h3><p>让每一个生命都拥有一个温暖的窝。</p></div>
+      <div class="fc"><h4>浏览</h4><a onclick="goPage('home')">作品</a><a onclick="goPage('market')">市集</a><a onclick="goPage('community')">社区</a><a onclick="goPage('notes')">笔记</a></div>
+      <div class="fc"><h4>帮助</h4><a>购物指南</a><a>配送说明</a><a>健康保障</a><a>退换政策</a></div>
+      <div class="fc"><h4>关于</h4><a>品牌故事</a><a>联系我们</a><a>加入暖窝</a><a>隐私政策</a></div>
+    </div>
+    <div class="fb2"><span>© 2026 PetNest · 用心温暖每一个生命</span><span>🧡</span></div>
+  </footer>
+</div>
+
+<!-- ===== 作品页（全部） ===== -->
+<div class="page hide" data-page="works" id="pageWorks">
+  <div class="gallery-page">
+    <div style="margin-bottom:24px"><div class="st">🖼️ 作品</div><h2 style="font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900">全部作品</h2><p style="color:var(--text2);font-size:14px;margin-top:6px">每一只宠物都是独一无二的艺术品</p></div>
+    <div class="filters"><span class="filter active">全部</span><span class="filter">🐱 猫咪</span><span class="filter">🐶 狗狗</span><span class="filter">🐹 小宠</span><span class="filter">🐦 鸟类</span><span class="filter">🐟 水族</span></div>
+    <div class="gallery-grid" data-stagger>
+      <div class="g-item" style="--i:0"><div class="gb" style="background:url("https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=500&h=520&fit=crop") center/cover">🐱</div><div class="go"></div><span class="gt">猫咪</span><div class="gi"><h3>布偶猫·糯米</h3><p>Ragdoll·2个月·已驱虫</p><div class="pr">¥2,800</div><button class="order-btn" onclick="event.stopPropagation();goPage('cart')">立即下单</button></div></div>
+      <div class="g-item" style="--i:1"><div class="gb" style="background:url("https://images.unsplash.com/photo-1504006833117-8886a355efbf?w=400&h=520&fit=crop") center/cover">🐶</div><div class="go"></div><span class="gt">狗狗</span><div class="gi"><h3>柴犬·柚子</h3><p>Shiba Inu·3个月·疫苗齐全</p><div class="pr">¥3,800</div><button class="order-btn" onclick="event.stopPropagation();goPage('cart')">立即下单</button></div></div>
+      <div class="g-item" style="--i:2"><div class="gb" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=300&h=260&fit=crop") center/cover">🐹</div><div class="go"></div><span class="gt">小宠</span><div class="gi"><h3>金丝熊·团子</h3><p>Syrian Hamster·1个月</p><div class="pr">¥68</div></div></div>
+      <div class="g-item" style="--i:3"><div class="gb" style="background:url("https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=300&h=260&fit=crop") center/cover">🐦</div><div class="go"></div><span class="gt">鸟类</span><div class="gi"><h3>玄凤鹦鹉·蓝蓝</h3><p>Cockatiel·2个月</p><div class="pr">¥258</div></div></div>
+      <div class="g-item" style="--i:4"><div class="gb" style="background:url("https://images.unsplash.com/photo-1520366498724-709889c0c685?w=300&h=520&fit=crop") center/cover">🐟</div><div class="go"></div><span class="gt">水族</span><div class="gi"><h3>龙鱼·赤焰</h3><p>亚洲红龙·35cm</p><div class="pr">¥8,800</div></div></div>
+      <div class="g-item" style="--i:5"><div class="gb" style="background:url("https://images.unsplash.com/photo-1535241749838-299277b6305f?w=300&h=260&fit=crop") center/cover">🐰</div><div class="go"></div><span class="gt">小宠</span><div class="gi"><h3>垂耳兔·棉花</h3><p>Holland Lop·1个月</p><div class="pr">¥128</div></div></div>
+      <div class="g-item" style="--i:6"><div class="gb pet-img" style="background:linear-gradient(135deg,rgba(240,232,240,.15),rgba(216,200,216,.15)),url("https://images.unsplash.com/photo-1543852786-1cf6534b8f7a?w=400&h=520&fit=crop") center/cover">🐱</div><div class="go"></div><span class="gt">猫咪</span><div class="gi"><h3>暹罗猫·奶茶</h3><p>Siamese·2个月</p><div class="pr">¥2,200</div></div></div>
+      <div class="g-item" style="--i:7"><div class="gb pet-img" style="background:linear-gradient(135deg,rgba(232,240,232,.15),rgba(200,220,200,.15)),url("https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=520&fit=crop") center/cover">🐶</div><div class="go"></div><span class="gt">狗狗</span><div class="gi"><h3>柯基·花生</h3><p>Pembroke·2个月</p><div class="pr">¥4,200</div></div></div>
+      <div class="g-item" style="--i:8"><div class="gb pet-img" style="background:linear-gradient(135deg,rgba(252,236,240,.15),rgba(245,200,216,.15)),url("https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400&h=520&fit=crop") center/cover">🐱</div><div class="go"></div><span class="gt">猫咪</span><div class="gi"><h3>英短蓝猫·灰灰</h3><p>British Shorthair·3个月</p><div class="pr">¥3,000</div></div></div>
+    </div>
+    <div class="gp-footer"><span class="pgn active">1</span><span class="pgn">2</span><span class="pgn">3</span></div>
+  </div>
+</div>
+
+<!-- ===== 市集页 ===== -->
+<div class="page hide" data-page="market" id="pageMarket">
+  <div class="market-page">
+    <!-- header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px">
+      <div><div class="st">🏪 市集</div><h2 style="font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900">暖窝市集</h2><p style="color:var(--text2);font-size:14px;margin-top:6px">品质商家 · 健康保障 · 全城 12 家门店</p></div>
+      <div class="mk-tabs"><span class="mk-tab active">附近门店</span><span class="mk-tab">全部门店</span><span class="mk-tab">收藏夹</span></div>
+    </div>
+
+    <!-- 搜索栏（滚动固定） -->
+    <div class="mk-search-wrap"><div class="mk-search"><span class="mk-search-icon">🔍</span><input placeholder="搜门店、宠物品种或位置..."><button>搜索</button></div></div>
+
+    <!-- 旗舰店横幅 -->
+    <div class="mk-banner" data-reveal>
+      <div class="mkb-left">
+        <span class="mkb-badge">⭐ 旗舰店</span>
+        <h3>暖窝·思明总店</h3>
+        <p>思明区最大的宠物体验中心，300㎡ 空间，60+品种猫咪狗狗等你来互动。提供宠物洗护、寄养、医疗一站式服务。</p>
+        <div class="mkb-info"><span>📍 思明区中山路128号</span><span>🕐 09:00-21:00</span><span>📞 0592-1234567</span></div>
+        <a class="mkb-btn">预约到店 →</a>
+      </div>
+      <div class="mkb-right">🏪</div>
+    </div>
+
+    <!-- 门店 + 地图 左右布局 -->
+    <div class="mk-row">
+      <div class="mk-col-left">
+        <h3 class="mk-section-title">🏪 推荐门店 <span class="mk-count">共 8 家</span></h3>
+        <div class="mk-grid" data-stagger>
+          <div class="mk-card" style="--i:0">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1418946411781-0c2cb2d10b1c?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-badge">⭐ 旗舰</span>
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·思明店</h3><span class="mkc-rating">★ 4.8</span></div>
+              <div class="mkc-dist">📍 思明区中山路128号 · <strong>1.2km</strong></div>
+              <div class="mkc-time">🕐 09:00-21:00</div>
+              <div class="mkc-tags"><span>🐱 猫咪</span><span>🐶 狗狗</span><span>🐹 小宠</span></div>
+            </div>
+          </div>
+          <div class="mk-card" style="--i:1">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-badge" style="background:var(--accent2);color:var(--text)">🔥 热门</span>
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·湖里店</h3><span class="mkc-rating">★ 4.6</span></div>
+              <div class="mkc-dist">📍 湖里万达广场3F · <strong>3.5km</strong></div>
+              <div class="mkc-time">🕐 10:00-22:00</div>
+              <div class="mkc-tags"><span>🐱 猫咪</span><span>🐦 鸟类</span><span>🐟 水族</span></div>
+            </div>
+          </div>
+          <div class="mk-card" style="--i:2">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1574047473179-a73921fc18eb?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·集美店</h3><span class="mkc-rating">★ 4.5</span></div>
+              <div class="mkc-dist">📍 集美区石鼓路56号 · <strong>5.8km</strong></div>
+              <div class="mkc-time">🕐 09:30-20:30</div>
+              <div class="mkc-tags"><span>🐟 水族</span><span>🐹 小宠</span><span>🐰 兔子</span></div>
+            </div>
+          </div>
+          <div class="mk-card" style="--i:3">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1559251606-c623743a6d76?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·翔安店</h3><span class="mkc-rating">★ 4.3</span></div>
+              <div class="mkc-dist">📍 翔安区新兴街99号 · <strong>8.2km</strong></div>
+              <div class="mkc-time">🕐 09:00-19:00</div>
+              <div class="mkc-tags"><span>🐦 鸟类</span><span>🐱 猫咪</span></div>
+            </div>
+          </div>
+          <div class="mk-card" style="--i:4">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1583337130417-3346c1be7b1d?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·同安店</h3><span class="mkc-rating">★ 4.2</span></div>
+              <div class="mkc-dist">📍 同安区环城西路88号 · <strong>12.5km</strong></div>
+              <div class="mkc-time">🕐 09:00-20:00</div>
+              <div class="mkc-tags"><span>🐱 猫咪</span><span>🐹 小宠</span><span>🐰 兔子</span></div>
+            </div>
+          </div>
+          <div class="mk-card" style="--i:5">
+            <div class="mkc-top" style="background:url("https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=400&h=150&fit=crop") center/cover;border-radius:12px 12px 0 0">
+              <span class="mkc-like">♡</span>
+            </div>
+            <div class="mkc-body">
+              <div class="mkc-hdr"><h3>暖窝·海沧店</h3><span class="mkc-rating">★ 4.4</span></div>
+              <div class="mkc-dist">📍 海沧区沧虹路66号 · <strong>9.8km</strong></div>
+              <div class="mkc-time">🕐 09:30-20:30</div>
+              <div class="mkc-tags"><span>🐶 狗狗</span><span>🐱 猫咪</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mk-col-right">
+        <h3 class="mk-section-title">📍 附近门店</h3>
+        <div class="mk-map">
+          <div class="mk-map-inner">
+            <div class="mk-map-icon">🗺️</div>
+            <p style="font-size:12px;color:var(--text2)">接入地图 API 后显示实时位置</p>
+            <div class="mk-map-pins">
+              <div class="mk-pin" style="top:25%;left:30%"><span>📍</span><small>思明店</small></div>
+              <div class="mk-pin" style="top:40%;left:58%"><span>📍</span><small>湖里店</small></div>
+              <div class="mk-pin" style="top:55%;left:38%"><span>📍</span><small>集美店</small></div>
+              <div class="mk-pin" style="top:65%;left:72%"><span>📍</span><small>翔安店</small></div>
+              <div class="mk-pin" style="top:50%;left:20%"><span>📍</span><small>同安店</small></div>
+              <div class="mk-pin" style="top:35%;left:45%"><span>📍</span><small>海沧店</small></div>
+            </div>
+          </div>
+          <div class="mk-nearby-list">
+            <div class="mn-item"><span class="mn-dot" style="background:var(--accent)"></span><span>思明店 · 1.2km</span></div>
+            <div class="mn-item"><span class="mn-dot" style="background:var(--accent2)"></span><span>湖里店 · 3.5km</span></div>
+            <div class="mn-item"><span class="mn-dot" style="background:var(--text3)"></span><span>集美店 · 5.8km</span></div>
+            <div class="mn-item"><span class="mn-dot" style="background:var(--text3)"></span><span>翔安店 · 8.2km</span></div>
+            <div class="mn-item"><span class="mn-dot" style="background:var(--text3)"></span><span>同安店 · 12.5km</span></div>
+            <div class="mn-item"><span class="mn-dot" style="background:var(--text3)"></span><span>海沧店 · 9.8km</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 社区页 ===== -->
+<div class="page hide" data-page="community" id="pageCommunity">
+  <div class="community-page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div><div class="st">💬 社区</div><h2 style="font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900">暖窝社区</h2><p style="color:var(--text2);font-size:14px;margin-top:6px">和万千宠友一起分享毛孩子的日常 🧡</p></div>
+      <button style="padding:10px 24px;border-radius:40px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:13px;transition:.3s">+ 发布</button>
+    </div>
+
+    <div class="community-layout">
+      <!-- ===== 左栏：我的 ===== -->
+      <div class="comm-left">
+        <div class="profile-card">
+          <div class="pc-avatar">🙋</div>
+          <h3>养宠人小暖</h3>
+          <div class="pc-meta">📍 厦门 · 养了 3 只毛孩子</div>
+          <div class="pc-stats">
+            <div><strong>28</strong><span>动态</span></div>
+            <div><strong>156</strong><span>粉丝</span></div>
+            <div><strong>42</strong><span>关注</span></div>
+          </div>
+          <button class="pc-btn">✏️ 编辑资料</button>
+        </div>
+        <div class="my-list">
+          <div class="my-item active">📝 我的动态</div>
+          <div class="my-item">❤️ 我的收藏</div>
+          <div class="my-item">🐱 我的宠物</div>
+          <div class="my-item">🏠 附近宠友</div>
+        </div>
+        <div class="my-pets">
+          <div class="mp-title">我的毛孩子</div>
+          <div class="mp-grid">
+            <div class="mp-item"><div class="mp-av" style="background:url("https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=500&h=520&fit=crop") center/cover">🐱</div><span>糯米</span></div>
+            <div class="mp-item"><div class="mp-av" style="background:url("https://images.unsplash.com/photo-1504006833117-8886a355efbf?w=400&h=520&fit=crop") center/cover">🐶</div><span>柚子</span></div>
+            <div class="mp-item"><div class="mp-av" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=300&h=260&fit=crop") center/cover">🐹</div><span>团子</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 中栏：帖子流 ===== -->
+      <div class="comm-center">
+        <div class="stories"><div class="story"><div class="sa" style="border-color:var(--accent)">➕</div><div class="sn">发布</div></div><div class="story"><div class="sa">🐱</div><div class="sn">糯米</div></div><div class="story"><div class="sa">🐶</div><div class="sn">柚子</div></div><div class="story"><div class="sa">🐹</div><div class="sn">团子</div></div><div class="story"><div class="sa">🐦</div><div class="sn">蓝蓝</div></div><div class="story"><div class="sa">🐰</div><div class="sn">棉花</div></div></div>
+        <div class="feed" data-stagger>
+          <div class="post" style="--i:0">
+            <div class="ph"><div class="pa" style="background:var(--accent4)">🐱</div><div class="pi"><h4>糯米的日常</h4><span>2 小时前 · 思明区</span></div></div>
+            <div class="pimg" style="background:url("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=640&h=300&fit=crop") center/cover">🐱<span class="pit">☀️ 今天阳光真好</span></div>
+            <div class="pbody"><p>带糯米出来晒太阳，小家伙舒服得直打呼噜～领养它一个月了，从怯生生到满屋子跑，太治愈了。</p></div>
+            <div class="pact"><span class="like-btn" data-count="128">❤️ 128</span><span>💬 24 <span style="font-weight:400;color:var(--text3)">· 查看评论</span></span><span>↗️ 分享</span></div>
+          </div>
+          <div class="post" style="--i:1">
+            <div class="ph"><div class="pa" style="background:var(--accent4)">🐶</div><div class="pi"><h4>柚子拆家记</h4><span>5 小时前 · 湖里区</span></div></div>
+            <div class="pimg" style="background:url("https://images.unsplash.com/photo-1534361960057-19889db9621e?w=640&h=300&fit=crop") center/cover">🐶<span class="pit">🎾 接住！</span></div>
+            <div class="pbody"><p>柴犬拆家日记：今日战果——拖鞋一双、纸巾半包。但看到这张脸就气不起来了 😂 #柴犬的日常</p></div>
+            <div class="pact"><span class="like-btn" data-count="256">❤️ 256</span><span>💬 42 <span style="font-weight:400;color:var(--text3)">· 查看评论</span></span><span>↗️ 分享</span></div>
+          </div>
+          <div class="post" style="--i:2">
+            <div class="ph"><div class="pa" style="background:var(--accent4)">🐹</div><div class="pi"><h4>团子饲养员</h4><span>昨天 · 集美区</span></div></div>
+            <div class="pimg" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=640&h=300&fit=crop") center/cover">🐹<span class="pit">🍎 腮帮子鼓鼓</span></div>
+            <div class="pbody"><p>给团子做了个新窝，它把整个脑袋塞进棉花里只露个屁股哈哈哈。金丝熊的腮帮子真是治愈源泉！</p></div>
+            <div class="pact"><span class="like-btn" data-count="89">❤️ 89</span><span>💬 15 <span style="font-weight:400;color:var(--text3)">· 查看评论</span></span><span>↗️ 分享</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 右栏：话题·排行·评论区 ===== -->
+      <div class="comm-right">
+        <!-- 话题 -->
+        <div class="side-card">
+          <div class="sc-title">🔥 热门话题</div>
+          <div class="topic-list">
+            <div class="topic-item"><span class="ti-tag"># 晒猫大赛</span><span class="ti-count">1.2k 讨论</span></div>
+            <div class="topic-item"><span class="ti-tag"># 狗狗迷惑行为</span><span class="ti-count">856 讨论</span></div>
+            <div class="topic-item"><span class="ti-tag"># 新手养宠求助</span><span class="ti-count">723 讨论</span></div>
+            <div class="topic-item"><span class="ti-tag"># 宠物摄影</span><span class="ti-count">512 讨论</span></div>
+            <div class="topic-item"><span class="ti-tag"># 领养代替购买</span><span class="ti-count">498 讨论</span></div>
+          </div>
+        </div>
+
+        <!-- 排行 -->
+        <div class="side-card">
+          <div class="sc-title">🏆 萌宠排行</div>
+          <div class="rank-list">
+            <div class="rank-item"><span class="ri-num">1</span><span class="ri-av">🐱</span><div class="ri-info"><h4>布偶猫·糯米</h4><span>❤️ 2,380 人气</span></div></div>
+            <div class="rank-item"><span class="ri-num">2</span><span class="ri-av">🐶</span><div class="ri-info"><h4>柴犬·柚子</h4><span>❤️ 1,956 人气</span></div></div>
+            <div class="rank-item"><span class="ri-num">3</span><span class="ri-av">🐹</span><div class="ri-info"><h4>金丝熊·团子</h4><span>❤️ 1,284 人气</span></div></div>
+            <div class="rank-item"><span class="ri-num">4</span><span class="ri-av">🐦</span><div class="ri-info"><h4>玄凤·蓝蓝</h4><span>❤️ 967 人气</span></div></div>
+            <div class="rank-item"><span class="ri-num">5</span><span class="ri-av">🐰</span><div class="ri-info"><h4>垂耳兔·棉花</h4><span>❤️ 823 人气</span></div></div>
+          </div>
+        </div>
+
+        <!-- 评论区 -->
+        <div class="side-card">
+          <div class="sc-title">💬 最新评论</div>
+          <div class="comment-list">
+            <div class="comment-item">
+              <div class="ci-av" style="background:var(--accent4)">🐱</div>
+              <div class="ci-body"><strong>喵星人小王</strong><p>糯米也太可爱了吧！求问在哪里领养的？</p><span class="ci-time">刚刚</span></div>
+            </div>
+            <div class="comment-item">
+              <div class="ci-av" style="background:var(--accent4)">🐶</div>
+              <div class="ci-body"><strong>柴犬爱好者</strong><p>柚子拆家那段笑死我了，同款柴犬😂</p><span class="ci-time">5 分钟前</span></div>
+            </div>
+            <div class="comment-item">
+              <div class="ci-av" style="background:var(--accent4)">🐹</div>
+              <div class="ci-body"><strong>仓鼠妈妈</strong><p>团子这个腮帮子我可以看一整天！</p><span class="ci-time">15 分钟前</span></div>
+            </div>
+            <div class="comment-item">
+              <div class="ci-av" style="background:var(--accent4)">🐦</div>
+              <div class="ci-body"><strong>鸟宝爸爸</strong><p>蓝蓝会吹口哨吗？我家玄凤会学手机铃声📱</p><span class="ci-time">32 分钟前</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 笔记页 ===== -->
+<div class="page hide" data-page="notes" id="pageNotes">
+  <div class="notes-page">
+    <div class="notes-header">
+      <div><div class="st">📖 笔记</div><h2 style="font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900">养宠笔记</h2><p style="color:var(--text2);font-size:14px;margin-top:6px">养宠知识百科 · 你想知道的都在这里</p></div>
+      <div class="notes-search"><input placeholder="🔍 搜索养宠知识..."></div>
+    </div>
+
+    <!-- 分类卡片 -->
+    <div class="notes-cats-row" data-reveal>
+      <div class="nc-card" style="background:url("https://images.unsplash.com/photo-1574158622682-e40e69881006?w=200&h=120&fit=crop") center/cover">
+        <span class="nc-icon">🐱</span>
+        <div class="nc-info"><h4>猫咪</h4><span>12 篇文章</span></div>
+      </div>
+      <div class="nc-card" style="background:url("https://images.unsplash.com/photo-1568572933382-74d440642117?w=200&h=120&fit=crop") center/cover">
+        <span class="nc-icon">🐶</span>
+        <div class="nc-info"><h4>狗狗</h4><span>15 篇文章</span></div>
+      </div>
+      <div class="nc-card" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=200&h=120&fit=crop") center/cover">
+        <span class="nc-icon">🐹</span>
+        <div class="nc-info"><h4>小宠</h4><span>8 篇文章</span></div>
+      </div>
+      <div class="nc-card" style="background:url("https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=200&h=120&fit=crop") center/cover">
+        <span class="nc-icon">🐦</span>
+        <div class="nc-info"><h4>鸟类</h4><span>6 篇文章</span></div>
+      </div>
+      <div class="nc-card" style="background:url("https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200&h=120&fit=crop") center/cover">
+        <span class="nc-icon">🐟</span>
+        <div class="nc-info"><h4>水族</h4><span>7 篇文章</span></div>
+      </div>
+    </div>
+
+    <!-- 精选文章 -->
+    <h3 class="notes-subtitle">📋 精选文章</h3>
+    <div class="articles-grid" data-stagger>
+      <div class="article-card" style="--i:0">
+        <span class="ac-tag" style="background:var(--accent4);color:var(--accent)">🐱 猫咪</span>
+        <h4>新手养猫必备清单</h4>
+        <p>从猫砂盆到逗猫棒，接猫回家前要准备的所有东西，一篇说清楚。</p>
+        <div class="ac-meta"><span>📖 5 分钟</span><span>❤️ 1,280</span><span>💬 56</span></div>
+      </div>
+      <div class="article-card" style="--i:1">
+        <span class="ac-tag" style="background:#F0E8FC;color:#8B6BA8">🐶 狗狗</span>
+        <h4>柴犬性格解析与训练指南</h4>
+        <p>柴犬为什么那么倔？如何科学训练这只「狗中哈士奇」？资深训犬师经验分享。</p>
+        <div class="ac-meta"><span>📖 8 分钟</span><span class="like-btn" data-count="956">❤️ 956</span><span>💬 42</span></div>
+      </div>
+      <div class="article-card" style="--i:2">
+        <span class="ac-tag" style="background:#E8F4FC;color:#4A8BA8">🐟 水族</span>
+        <h4>新手开缸完全指南</h4>
+        <p>从养水、选鱼到日常维护，手把手教你打造一个漂亮的水族箱。</p>
+        <div class="ac-meta"><span>📖 10 分钟</span><span class="like-btn" data-count="723">❤️ 723</span><span>💬 38</span></div>
+      </div>
+      <div class="article-card" style="--i:3">
+        <span class="ac-tag" style="background:var(--accent4);color:var(--accent)">🐱 猫咪</span>
+        <h4>猫咪常见疾病预防与识别</h4>
+        <p>学会观察猫咪的异常信号，早发现早治疗，守护毛孩子健康。</p>
+        <div class="ac-meta"><span>📖 6 分钟</span><span>❤️ 2,103</span><span>💬 89</span></div>
+      </div>
+      <div class="article-card" style="--i:4">
+        <span class="ac-tag" style="background:#FCE8F0;color:#C85A8A">🐹 小宠</span>
+        <h4>金丝熊饲养手册</h4>
+        <p>笼子多大才够？吃什么最好？一篇搞定金丝熊的吃喝住行全攻略。</p>
+        <div class="ac-meta"><span>📖 4 分钟</span><span class="like-btn" data-count="534">❤️ 534</span><span>💬 27</span></div>
+      </div>
+      <div class="article-card" style="--i:5">
+        <span class="ac-tag" style="background:#F0E8FC;color:#8B6BA8">🐶 狗狗</span>
+        <h4>幼犬到家第一周怎么做</h4>
+        <p>接狗狗回家的第一个7天，做好这些事让它快速适应新家。</p>
+        <div class="ac-meta"><span>📖 5 分钟</span><span>❤️ 1,856</span><span>💬 73</span></div>
+      </div>
+    </div>
+
+    <!-- AI 助手悬浮条 -->
+    <div class="ai-bar" data-reveal>
+      <div class="ai-bar-left">
+        <div class="ai-bar-av">🤖</div>
+        <div><strong>暖窝 AI 助手</strong><span class="ai-bar-status">🟢 在线</span></div>
+      </div>
+      <div class="ai-bar-input">
+        <input placeholder="输入你的养宠问题...">
+        <button>发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- ===== 订单/购物车 ===== -->
+<div class="page hide" data-page="cart" id="pageCart">
+  <div class="cart-page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px">
+      <div><div class="st">🛒 下单</div><h2 style="font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900">购物车</h2><p style="color:var(--text2);font-size:14px;margin-top:6px">共 3 件商品</p></div>
+      <span style="font-size:13px;color:var(--text3);cursor:pointer">清空购物车</span>
+    </div>
+
+    <!-- 购物车列表 -->
+    <div class="cart-list" data-stagger>
+      <div class="cart-item" style="--i:0">
+        <div class="ci-check" style="background:var(--accent);color:#fff">✓</div>
+        <div class="ci-img" style="background:url("https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=500&h=520&fit=crop") center/cover">🐱</div>
+        <div class="ci-info">
+          <h4>布偶猫 · 糯米</h4>
+          <span class="ci-shop">🏪 暖窝·思明店</span>
+          <span class="ci-tag">已驱虫 · 疫苗齐全</span>
+        </div>
+        <div class="ci-qty">
+          <button>−</button>
+          <span>1</span>
+          <button>+</button>
+        </div>
+        <div class="ci-price">¥2,800</div>
+        <span class="ci-del">🗑️</span>
+      </div>
+      <div class="cart-item" style="--i:1">
+        <div class="ci-check">✓</div>
+        <div class="ci-img" style="background:url("https://images.unsplash.com/photo-1504006833117-8886a355efbf?w=400&h=520&fit=crop") center/cover">🐶</div>
+        <div class="ci-info">
+          <h4>柴犬 · 柚子</h4>
+          <span class="ci-shop">🏪 暖窝·思明店</span>
+          <span class="ci-tag">疫苗齐全 · 3个月</span>
+        </div>
+        <div class="ci-qty">
+          <button>−</button>
+          <span>1</span>
+          <button>+</button>
+        </div>
+        <div class="ci-price">¥3,800</div>
+        <span class="ci-del">🗑️</span>
+      </div>
+      <div class="cart-item" style="--i:2">
+        <div class="ci-check">✓</div>
+        <div class="ci-img" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=300&h=260&fit=crop") center/cover">🐹</div>
+        <div class="ci-info">
+          <h4>金丝熊 · 团子</h4>
+          <span class="ci-shop">🏪 暖窝·湖里店</span>
+          <span class="ci-tag">1个月 · 已驱虫</span>
+        </div>
+        <div class="ci-qty">
+          <button>−</button>
+          <span>1</span>
+          <button>+</button>
+        </div>
+        <div class="ci-price">¥68</div>
+        <span class="ci-del">🗑️</span>
+      </div>
+    </div>
+
+    <!-- 结算栏 -->
+    <div class="cart-footer">
+      <div class="cf-left">
+        <span class="cf-check" style="background:var(--accent);color:#fff">✓</span>
+        <span>全选</span>
+        <span class="cf-del">删除选中</span>
+      </div>
+      <div class="cf-right">
+        <span>合计：<strong style="font-size:22px;color:var(--accent)">¥6,668</strong></span>
+        <button class="cf-btn" onclick="alert('订单已提交！')">去结算</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== 个人中心 ===== -->
+<div class="page hide" data-page="profile" id="pageProfile">
+  <div class="profile-page">
+    <!-- 头部 -->
+    <div class="pp-header">
+      <div class="pp-cover"></div>
+      <div class="pp-user">
+        <div class="pp-avatar">🙋</div>
+        <div class="pp-info">
+          <h2>养宠人小暖</h2>
+          <span>📍 厦门 · 加入 128 天</span>
+          <div class="pp-level">🧡 Lv.3 暖窝达人</div>
+        </div>
+        <button class="pp-edit">编辑资料</button>
+      </div>
+      <div class="pp-stats">
+        <div><strong>28</strong><span>动态</span></div>
+        <div><strong>156</strong><span>粉丝</span></div>
+        <div><strong>42</strong><span>关注</span></div>
+        <div><strong>12</strong><span>收藏</span></div>
+      </div>
+    </div>
+
+    <div class="pp-body">
+      <!-- 左栏：我的宠物 + 功能菜单 -->
+      <div class="pp-left">
+        <div class="pp-card">
+          <h4>🐱 我的毛孩子</h4>
+          <div class="pp-pets">
+            <div class="pp-pet"><div class="pp-pet-av" style="background:url("https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=500&h=520&fit=crop") center/cover">🐱</div><span>糯米</span><small>布偶猫 · 2个月</small></div>
+            <div class="pp-pet"><div class="pp-pet-av" style="background:url("https://images.unsplash.com/photo-1504006833117-8886a355efbf?w=400&h=520&fit=crop") center/cover">🐶</div><span>柚子</span><small>柴犬 · 3个月</small></div>
+            <div class="pp-pet"><div class="pp-pet-av" style="background:url("https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?w=300&h=260&fit=crop") center/cover">🐹</div><span>团子</span><small>金丝熊 · 1个月</small></div>
+          </div>
+        </div>
+        <div class="pp-menu">
+          <div class="pp-menu-item active">📝 我的动态</div>
+          <div class="pp-menu-item">❤️ 我的收藏</div>
+          <div class="pp-menu-item">📦 我的订单</div>
+          <div class="pp-menu-item">📍 收货地址</div>
+          <div class="pp-menu-item">⚙️ 账号设置</div>
+        </div>
+      </div>
+
+      <!-- 右栏：最近动态 + 推荐 -->
+      <div class="pp-right">
+        <div class="pp-card">
+          <h4>📝 最近动态</h4>
+          <div class="pp-timeline">
+            <div class="pp-tl-item">
+              <span class="pp-tl-dot"></span>
+              <div><strong>发布了新动态</strong><p>带糯米出去晒太阳，太治愈了~ ☀️</p><small>2 小时前</small></div>
+            </div>
+            <div class="pp-tl-item">
+              <span class="pp-tl-dot"></span>
+              <div><strong>收藏了一篇文章</strong><p>新手养猫必备清单</p><small>昨天</small></div>
+            </div>
+            <div class="pp-tl-item">
+              <span class="pp-tl-dot"></span>
+              <div><strong>在暖窝·思明店下单</strong><p>布偶猫·糯米 · 订单已完成</p><small>3 天前</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="pp-card">
+          <h4>💡 为你推荐</h4>
+          <div class="pp-rec">
+            <div class="pp-rec-item"><span>🧡</span><div><strong>猫咪疫苗攻略</strong><p>幼猫疫苗接种时间表</p></div></div>
+            <div class="pp-rec-item"><span>🧡</span><div><strong>冬日保暖指南</strong><p>宠物过冬必备好物</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ===== 光标 =====
+const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing');
+document.addEventListener('mousemove',e=>{dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px'});
+document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0'});
+document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1'});
+
+// ===== 导航滚动状态 =====
+window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>50)});
+
+// ===== SPA 路由 =====
+let currentPage = 'home';
+let isRouting = false;
+let pageHistory = ['home'];
+const pageMap = { home:'pageHome', works:'pageWorks', market:'pageMarket', community:'pageCommunity', notes:'pageNotes', profile:'pageProfile', cart:'pageCart' };
+
+function goPage(target) {
+
+  if(isRouting || target === currentPage) return;
+  isRouting = true;
+
+  const curEl = document.getElementById(pageMap[currentPage]);
+  const tarEl = document.getElementById(pageMap[target]);
+
+  if (!tarEl) { isRouting = false; return; }
+
+  // 判断前进/后退
+  const curIdx = pageHistory.indexOf(currentPage);
+  const tarIdx = pageHistory.indexOf(target);
+  const goingForward = tarIdx === -1 || tarIdx > curIdx;
+
+  // 更新历史
+  if (tarIdx === -1) pageHistory.push(target);
+  else while (pageHistory[pageHistory.length-1] !== target) pageHistory.pop();
+
+  // 当前页离开
+  curEl.style.display = '';
+  curEl.classList.remove('forward-enter','back-enter','forward-leave','back-leave');
+  curEl.classList.add(goingForward ? 'forward-leave' : 'back-leave');
+
+  // 移除滚动事件监听（离开的页面不需要了）
+  setTimeout(() => {
+    curEl.classList.remove('forward-leave','back-leave');
+    curEl.classList.add('hide');
+
+    // 目标页进入
+    tarEl.classList.remove('hide','forward-enter','back-enter');
+    tarEl.style.display = 'block';
+    tarEl.style.opacity = '1';
+    tarEl.style.visibility = 'visible';
+    tarEl.classList.add(goingForward ? 'forward-enter' : 'back-enter');
+
+    currentPage = target;
+    updateNav(target);
+
+    // 滚动到顶部 + 触发入场动画
+    tarEl.scrollTop = 0;
+    setTimeout(() => observePage(target), 100);
+
+    setTimeout(() => {
+      tarEl.classList.remove('forward-enter','back-enter');
+      isRouting = false;
+    }, 500);
+  }, 350);
+}
+
+function updateNav(target) {
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    const p = a.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (p) a.classList.toggle('active', p === target);
+  });
+}
+
+// ===== 滚动观察器 =====
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      // stagger 子元素延迟
+      if(entry.target.hasAttribute('data-stagger')) {
+        entry.target.querySelectorAll('[style*="--i"]').forEach(el => {
+          const i = el.style.getPropertyValue('--i') || '0';
+          el.style.transitionDelay = (parseInt(i) * 70) + 'ms';
+        });
+      }
+    }
+  });
+}, { threshold: .12, rootMargin: '0px 0px -40px 0px' });
+
+function observePage(pageId) {
+  const el = document.getElementById(pageMap[pageId]);
+  if (!el) return;
+  el.querySelectorAll('[data-reveal], [data-reveal-left], [data-reveal-right], [data-stagger]').forEach(el => {
+    revealObserver.observe(el);
+  });
+
+  // 3D hover
+  el.querySelectorAll('[data-hover-3d]').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5;
+      const y = (e.clientY - r.top) / r.height - .5;
+      el.style.transform = 'perspective(600px) rotateX(' + (-y*6) + 'deg) rotateY(' + (x*6) + 'deg)';
+    });
+    el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+  });
+}
+
+// ===== 初始化 =====
+observePage('home');
+
+// 浏览器后退
+window.addEventListener('popstate', () => {
+  if (pageHistory.length > 1) {
+    pageHistory.pop();
+    goPage(pageHistory[pageHistory.length-1]);
+  }
+});
+history.pushState(null, '', location.href);
+
+// ===== 打字机效果 =====
+function typeWriter(el, text, speed = 60) {
+  let i = 0;
+  el.innerHTML = '';
+  function type() {
+    if (i < text.length) {
+      el.innerHTML = text.substring(0, i+1) + '<span class="typewriter-cursor"></span>';
+      i++;
+      setTimeout(type, speed);
+    } else {
+      el.innerHTML = text;
+    }
+  }
+  type();
+}
+
+// 首页加载时打字机
+const heroH1 = document.getElementById('heroTitle');
+if (heroH1) {
+  const origText = heroH1.textContent.trim();
+  // 保留 em 标签的 html 结构
+  typeWriter(heroH1, '每一个生命都值得一个暖窝', 50);
+}
+
+// ===== 点赞 =====
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.like-btn');
+  if (btn) {
+    e.preventDefault();
+    let count = parseInt(btn.dataset.count);
+    if (!btn.classList.contains('liked')) {
+      // 未点赞 → 点赞
+      count++;
+      btn.classList.add('heart-anim', 'liked');
+      btn.innerHTML = '❤️ ' + count;
+      setTimeout(() => btn.classList.remove('heart-anim'), 450);
+    } else {
+      // 已点赞 → 取消
+      count--;
+      btn.classList.remove('liked');
+      btn.innerHTML = '🤍 ' + count;
+    }
+    btn.dataset.count = count;
+  }
+});
+
+// ===== Stagger 增强 =====
+const origObserve = observePage;
+observePage = function(pageId) {
+  const el = document.getElementById(pageMap[pageId]);
+  if (!el) { if (origObserve) origObserve(pageId); return; }
+  el.querySelectorAll('[data-reveal], [data-reveal-left], [data-reveal-right], [data-stagger]').forEach(el => {
+    revealObserver.observe(el);
+  });
+  el.querySelectorAll('[data-hover-3d]').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5;
+      const y = (e.clientY - r.top) / r.height - .5;
+      el.style.transform = 'perspective(600px) rotateX(' + (-y*6) + 'deg) rotateY(' + (x*6) + 'deg)';
+    });
+    el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+  });
+};
+
+</script>
+</body>
+</html>
