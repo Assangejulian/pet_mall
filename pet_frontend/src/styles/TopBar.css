@@ -14,6 +14,7 @@
 }
 
 .brand,
+.tabs a,
 .tabs button,
 .cart-button,
 .user-trigger,
@@ -53,6 +54,7 @@
   gap: clamp(22px, 4vw, 44px);
 }
 
+.tabs a,
 .tabs button {
   position: relative;
   color: var(--muted);
@@ -61,6 +63,7 @@
   transition: color 180ms ease, transform 180ms ease;
 }
 
+.tabs a::after,
 .tabs button::after {
   content: "";
   position: absolute;
@@ -74,12 +77,15 @@
   transition: transform 180ms ease;
 }
 
+.tabs a:hover,
 .tabs button:hover,
+.tabs a.active,
 .tabs button.active {
   color: var(--ink);
   transform: translateY(-1px);
 }
 
+.tabs a.active::after,
 .tabs button.active::after {
   transform: scaleX(1);
 }
@@ -210,4 +216,27 @@
   width: 100%;
   border: 0;
   border-top: 1px solid var(--line);
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    height: auto;
+    min-height: 70px;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    gap: 10px;
+    padding: 12px 18px;
+  }
+
+  .brand,
+  .nav-actions {
+    justify-self: center;
+  }
+
+  .tabs {
+    justify-self: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+  }
 }

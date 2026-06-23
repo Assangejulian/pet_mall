@@ -19,8 +19,8 @@
         <article class="flagship-compact">
           <span>安心门店</span>
           <h3>暖窝 思明总店</h3>
-          <p>300㎡ 温柔体验空间，20+ 小家伙正在等你来看看。</p>
-          <small>思明区中山路128号 · 09:00-21:00</small>
+          <p>300㎡ 温柔体验空间，60+ 小家伙正在等你来看看。</p>
+          <small>思明区中山路128号 · 09:00-21:00 · 0592-1234567</small>
         </article>
         <div class="city-map"><div class="map-inner">
           <p>厦门城市地图</p>
@@ -44,7 +44,7 @@
   </section>
 </template>
 <script setup lang="ts">
-import "../styles/global.css"
+import "../styles/MarketPage.css"
 import { onMounted } from "vue"
 import { usePetStore } from "../stores/pet"
 const petStore = usePetStore()

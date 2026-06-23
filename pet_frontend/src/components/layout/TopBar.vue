@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import "../../styles/global.css"
+import "../../styles/TopBar.css"
 import { useCartStore } from "../../stores/cart"
 import { useUserStore } from "../../stores/user"
 const cart = useCartStore()

@@ -67,24 +67,10 @@
   </section>
 </template>
 <script setup lang="ts">
-import "../styles/global.css"
+import "../styles/CommunityPage.css"
 import { ref, computed } from "vue"
 import { heroPets } from "../data/pets"
+import { communityNav, myPets, topics, tweets, ranks } from "../data/community"
 const search = ref("")
 const showTopics = computed(() => search.value.trim().length > 0)
-const communityNav = ["我的动态", "我的收藏", "我的宠物", "附近宠友"]
-const myPets: [string, string][] = [["米糝", heroPets[0]], ["柚子", heroPets[1]], ["团子", heroPets[2]]]
-const topics: [string, string][] = [["# 今天也被它可爱到", "1.2k 讨论"], ["# 它的小脾气好上头", "856 讨论"], ["# 每个生命都值得暖窝", "2.1k 讨论"], ["# 新手铲屎官报到", "634 讨论"]]
-const tweets = [
-  { user: "爱心人小暖", handle: "@xiaonuan", time: "2小时前", avatar: heroPets[0], text: "米糝今天第一次主动踭手。被它选中的那一秒，真的有点想原地截图保存。", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=85", stats: ["128", "24", "36"] as [string, string, string] },
-  { user: "柴犬爱好者", handle: "@shiba_daily", time: "5小时前", avatar: heroPets[1], text: "柚子今天把拖鞋叼到门口等我。", image: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=85", stats: ["256", "42", "77"] as [string, string, string] },
-  { user: "团子饲养员", handle: "@hamster_tuan", time: "昨天", avatar: heroPets[2], text: "给团子做了新窝，它把脑袋埋进棉花里。", image: "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=85", stats: ["89", "15", "19"] as [string, string, string] }
-]
-const ranks: [string, string, string, string][] = [
-  ["1", "布偶猫 米糝", "2,380 人气", heroPets[0]],
-  ["2", "柴犬 柚子", "1,956 人气", heroPets[1]],
-  ["3", "金丝熊 团子", "1,284 人气", heroPets[2]],
-  ["4", "玄凤 蓝蓝", "967 人气", heroPets[3]],
-  ["5", "垂耳兔 棉花", "823 人气", heroPets[4]]
-]
 </script>

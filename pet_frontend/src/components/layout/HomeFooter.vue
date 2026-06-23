@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import "../../styles/global.css"
+import "../../styles/HomeFooter.css"
 </script>
 
 <template>
@@ -12,7 +12,7 @@ import "../../styles/global.css"
     <nav>
       <strong>浏览</strong>
       <router-link to="/">首页</router-link>
-      <router-link to="/market">去见它</router-link>
+      <router-link to="/market">去遇见它</router-link>
       <router-link to="/community">社区</router-link>
       <router-link to="/notes">百科</router-link>
     </nav>

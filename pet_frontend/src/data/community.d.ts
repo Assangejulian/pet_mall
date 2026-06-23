@@ -1,4 +1,4 @@
-﻿export interface Tweet {
+export interface Tweet {
   user: string
   handle: string
   time: string
@@ -16,6 +16,10 @@ export interface Note {
   meta: string
 }
 
+export declare const communityNav: string[]
+export declare const myPets: [string, string][]
+export declare const topics: [string, string][]
+export declare const tweets: Tweet[]
+export declare const ranks: [string, string, string, string][]
 export declare const noteTabs: string[]
 export declare const notes: Note[]
-export declare const tweets: Tweet[]
