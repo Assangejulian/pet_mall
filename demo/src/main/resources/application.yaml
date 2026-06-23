@@ -1,11 +1,13 @@
-﻿spring:
+spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: pet-store
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/pet_store?useSSL=false&serverTimezone=Asia/Shanghai
-    username: 
-    password: 
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
   servlet:
     multipart:
       max-file-size: 20MB
@@ -16,19 +18,20 @@
       port: 6379
   ai:
     deepseek:
-      api-key: 
-      base-url: 
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:}
       chat:
-        model: 
-        temperature: 
-        timeout: 
+        model: ${DEEPSEEK_MODEL:}
+        temperature: ${DEEPSEEK_TEMPERATURE:}
+        timeout: ${DEEPSEEK_TIMEOUT_SECONDS:}
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
   global-config:
     db-config:
-      logic-delete-field: isDelete
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
 
