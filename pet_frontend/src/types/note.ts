@@ -1,0 +1,1 @@
+export interface Note { title: string; label: string; image?: string; desc: string; meta: string }

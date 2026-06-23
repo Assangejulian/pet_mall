@@ -1,0 +1,2 @@
+export interface Store { name: string; address: string; image: string; tags: string[] }
+export interface MarketFeedItem { type: string; title: string; meta: string; image: string; text: string; tall?: boolean; wide?: boolean }

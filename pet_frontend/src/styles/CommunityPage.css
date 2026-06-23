@@ -1,0 +1,222 @@
+﻿/* ===== CommunityPage ===== */
+.community-page { padding-bottom: 100px; }
+.community-search {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 32px;
+}
+.community-search input,
+.ai-bar input,
+.notes-search input {
+  flex: 1;
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.community-search input:focus,
+.ai-bar input:focus,
+.notes-search input:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-4);
+}
+.community-search button,
+.ai-bar button {
+  padding: 0 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  transition: background .2s;
+}
+.community-search button:hover,
+.ai-bar button:hover { background: var(--accent); }
+.community-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  gap: 30px;
+  align-items: start;
+}
+.comm-left, .twitter-side { display: grid; gap: 24px; }
+.profile-card {
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.profile-card img {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto;
+}
+.profile-card h3 {
+  margin: 14px 0 0;
+  font-size: 17px;
+}
+.profile-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.pc-stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 18px 0;
+}
+.pc-stats strong {
+  display: block;
+  font-size: 18px;
+}
+.pc-stats span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.profile-card button {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background .15s, border-color .15s;
+}
+.profile-card button:hover {
+  background: var(--accent-3);
+  border-color: var(--accent-2);
+}
+.my-list {
+  display: grid;
+  gap: 4px;
+}
+.my-list button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  transition: background .15s;
+}
+.my-list button.active,
+.my-list button:hover {
+  background: var(--accent-3);
+}
+.my-pets { padding: 20px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+.my-pets h3 { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+.my-pets div { display: flex; flex-wrap: wrap; gap: 12px; }
+.my-pets span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.my-pets img,
+.tweet-avatar,
+.rank-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.tweet-flow { display: grid; gap: 20px; }
+.tweet {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  transition: box-shadow .2s;
+}
+.tweet:hover { box-shadow: var(--shadow); }
+.tweet-meta { margin-bottom: 6px; }
+.tweet-meta span,
+.tweet-actions,
+.note-feature small,
+.note-item small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.tweet-body p { margin: 0 0 12px; line-height: 1.7; }
+.tweet-image {
+  width: 100%;
+  border-radius: 10px;
+  display: block;
+  margin-bottom: 12px;
+}
+.tweet-actions {
+  display: flex;
+  gap: 20px;
+}
+.tweet-actions b { font-weight: 400; }
+.twitter-side { display: grid; gap: 24px; }
+.topics-panel, .rank-panel {
+  padding: 22px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.topics-panel h3, .rank-panel h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+.topics-panel { display: grid; gap: 6px; }
+.topics-panel button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+.topics-panel button:hover { background: var(--accent-3); }
+.topics-panel small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-panel { display: grid; gap: 14px; }
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rank-item > span {
+  width: 24px;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--muted);
+  text-align: center;
+}
+.rank-item h4, .rank-item p { margin: 0; }
+.rank-item h4 { font-size: 14px; }
+.rank-item p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
