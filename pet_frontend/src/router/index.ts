@@ -1,0 +1,28 @@
+﻿import { createRouter, createWebHistory } from "vue-router"
+import HomePage from "../views/HomePage.vue"
+import MarketPage from "../views/MarketPage.vue"
+import CommunityPage from "../views/CommunityPage.vue"
+import NotesPage from "../views/NotesPage.vue"
+import AiAssistantPage from "../views/AiAssistantPage.vue"
+
+const routes = [
+  { path: "/", name: "home", component: HomePage },
+  { path: "/market", name: "market", component: MarketPage },
+  { path: "/community", name: "community", component: CommunityPage },
+  { path: "/notes", name: "notes", component: NotesPage },
+  { path: "/ai", name: "ai", component: AiAssistantPage },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+  scrollBehavior(_to, _from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+
+    return { top: 0, left: 0, behavior: "smooth" }
+  },
+})
+
+export default router
