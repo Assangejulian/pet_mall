@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import "../styles/global.css"
 import { onMounted } from "vue"
 import { usePetStore } from "../stores/pet"
 import HomeFooter from "../components/layout/HomeFooter.vue"

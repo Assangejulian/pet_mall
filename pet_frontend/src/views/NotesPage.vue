@@ -40,5 +40,6 @@
   </section>
 </template>
 <script setup lang="ts">
+import "../styles/global.css"
 import { noteTabs, notes } from "../data/community"
 </script>

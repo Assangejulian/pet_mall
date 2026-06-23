@@ -1,10 +1,4 @@
-﻿/* ===== HomeFooter ===== */
 .home-footer {
-  position: relative;
-  z-index: 1;
-  max-width: 1320px;
-  width: 100%;
-  margin: 0 auto;
   max-width: none;
   display: grid;
   grid-template-columns: minmax(280px, 1.2fr) 1fr 1fr 1fr 1fr;
@@ -14,67 +8,69 @@
   padding: 72px clamp(42px, 5vw, 86px) 70px;
   border-top: 1px solid var(--line);
   background:
-    radial-gradient(circle at 58% 28%, rgba(232, 146, 124, 0.05), transparent 18%);
+    radial-gradient(circle at 58% 28%, rgba(232, 146, 124, 0.05), transparent 18%),
+    #fff;
 }
+
 .home-footer h3,
-.home-footer p { margin: 0; }
+.home-footer p {
+  margin: 0;
+}
+
 .home-footer h3 {
   font-family: "Noto Serif SC", "Songti SC", serif;
   font-size: 25px;
   letter-spacing: 0.08em;
 }
+
 .home-footer h3 span,
 .home-footer h3 em {
   color: var(--accent);
   font-style: normal;
 }
+
 .home-footer p {
   margin-top: 24px;
   color: var(--muted);
   font-size: 16px;
 }
+
 .home-footer nav {
   display: grid;
   gap: 14px;
 }
+
 .home-footer strong {
   margin-bottom: 8px;
   color: var(--muted);
   font-size: 14px;
   letter-spacing: 0.16em;
 }
-.home-footer button,
-.home-footer a {
+
+.home-footer button {
   width: fit-content;
   padding: 0;
-  border: 0;
-  background: transparent;
   color: var(--muted);
   font-size: 16px;
   text-align: left;
-  text-decoration: none;
-  font-weight: 800;
-  transition: color .15s;
-  cursor: pointer;
 }
-.home-footer button:hover,
-.home-footer a:hover {
-  color: var(--accent);
-}
+
 .footer-dot {
   justify-self: center;
   width: 58px;
   height: 58px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
+  border: 1px solid rgba(232, 146, 124, 0.1);
+  border-radius: 50%;
   position: relative;
 }
+
 .footer-dot::after {
   content: "";
+  position: absolute;
+  inset: 50%;
   width: 8px;
   height: 8px;
-  border-radius: 999px;
-  background: var(--accent-2);
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
 }

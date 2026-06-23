@@ -44,6 +44,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import "../styles/global.css"
 import { onMounted } from "vue"
 import { usePetStore } from "../stores/pet"
 const petStore = usePetStore()

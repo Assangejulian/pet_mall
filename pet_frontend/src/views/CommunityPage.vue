@@ -67,6 +67,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import "../styles/global.css"
 import { ref, computed } from "vue"
 import { heroPets } from "../data/pets"
 const search = ref("")
