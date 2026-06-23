@@ -1,0 +1,1 @@
+export interface Product { id: string; name: string; type: string; detail: string; price: number; stock: number; status: string; image: string; storeId: string; createTime: string }

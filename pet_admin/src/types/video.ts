@@ -1,0 +1,1 @@
+export interface Video { id: string; title: string; url: string; cover: string; duration: number; status: number; createTime: string }

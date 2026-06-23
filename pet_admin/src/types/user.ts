@@ -1,0 +1,2 @@
+export interface User { id: string; username: string; phone: string; avatar: string; email: string; memberLevel: number; realName: string; status: number; createTime: string }
+export interface AdminInfo { id: string; username: string; avatar: string; role: string }
