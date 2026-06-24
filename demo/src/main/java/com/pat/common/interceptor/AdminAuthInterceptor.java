@@ -17,7 +17,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         if (auth == null || !auth.startsWith("Bearer ")) {
             response.setStatus(401);
             response.setContentType("application/json;charset=utf-8");
-            response.getWriter().write("{"code":401,"message":"未登录或token无效"}");
+            response.getWriter().write("{\"code\":401,\"message\":\"未登录或token无效\"}");
             return false;
         }
 
@@ -25,7 +25,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         if (!JwtUtil.validateToken(token)) {
             response.setStatus(401);
             response.setContentType("application/json;charset=utf-8");
-            response.getWriter().write("{"code":401,"message":"token已过期或无效"}");
+            response.getWriter().write("{\"code\":401,\"message\":\"token已过期或无效\"}");
             return false;
         }
 
@@ -34,7 +34,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         if (!"admin".equals(role)) {
             response.setStatus(403);
             response.setContentType("application/json;charset=utf-8");
-            response.getWriter().write("{"code":403,"message":"无管理员权限"}");
+            response.getWriter().write("{\"code\":403,\"message\":\"无管理员权限\"}");
             return false;
         }
 
