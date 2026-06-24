@@ -1,0 +1,85 @@
+package com.pat.ai.controller;
+
+import com.pat.ai.dto.AiChatRequest;
+import com.pat.ai.service.AiChatService;
+import com.pat.ai.vo.AiChatResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pat.common.domain.Result;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/ai")
+public class AiChatController {
+
+    private final AiChatService aiChatService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public AiChatController(AiChatService aiChatService) {
+        this.aiChatService = aiChatService;
+    }
+
+    @PostMapping("/chat")
+    public Result<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request) {
+        return Result.success(aiChatService.chat(request));
+    }
+
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request) {
+        SseEmitter emitter = new SseEmitter(120_000L);
+        Thread.ofVirtual().start(() -> {
+            try {
+                aiChatService.chatStream(request, new AiChatService.StreamListener() {
+                    @Override
+                    public void onMeta(String sessionId) {
+                        sendEventSilently(emitter, "meta", Map.of("sessionId", sessionId));
+                    }
+
+                    @Override
+                    public void onDelta(String content) {
+                        sendEventSilently(emitter, "delta", Map.of("content", content));
+                    }
+
+                    @Override
+                    public void onComplete(AiChatResponse response) {
+                        sendEventSilently(emitter, "done", response);
+                    }
+                });
+                emitter.complete();
+            } catch (Exception ex) {
+                emitter.completeWithError(ex);
+            }
+        });
+        return emitter;
+    }
+
+    @DeleteMapping("/session/{sessionId}")
+    public Result<Void> deleteSession(@PathVariable String sessionId) {
+        aiChatService.deleteSession(sessionId);
+        return Result.success();
+    }
+
+    private void sendEvent(SseEmitter emitter, String type, Object payload) throws IOException {
+        emitter.send(SseEmitter.event()
+                .name(type)
+                .data(objectMapper.writeValueAsString(payload), MediaType.APPLICATION_JSON));
+    }
+
+    private void sendEventSilently(SseEmitter emitter, String type, Object payload) {
+        try {
+            sendEvent(emitter, type, payload);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to send AI stream event", ex);
+        }
+    }
+}

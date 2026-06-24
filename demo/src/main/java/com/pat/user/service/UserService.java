@@ -1,4 +1,4 @@
-﻿package com.pat.user.service;
+package com.pat.user.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.user.entity.User;
