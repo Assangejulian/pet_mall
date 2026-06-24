@@ -1,0 +1,28 @@
+<view class="page">
+  <image class="cover" src="{{post.cover}}" mode="widthFix" />
+  <view class="info">
+    <view class="author-row">
+      <image class="av" src="{{post.avatar}}" mode="aspectFill" />
+      <view class="au-info"><text class="au-name">{{post.author}}</text><text class="au-desc">{{post.title}}</text></view>
+      <view class="follow-btn {{followed?'on':''}}" bindtap="toggleFollow">{{followed?'已关注':'+ 关注'}}</view>
+    </view>
+    <view class="actions">
+      <view class="act" bindtap="toggleLike"><text>{{liked?'❤':'♡'}}</text><text>{{post.likes}}</text></view>
+      <view class="act"><text>💬</text><text>{{post.commentCount}}</text></view>
+      <view class="act" bindtap="toggleCollect"><text>{{collected?'★':'☆'}}</text><text>收藏</text></view>
+    </view>
+    <view class="link-row" wx:if="{{post.productId}}">
+      <view class="product-tag" bindtap="goProduct"><text>🔗 {{product.name}} ¥{{product.price}}</text></view>
+      <view class="chat-btn" bindtap="goChat"><text>💬 联系卖家</text></view>
+    </view>
+  </view>
+
+  <view class="comments">
+    <text class="sec-title">评论 ({{comments.length}})</text>
+    <view class="cmt" wx:for="{{comments}}" wx:key="id">
+      <image class="cmt-av" src="{{item.avatar}}" mode="aspectFill" />
+      <view class="cmt-body"><text class="cmt-name">{{item.user}}</text><text class="cmt-text">{{item.text}}</text><text class="cmt-time">{{item.time}}</text></view>
+    </view>
+    <view class="cmt-input"><input placeholder="说点什么..." value="{{inputText}}" bindinput="onInput" confirm-type="send" bindconfirm="sendComment" /><text class="send-btn" bindtap="sendComment">发送</text></view>
+  </view>
+</view>

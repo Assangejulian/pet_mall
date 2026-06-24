@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --primary: #e8927c;
   --primary-dark: #d47a64;
   --primary-light: #f5c8b8;
@@ -45,6 +45,9 @@ a { color: inherit; text-decoration: none; }
 .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
 .btn-danger { background: #c62828; color: #fff; }
 .btn-danger:hover { background: #a81e1e; }
+.btn-warning { background: #f57c00; color: #fff; }
+.btn-warning:hover { background: #e65100; }
+.btn-success { background: #2e7d32; color: #fff; }
 .btn-success { background: #2e7d32; color: #fff; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn:disabled { opacity: .5; cursor: default; }

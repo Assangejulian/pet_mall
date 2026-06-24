@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   config:
     import: optional:file:.env[.properties]
   application:
@@ -24,6 +24,17 @@ spring:
         model: ${DEEPSEEK_MODEL:}
         temperature: ${DEEPSEEK_TEMPERATURE:}
         timeout: ${DEEPSEEK_TIMEOUT_SECONDS:}
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 mybatis-plus:
   configuration:

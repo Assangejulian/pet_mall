@@ -1,0 +1,21 @@
+<view class="page">
+  <view wx:if="{{cart.length>0}}" class="list">
+    <view wx:for="{{cart}}" wx:key="id" class="item">
+      <view class="chk" bindtap="toggleCheck" data-id="{{item.id}}"><view class="dot {{item.checked?'on':''}}">✓</view></view>
+      <image class="img" src="{{item.image}}" mode="aspectFill" />
+      <view class="info">
+        <text class="nm">{{item.name}}</text>
+        <view class="row"><view class="price"><text class="price-symbol">¥</text>{{item.price}}</view>
+          <view class="qty"><text class="b" bindtap="dec" data-id="{{item.id}}">−</text><text class="n">{{item.quantity}}</text><text class="b" bindtap="inc" data-id="{{item.id}}">+</text></view>
+        </view>
+      </view>
+      <text class="del" bindtap="del" data-id="{{item.id}}">✕</text>
+    </view>
+  </view>
+  <view class="empty-tip" wx:else><text style="font-size:80rpx;margin-bottom:16rpx">◌</text><text>购物车空空的</text><text style="color:#8f7366;font-size:24rpx;margin-top:8rpx">去暖窝逛逛吧</text><button class="btn-accent" style="margin-top:36rpx" bindtap="goHome">去逛逛</button></view>
+  <view class="b-bar" wx:if="{{cart.length>0}}">
+    <view class="all" bindtap="toggleAll"><view class="dot {{allChecked?'on':''}}">✓</view><text>全选</text></view>
+    <text class="sum">合计 <text style="color:#e8927c;font-weight:800">¥{{totalPrice}}</text></text>
+    <view class="btn-accent" style="padding:16rpx 40rpx">结算({{checkedCount}})</view>
+  </view>
+</view>

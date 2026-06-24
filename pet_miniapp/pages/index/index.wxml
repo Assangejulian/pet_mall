@@ -1,0 +1,22 @@
+<view class="home">
+  <view class="search-bar">
+    <view class="search-box"><text class="si">🔍</text><text class="sp">搜索宠物视频...</text></view>
+  </view>
+  <view class="tabs">
+    <view wx:for="{{tabs}}" wx:key="id" class="tab {{curTab===item.id?'on':''}}" bindtap="swTab" data-id="{{item.id}}">{{item.label}}</view>
+  </view>
+  <view class="feed">
+    <view wx:for="{{videos}}" wx:key="id" class="card" bindtap="goDetail" data-id="{{item.id}}">
+      <image src="{{item.cover}}" mode="widthFix" lazy-load />
+      <view class="cinfo">
+        <text class="cdesc">{{item.desc}}</text>
+        <view class="cbot">
+          <view class="cav-wrap"><image class="cav" src="{{item.avatar}}" mode="aspectFill" /></view>
+          <text class="cname">{{item.author}}</text>
+          <text class="clike">♥ {{item.likes}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view class="empty-tip" wx:if="{{!loading&&!videos.length}}"><text>暂无视频</text></view>
+</view>

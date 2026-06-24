@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="topbar">
+    <image class="tb-av" src="{{merchant.avatar}}" mode="aspectFill" />
+    <text class="tb-name">{{merchant.name}}</text>
+  </view>
+  <scroll-view class="msg-list" scroll-y scroll-into-view="{{lastId}}">
+    <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg {{item.from==='me'?'right':'left'}}">
+      <view class="bubble">{{item.text}}</view>
+    </view>
+  </scroll-view>
+  <view class="input-bar">
+    <input placeholder="输入消息..." value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="send" />
+    <text class="sbtn" bindtap="send">发送</text>
+  </view>
+</view>

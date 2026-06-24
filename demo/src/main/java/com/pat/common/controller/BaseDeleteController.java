@@ -1,5 +1,6 @@
-package com.pat.common.controller;
+﻿package com.pat.common.controller;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.common.domain.BaseEntity;
@@ -11,8 +12,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 /**
  * 逻辑删除控制器基类。
  *
- * <p>适用于使用 MyBatis-Plus @TableLogic 的 DO。恢复逻辑需要由具体业务实现，
- * 避免通用 update 被逻辑删除条件过滤后无法匹配已删除记录。</p>
+ * <p>适用于使用 MyBatis-Plus @TableLogic 的 DO。提供默认的恢复和已删查询实现，
+ * 特殊业务（如级联恢复）自行 override。</p>
  *
  * @param <E>  DO / Entity，必须继承 BaseEntity
  * @param <P>  Param，接口入参，合并 DTO 和 Query
@@ -25,11 +26,18 @@ public abstract class BaseDeleteController<E extends BaseEntity, P, VO>
         super(baseService);
     }
 
-    /** 恢复已逻辑删除记录，具体业务负责绕过 @TableLogic 自动过滤。 */
+    /** 恢复已逻辑删除记录。默认通过 mapper 直接 set deleted=0 绕过 @TableLogic 过滤。 */
     @PutMapping("/{id}/restore")
-    public abstract Result<Boolean> restore(@PathVariable Long id);
+    public Result<Boolean> restore(@PathVariable Long id) {
+        int rows = baseService.getBaseMapper().update(null,
+                new UpdateWrapper<E>().eq("id", id).set("deleted", 0)
+        );
+        return Result.success(rows > 0);
+    }
 
-    /** 分页查询含已删除记录，具体业务负责绕过 @TableLogic 自动过滤。 */
+    /** 分页查询含已删除记录。默认直接透传 page 参数，如需绕过 @TableLogic 过滤则 override。 */
     @GetMapping("/search-with-deleted")
-    public abstract Result<Page<VO>> searchWithDeleted(Page<VO> page, P param);
+    public Result<Page<E>> searchWithDeleted(Page<E> page, P param) {
+        return Result.success(baseService.page(page, buildQueryWrapper(param)));
+    }
 }

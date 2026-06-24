@@ -1,0 +1,20 @@
+<view class="page">
+  <view class="profile"><view class="pf-bg"></view>
+    <view class="pf-inner">
+      <view class="pf-avatar">{{userName[0]||'?'}}</view>
+      <view class="pf-info"><text class="pf-name serif">{{userName||'未登录'}}</text><text class="pf-sub">暖窝会员</text></view>
+      <view class="pf-btn" wx:if="{{!isLogin}}" bindtap="goLogin"><text>登录</text></view>
+    </view>
+  </view>
+  <view class="card"><text class="sec serif">我的订单</text>
+    <view class="og">
+      <view wx:for="{{tabs}}" wx:key="s" class="oi" bindtap="goOrders" data-s="{{item.s}}"><text class="oi-icon">{{item.i}}</text><text class="oi-lb">{{item.l}}</text></view>
+    </view>
+  </view>
+  <view class="card">
+    <view class="mi" bindtap="goAddr"><text>📍 收货地址</text><text class="ar">›</text></view>
+    <view class="mi" bindtap="goStores"><text>🏪 附近门店</text><text class="ar">›</text></view>
+    <view class="mi" bindtap="goVideos"><text>🎬 暖窝视频</text><text class="ar">›</text></view>
+  </view>
+  <view class="card" wx:if="{{isLogin}}" bindtap="logout"><view class="mi" style="justify-content:center;color:#c0392b"><text>退出登录</text></view></view>
+</view>
