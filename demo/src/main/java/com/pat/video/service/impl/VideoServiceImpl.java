@@ -17,4 +17,13 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             this.updateById(video);
         }
     }
+
+    @Override
+    public void incrementLikes(Long id) {
+        Video video = this.getById(id);
+        if (video != null) {
+            video.setLikes((video.getLikes() == null ? 0 : video.getLikes()) + 1);
+            this.updateById(video);
+        }
+    }
 }

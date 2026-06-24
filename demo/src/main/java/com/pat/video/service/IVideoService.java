@@ -5,4 +5,5 @@ import com.pat.video.entity.Video;
 
 public interface IVideoService extends IService<Video> {
     void incrementPlayCount(Long id);
+    void incrementLikes(Long id);
 }
