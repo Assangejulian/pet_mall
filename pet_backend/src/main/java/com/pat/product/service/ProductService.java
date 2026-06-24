@@ -24,4 +24,6 @@ public interface ProductService extends IProductService {
     ProductPageVO pageAdminProducts(ProductQueryDTO query);
 
     ProductVO getPublicDetail(Long id);
+
+    ProductVO getAdminDetail(Long id);
 }

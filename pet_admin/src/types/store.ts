@@ -1,1 +1,1 @@
-export interface Store { id: string; storeName: string; storeLogo: string; storePhone: string; storeDesc: string; province: string; city: string; district: string; address: string; longitude: number; latitude: number; status: number; createTime: string }
+export interface Store { id: string; storeName: string; storeLogo: string; storePhone: string; storeDesc: string; province: string; city: string; district: string; address: string; longitude: number; latitude: number; status: number; statusText?: string; productCount?: number; createTime: string }

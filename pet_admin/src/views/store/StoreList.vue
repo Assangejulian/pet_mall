@@ -75,7 +75,7 @@ const totalPages = computed(() => Math.ceil(store.total / pageSize))
 function statusBadge(s: number) { return ["badge-orange","badge-green","badge-red"][s] || "badge-gray" }
 function statusLabel(s: number) { return ["待审核","营业中","已关闭"][s] || "未知" }
 
-async function fetchData() { await store.fetch({ page: currentPage.value, size: pageSize, keyword: keyword.value || undefined, status: statusFilter.value >= 0 ? statusFilter.value : undefined }) }
+async function fetchData() { await store.fetch({ current: currentPage.value, size: pageSize, keyword: keyword.value || undefined, status: statusFilter.value >= 0 ? statusFilter.value : undefined }) }
 function handleSearch() { currentPage.value = 1; fetchData() }
 function resetSearch() { keyword.value = ""; statusFilter.value = -1; currentPage.value = 1; fetchData() }
 function goPage(p: number) { currentPage.value = p; fetchData() }

@@ -1,31 +1,40 @@
 package com.pat.product.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.pat.common.controller.BaseController;
-import com.pat.product.entity.Product;
-import com.pat.product.service.IProductService;
-import org.springframework.web.bind.annotation.*;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.pat.common.domain.Result;
+import com.pat.product.dto.ProductQueryDTO;
+import com.pat.product.service.ProductService;
+import com.pat.product.vo.ProductVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@Validated
 @RestController
 @RequestMapping("/api/product")
-public class ProductController extends BaseController<Product, Product, Product> {
+@Tag(name = "商品公开接口", description = "小程序商品列表和详情")
+public class ProductController {
 
-    public ProductController(IProductService service) {
-        super(service);
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
     }
 
-    @Override
-    protected Product toVO(Product entity) {
-        return entity;
+    @Operation(summary = "公开商品分页查询")
+    @GetMapping({"/list", "/search"})
+    public Result<IPage<ProductVO>> list(@Valid ProductQueryDTO query) {
+        return Result.success(productService.pagePublicProducts(query));
     }
 
-    @Override
-    protected Product toDO(Product param) {
-        return param;
-    }
-
-    @Override
-    protected QueryWrapper<Product> buildQueryWrapper(Product param) {
-        return new QueryWrapper<>();
+    @Operation(summary = "公开商品详情")
+    @GetMapping("/{id}")
+    public Result<ProductVO> detail(@PathVariable Long id) {
+        return Result.success(productService.getPublicDetail(id));
     }
 }

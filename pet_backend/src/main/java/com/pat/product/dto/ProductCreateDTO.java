@@ -38,7 +38,7 @@ public class ProductCreateDTO {
     private String productDesc;
 
     @NotNull(message = "价格不能为空")
-    @DecimalMin(value = "0.01", message = "价格必须大于0")
+    @DecimalMin(value = "0.00", message = "价格不能小于0")
     @Schema(description = "价格", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal price;
 

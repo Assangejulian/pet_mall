@@ -18,12 +18,23 @@ import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.ProductService;
 import com.pat.product.vo.ProductPageVO;
+import com.pat.product.vo.ProductStoreVO;
 import com.pat.product.vo.ProductVO;
+import com.pat.store.entity.Store;
+import com.pat.store.mapper.StoreMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
@@ -35,10 +46,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private static final int STATUS_SOLD = 2;
 
     private final ProductStoreLookupMapper productStoreLookupMapper;
+    private final StoreMapper storeMapper;
     private final ObjectMapper objectMapper;
 
-    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper, ObjectMapper objectMapper) {
+    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper, StoreMapper storeMapper, ObjectMapper objectMapper) {
         this.productStoreLookupMapper = productStoreLookupMapper;
+        this.storeMapper = storeMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -47,6 +60,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO createProduct(ProductCreateDTO dto) {
         // 新增商品只允许放到营业中的商店。
         // 管理员只能设置上架/下架，已售出状态由订单流程控制。
+        validateCreateRequired(dto);
         checkOperatingStore(dto.getStoreId());
         Integer status = parseEditableStatus(dto.getStatus(), STATUS_ONLINE);
         String images = normalizeImages(dto.getImages());
@@ -128,6 +142,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (id == null) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品ID不能为空");
         }
+        Product current = getActiveProduct(id);
+        checkOperatingStore(current.getStoreId());
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
                 .set(Product::getStatus, STATUS_ONLINE)
                 .eq(Product::getId, id)
@@ -169,6 +185,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, STATUS_ONLINE)
+                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1")
                 .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
                 .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
                 .eq(productType != null, Product::getProductType, productType)
@@ -176,7 +193,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .orderByDesc(Product::getCreateTime);
 
         Page<Product> page = page(new Page<>(pageNum, pageSize), wrapper);
-        return page.convert(this::toVO);
+        return convertPage(page);
     }
 
     @Override
@@ -192,10 +209,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
                 .eq(productType != null, Product::getProductType, productType)
                 .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
+                .eq(query.getStatus() != null, Product::getStatus, query.getStatus())
                 .orderByDesc(Product::getCreateTime);
 
         Page<Product> result = page(new Page<>(pageNum, pageSize), wrapper);
-        return new ProductPageVO(result.getRecords().stream().map(this::toVO).toList(),
+        Map<Long, Store> storeMap = loadStoreMap(result.getRecords());
+        return new ProductPageVO(result.getRecords().stream().map(product -> toVO(product, storeMap)).toList(),
                 result.getTotal(), result.getCurrent(), result.getSize());
     }
 
@@ -203,11 +222,17 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO getPublicDetail(Long id) {
         Product product = getOne(new LambdaQueryWrapper<Product>()
                 .eq(Product::getId, id)
-                .eq(Product::getStatus, STATUS_ONLINE), false);
+                .eq(Product::getStatus, STATUS_ONLINE)
+                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1"), false);
         if (product == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在或已下架");
         }
         return toVO(product);
+    }
+
+    @Override
+    public ProductVO getAdminDetail(Long id) {
+        return toVO(getActiveProduct(id));
     }
 
     private Product getActiveProduct(Long id) {
@@ -232,6 +257,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 throw new BusinessException(ErrorCode.FARAMS_ERROR, "商店未营业，不能发布商品");
             }
             throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+    }
+
+    private void validateCreateRequired(ProductCreateDTO dto) {
+        if (dto == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品参数不能为空");
+        }
+        if (!StringUtils.hasText(dto.getProductName())) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品名称不能为空");
+        }
+        if (dto.getProductType() == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品类型不能为空");
+        }
+        if (dto.getPrice() == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品价格不能为空");
+        }
+        if (dto.getStock() == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品库存不能为空");
         }
     }
 
@@ -315,14 +358,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (product.getStock() == null || product.getStock() <= 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存为0的商品不能上架");
         }
+        checkOperatingStore(product.getStoreId());
     }
 
     private void validateBusinessRules(Integer productType, Integer stock, BigDecimal price, Integer status, boolean wasSold) {
         if (productType == null || (productType != TYPE_PET && productType != TYPE_GOODS)) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1或2");
         }
-        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "价格必须大于0");
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "价格不能小于0");
         }
         if (stock == null || stock < 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存不能小于0");
@@ -345,7 +389,33 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
+    private IPage<ProductVO> convertPage(Page<Product> page) {
+        Map<Long, Store> storeMap = loadStoreMap(page.getRecords());
+        return page.convert(product -> toVO(product, storeMap));
+    }
+
+    private Map<Long, Store> loadStoreMap(Collection<Product> products) {
+        if (products == null || products.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<Long> storeIds = products.stream()
+                .map(Product::getStoreId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (storeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Store> stores = storeMapper.selectBatchIds(storeIds);
+        return stores.stream().collect(Collectors.toMap(Store::getId, Function.identity(), (a, b) -> a));
+    }
+
     private ProductVO toVO(Product product) {
+        Store store = productStoreLookupMapper.selectUndeletedStore(product.getStoreId());
+        Map<Long, Store> storeMap = store == null ? Collections.emptyMap() : Map.of(store.getId(), store);
+        return toVO(product, storeMap);
+    }
+
+    private ProductVO toVO(Product product, Map<Long, Store> storeMap) {
         ProductVO vo = new ProductVO();
         vo.setId(product.getId());
         vo.setStoreId(product.getStoreId());
@@ -366,7 +436,38 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setType(productTypeText(product.getProductType()));
         vo.setDetail(product.getProductDesc());
         vo.setImage(product.getMainImage());
+        vo.setStore(toStoreVO(storeMap.get(product.getStoreId())));
         return vo;
+    }
+
+    private ProductStoreVO toStoreVO(Store store) {
+        if (store == null) {
+            return null;
+        }
+        ProductStoreVO vo = new ProductStoreVO();
+        vo.setId(store.getId());
+        vo.setStoreName(store.getStoreName());
+        vo.setStoreLogo(store.getStoreLogo());
+        vo.setStorePhone(store.getStorePhone());
+        vo.setProvince(store.getProvince());
+        vo.setCity(store.getCity());
+        vo.setDistrict(store.getDistrict());
+        vo.setAddress(store.getAddress());
+        vo.setStatus(store.getStatus());
+        vo.setStatusText(storeStatusText(store.getStatus()));
+        return vo;
+    }
+
+    private String storeStatusText(Integer status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case 0 -> "待审核";
+            case 1 -> "营业中";
+            case 2 -> "已关闭";
+            default -> String.valueOf(status);
+        };
     }
 
     private Integer parseEditableStatus(String status, Integer defaultStatus) {

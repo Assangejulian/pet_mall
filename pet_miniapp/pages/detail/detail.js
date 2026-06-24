@@ -1,1 +1,73 @@
-var app=getApp();Page({data:{product:{},categoryName:'',cartCount:0},onLoad:function(o){var that=this;var mock=[{id:1,name:'金毛幼犬',description:'纯种金毛，温顺可爱，已打疫苗，健康活泼。',price:'1888.00',image:'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800',category:'dog'},{id:2,name:'英短蓝猫',description:'包子脸，性格温顺粘人，品相极佳。',price:'2580.00',image:'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800',category:'cat'},{id:3,name:'柯基犬',description:'小短腿，活泼可爱，智商高。',price:'3200.00',image:'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=800',category:'dog'},{id:4,name:'布偶猫',description:'仙女猫本仙，颜值担当。',price:'4500.00',image:'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800',category:'cat'},{id:5,name:'仓鼠',description:'迷你小可爱，容易饲养。',price:'38.00',image:'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800',category:'other'},{id:6,name:'哈士奇',description:'拆迁办主任，搞笑担当。',price:'2200.00',image:'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800',category:'dog'},{id:7,name:'橘猫',description:'十橘九胖，干饭之王。',price:'200.00',image:'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800',category:'cat'},{id:8,name:'兔子',description:'长耳萌宠，温顺亲人。',price:'168.00',image:'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=800',category:'other'}];var p=mock.find(function(m){return m.id==o.id})||{};var cn={dog:'狗狗',cat:'猫咪',other:'小宠'};that.setData({product:p,categoryName:cn[p.category]||'',cartCount:app.getCartCount()});},onShow:function(){this.setData({cartCount:app.getCartCount()});},addCart:function(){app.addToCart(this.data.product);this.setData({cartCount:app.getCartCount()});wx.showToast({title:'已加入购物车',icon:'success'});},goCart:function(){wx.switchTab({url:'/pages/cart/cart'});}});
+var app = getApp();
+var productApi = require("../../utils/api/product");
+
+function normalizeProduct(source) {
+  source = source || {};
+  return {
+    id: source.id,
+    name: source.name || source.productName || "",
+    description: source.detail || source.productDesc || "",
+    price: source.price || "0.00",
+    image: source.image || source.mainImage || "",
+    category: source.category || "",
+    stock: source.stock || 0,
+    store: source.store || null
+  };
+}
+
+Page({
+  data: {
+    product: {},
+    categoryName: "",
+    cartCount: 0,
+    loading: true
+  },
+
+  onLoad: function(options) {
+    this.setData({ cartCount: app.getCartCount() });
+    this.loadProduct(options && options.id);
+  },
+
+  onShow: function() {
+    this.setData({ cartCount: app.getCartCount() });
+  },
+
+  loadProduct: function(id) {
+    if (!id) {
+      wx.showToast({ title: "商品ID缺失", icon: "none" });
+      this.setData({ loading: false });
+      return;
+    }
+    var that = this;
+    that.setData({ loading: true });
+    productApi.detail(id).then(function(res) {
+      var product = normalizeProduct(res);
+      var categoryNames = { dog: "狗狗", cat: "猫咪", other: "小宠" };
+      that.setData({
+        product: product,
+        categoryName: categoryNames[product.category] || product.category || "",
+        loading: false
+      });
+    }).catch(function() {
+      that.setData({ loading: false });
+    });
+  },
+
+  addCart: function() {
+    if (!this.data.product || !this.data.product.id) {
+      wx.showToast({ title: "商品不可加入购物车", icon: "none" });
+      return;
+    }
+    if (!this.data.product.stock) {
+      wx.showToast({ title: "商品暂无库存", icon: "none" });
+      return;
+    }
+    app.addToCart(this.data.product);
+    this.setData({ cartCount: app.getCartCount() });
+    wx.showToast({ title: "已加入购物车", icon: "success" });
+  },
+
+  goCart: function() {
+    wx.switchTab({ url: "/pages/cart/cart" });
+  }
+});

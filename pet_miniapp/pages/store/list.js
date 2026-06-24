@@ -1,1 +1,47 @@
-Page({data:{stores:[]},onShow:function(){this.setData({stores:[{id:1,storeName:'暖窝·思明总店',rating:'4.9',distance:'0.8km',address:'厦门市思明区中山路128号',tags:['猫咪','狗狗','美容'],image:'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400'},{id:2,storeName:'萌宠乐园',rating:'4.7',distance:'2.1km',address:'厦门市集美区理工路',tags:['用品','寄养'],image:'https://images.unsplash.com/photo-1587559070757-f72a388edbba?w=400'}]})}});
+var storeApi = require("../../utils/api/store");
+
+function extractRows(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.records)) return data.records;
+  return [];
+}
+
+function normalizeStore(item) {
+  item = item || {};
+  return {
+    id: item.id,
+    storeName: item.storeName || "",
+    rating: item.rating || "营业中",
+    distance: item.distance || "",
+    address: [item.province, item.city, item.district, item.address].filter(Boolean).join(""),
+    tags: item.tags || [item.city, item.district].filter(Boolean),
+    image: item.image || item.storeLogo || "",
+    storePhone: item.storePhone || "",
+    status: item.status
+  };
+}
+
+Page({
+  data: {
+    stores: [],
+    loading: true
+  },
+
+  onShow: function() {
+    this.loadStores();
+  },
+
+  loadStores: function() {
+    var that = this;
+    that.setData({ loading: true });
+    storeApi.list({ current: 1, size: 50 }).then(function(res) {
+      that.setData({
+        stores: extractRows(res).map(normalizeStore),
+        loading: false
+      });
+    }).catch(function() {
+      that.setData({ loading: false });
+    });
+  }
+});

@@ -1,1 +1,1 @@
-export interface Product { id: string; name: string; type: string; detail: string; price: number; stock: number; status: string; image: string; storeId: string; createTime: string }
+export interface Product { id: string; productName?: string; productType?: number; category?: string; name: string; type: string; detail: string; price: number; stock: number; status: string; statusCode?: number; image: string; mainImage?: string; storeId: string; createTime: string }

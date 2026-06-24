@@ -1,8 +1,9 @@
 var request = require("../request");
-var mock = require("../data/mock");
 module.exports = {
-  list: function() {
-    return request.get("/api/store/list")
-      .catch(function() { return mock.stores; });
+  list: function(params) {
+    return request.get("/api/store/search", params || { current: 1, size: 20 });
+  },
+  detail: function(id) {
+    return request.get("/api/store/" + id);
   }
 };

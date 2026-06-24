@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.common.domain.BaseEntity;
 import com.pat.common.domain.Result;
 import jakarta.validation.Valid;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,6 +43,15 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
     protected void postSave(E entity, boolean ok) {}
     protected void preUpdate(P param) {}
     protected void postUpdate(E entity, boolean ok) {}
+    protected boolean doSave(E entity, P param) {
+        return baseService.save(entity);
+    }
+    protected boolean doUpdate(Long id, E entity, P param) {
+        return baseService.updateById(entity);
+    }
+    protected boolean doRemove(Long id) {
+        return baseService.removeById(id);
+    }
 
     @GetMapping("/{id}")
     public Result<VO> getById(@PathVariable Long id) {
@@ -53,7 +63,7 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
     public Result<Boolean> save(@RequestBody @Valid P param) {
         preSave(param);
         E entity = toDO(param);
-        boolean ok = baseService.save(entity);
+        boolean ok = doSave(entity, param);
         postSave(entity, ok);
         return Result.success(ok);
     }
@@ -63,19 +73,25 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
         preUpdate(param);
         E entity = toDO(param);
         entity.setId(id);
-        boolean ok = baseService.updateById(entity);
+        boolean ok = doUpdate(id, entity, param);
         postUpdate(entity, ok);
         return Result.success(ok);
     }
 
     @DeleteMapping("/{id}")
     public Result<Boolean> remove(@PathVariable Long id) {
-        return Result.success(baseService.removeById(id));
+        return Result.success(doRemove(id));
     }
 
     @DeleteMapping("/batch")
+    @Transactional(rollbackFor = Exception.class)
     public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
-        return Result.success(baseService.removeByIds(ids));
+        for (Long id : ids) {
+            if (!doRemove(id)) {
+                return Result.success(false);
+            }
+        }
+        return Result.success(true);
     }
 
     @GetMapping("/search")
@@ -97,14 +113,32 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
     }
 
     @PostMapping("/batch")
+    @Transactional(rollbackFor = Exception.class)
     public Result<Boolean> saveBatch(@RequestBody @Valid List<P> paramList) {
-        List<E> entities = paramList.stream().map(this::toDO).collect(Collectors.toList());
-        return Result.success(baseService.saveBatch(entities));
+        for (P param : paramList) {
+            preSave(param);
+            E entity = toDO(param);
+            boolean ok = doSave(entity, param);
+            postSave(entity, ok);
+            if (!ok) {
+                return Result.success(false);
+            }
+        }
+        return Result.success(true);
     }
 
     @PutMapping("/batch")
+    @Transactional(rollbackFor = Exception.class)
     public Result<Boolean> updateBatch(@RequestBody @Valid List<P> paramList) {
-        List<E> entities = paramList.stream().map(this::toDO).collect(Collectors.toList());
-        return Result.success(baseService.updateBatchById(entities));
+        for (P param : paramList) {
+            preUpdate(param);
+            E entity = toDO(param);
+            boolean ok = doUpdate(entity.getId(), entity, param);
+            postUpdate(entity, ok);
+            if (!ok) {
+                return Result.success(false);
+            }
+        }
+        return Result.success(true);
     }
 }

@@ -35,6 +35,7 @@ public class ProductVO {
     private String type;
     private String detail;
     private String image;
+    private ProductStoreVO store;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;

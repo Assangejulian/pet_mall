@@ -46,6 +46,11 @@ public class ProductQueryDTO {
     @Schema(description = "分类")
     private String category;
 
+    @Min(value = 0, message = "商品状态只能为0、1或2")
+    @Max(value = 2, message = "商品状态只能为0、1或2")
+    @Schema(description = "商品状态：0-下架，1-上架，2-已售出")
+    private Integer status;
+
     @Min(value = 1, message = "页码不能小于1")
     @Schema(description = "管理端页码，兼容 pet_admin page")
     private Long page;
