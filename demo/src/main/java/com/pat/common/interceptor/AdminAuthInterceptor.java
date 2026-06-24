@@ -1,4 +1,4 @@
-﻿package com.pat.common.interceptor;
+package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;

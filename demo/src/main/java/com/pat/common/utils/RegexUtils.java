@@ -1,4 +1,4 @@
-﻿package com.pat.common.utils;
+package com.pat.common.utils;
 
 import cn.hutool.core.util.StrUtil;
 

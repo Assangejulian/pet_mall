@@ -1,4 +1,4 @@
-﻿package com.pat.common.utils;
+package com.pat.common.utils;
 
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
