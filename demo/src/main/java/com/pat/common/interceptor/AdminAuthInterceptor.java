@@ -1,4 +1,4 @@
-﻿package com.pat.common.interceptor;
+package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
@@ -26,14 +26,12 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 1. 检查 Authorization 头
         String auth = request.getHeader(AUTH_HEADER);
         if (auth == null || !auth.startsWith(BEARER_PREFIX)) {
             writeJson(response, 401, "未登录或token无效");
             return false;
         }
 
-        // 2. 解析 Token（校验+解析一步完成，避免双重解析）
         String token = auth.substring(BEARER_PREFIX.length());
         Claims claims;
         try {
@@ -43,14 +41,12 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 3. 校验管理员角色
         String role = claims.get(KEY_ROLE, String.class);
         if (!ADMIN_ROLE.equals(role)) {
             writeJson(response, 403, "无管理员权限");
             return false;
         }
 
-        // 4. 注入用户上下文
         UserHolder.save(KEY_USER_ID, claims.get(KEY_USER_ID, Long.class));
         UserHolder.save(KEY_USERNAME, claims.get(KEY_USERNAME, String.class));
         UserHolder.save(KEY_ROLE, role);
@@ -62,7 +58,6 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         UserHolder.remove();
     }
 
-    /** 写入统一格式的错误响应 */
     private void writeJson(HttpServletResponse response, int code, String message) throws Exception {
         response.setStatus(code);
         response.setContentType("application/json;charset=utf-8");

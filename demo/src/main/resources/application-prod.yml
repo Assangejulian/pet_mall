@@ -3,18 +3,23 @@ spring:
   config:
     import: optional:file:.env[.properties]
   application:
-    name: admin
+    name: pet-store
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/artsail_admin
+    url: jdbc:mysql://127.0.0.1:${DB_PORT:3306}/pet_store?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:777}
+    password: ${DB_PASSWORD:123456}
   session:
     timeout: 86400
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:777}
 
 ai:
   detection:
@@ -24,5 +29,7 @@ ai:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
     model-name: ${DEEPSEEK_MODEL:deepseek-chat}
+    flash-model-name: ${DEEPSEEK_FLASH_MODEL:deepseek-chat}
+    pro-model-name: ${DEEPSEEK_PRO_MODEL:deepseek-reasoner}
     temperature: ${DEEPSEEK_TEMPERATURE:0.3}
     timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}

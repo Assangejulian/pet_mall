@@ -1,4 +1,4 @@
-﻿package com.pat.common.controller;
+package com.pat.common.controller;
 
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;

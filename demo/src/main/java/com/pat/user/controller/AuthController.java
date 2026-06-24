@@ -1,4 +1,4 @@
-﻿package com.pat.user.controller;
+package com.pat.user.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.pat.common.domain.Result;
