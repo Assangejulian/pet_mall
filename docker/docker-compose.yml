@@ -2,6 +2,10 @@ services:
   mysql:
     image: mysql:8.0
     container_name: pat-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
     env_file: .env
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
@@ -12,7 +16,6 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
-      - ./mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf
     networks:
       - pat
 

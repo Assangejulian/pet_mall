@@ -10,6 +10,7 @@ const pages = [
   { id: "market", path: "/market", label: "市集" },
   { id: "community", path: "/community", label: "社区" },
   { id: "notes", path: "/notes", label: "笔记" },
+  { id: "ai", path: "/ai", label: "AI助手" },
 ]
 </script>
 

@@ -1,6 +1,4 @@
 ﻿spring:
-  config:
-    import: optional:file:.env[.properties]
   application:
     name: pet-store
   datasource:
@@ -16,14 +14,21 @@
     redis:
       host: 127.0.0.1
       port: 6379
-  ai:
-    deepseek:
-      api-key: ${DEEPSEEK_API_KEY:}
-      base-url: ${DEEPSEEK_BASE_URL:}
-      chat:
-        model: ${DEEPSEEK_MODEL:}
-        temperature: ${DEEPSEEK_TEMPERATURE:}
-        timeout: ${DEEPSEEK_TIMEOUT_SECONDS:}
+
+
+ai:
+  detection:
+    url: http://127.0.0.1:9001/detect
+  upload-dir: uploads/ai
+  chat:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+    model-name: ${DEEPSEEK_MODEL:deepseek-chat}
+    flash-model-name: ${DEEPSEEK_FLASH_MODEL:deepseek-chat}
+    pro-model-name: ${DEEPSEEK_PRO_MODEL:deepseek-reasoner}
+    temperature: ${DEEPSEEK_TEMPERATURE:0.3}
+    timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
+
   mail:
     host: smtp.qq.com
     port: 587
@@ -41,8 +46,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   global-config:
     db-config:
-      id-type: ASSIGN_ID
-      logic-delete-field: deleted
+      logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
 
