@@ -1,4 +1,4 @@
-﻿package com.pat.user.service;
+package com.pat.user.service;
 
 import com.pat.common.utils.MailUtils;
 import lombok.extern.slf4j.Slf4j;

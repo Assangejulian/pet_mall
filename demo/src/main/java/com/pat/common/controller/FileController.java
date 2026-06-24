@@ -1,4 +1,4 @@
-﻿package com.pat.common.controller;
+package com.pat.common.controller;
 
 import com.pat.common.domain.Result;
 import org.springframework.beans.factory.annotation.Value;
