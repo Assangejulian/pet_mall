@@ -1,5 +1,6 @@
 package com.pat.ai.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.pat.ai.dto.AiChatRequest;
 import com.pat.ai.entity.AiChatRecord;
 import com.pat.ai.service.AiChatService;
@@ -56,10 +57,7 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Override
     public AiChatResponse chat(AiChatRequest request) {
-        String sessionId = StringUtils.hasText(request.getSessionId())
-                ? request.getSessionId()
-                : UUID.randomUUID().toString().replace("-", "");
-
+        String sessionId = resolveSessionId(request);
         List<AiChatRecord> context = loadRecentContext(sessionId);
         saveRecord(request.getUserId(), sessionId, "user", request.getMessage());
 
@@ -71,10 +69,7 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Override
     public void chatStream(AiChatRequest request, StreamListener listener) {
-        String sessionId = StringUtils.hasText(request.getSessionId())
-                ? request.getSessionId()
-                : UUID.randomUUID().toString().replace("-", "");
-
+        String sessionId = resolveSessionId(request);
         listener.onMeta(sessionId);
 
         List<AiChatRecord> context = loadRecentContext(sessionId);
@@ -82,7 +77,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         if (!StringUtils.hasText(apiKey)) {
             String reply = mockReply(request.getMessage());
-            emitMockChunks(reply, listener);
+            emitChunks(reply, listener);
             saveRecord(request.getUserId(), sessionId, "assistant", reply);
             listener.onComplete(buildResponse(sessionId, reply, request.getMessage()));
             return;
@@ -142,7 +137,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         if (error.get() != null) {
             String fallback = mockReply(request.getMessage());
-            emitMockChunks(fallback, listener);
+            emitChunks(fallback, listener);
             saveRecord(request.getUserId(), sessionId, "assistant", fallback);
             listener.onComplete(buildResponse(sessionId, fallback, request.getMessage()));
         }
@@ -150,10 +145,16 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Override
     public void deleteSession(String sessionId) {
-        if (!StringUtils.hasText(sessionId)) {
-            return;
+        if (StringUtils.hasText(sessionId)) {
+            jdbcTemplate.update("DELETE FROM ai_chat_record WHERE session_id = ?", sessionId);
         }
-        jdbcTemplate.update("DELETE FROM ai_chat_record WHERE session_id = ?", sessionId);
+    }
+
+    private String resolveSessionId(AiChatRequest request) {
+        if (StringUtils.hasText(request.getSessionId())) {
+            return request.getSessionId();
+        }
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     private List<AiChatRecord> loadRecentContext(String sessionId) {
@@ -184,11 +185,7 @@ public class AiChatServiceImpl implements AiChatService {
                         INSERT INTO ai_chat_record(id, user_id, session_id, role, content, create_time)
                         VALUES (?, ?, ?, ?, ?, NOW(3))
                         """,
-                com.baomidou.mybatisplus.core.toolkit.IdWorker.getId(),
-                userId,
-                sessionId,
-                role,
-                content);
+                IdWorker.getId(), userId, sessionId, role, content);
     }
 
     private String callModelOrMock(AiChatRequest request, List<AiChatRecord> context, String selectedModelName) {
@@ -197,11 +194,6 @@ public class AiChatServiceImpl implements AiChatService {
         }
 
         try {
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(SystemMessage.from(buildSystemPrompt(request.getPetProfile())));
-            messages.addAll(buildContextMessages(context));
-            messages.add(UserMessage.from(request.getMessage()));
-
             OpenAiChatModel model = OpenAiChatModel.builder()
                     .apiKey(apiKey)
                     .baseUrl(normalizeBaseUrl(baseUrl))
@@ -210,11 +202,9 @@ public class AiChatServiceImpl implements AiChatService {
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .build();
 
-            ChatResponse response = model.chat(messages);
+            ChatResponse response = model.chat(buildChatMessages(request, context));
             String content = response.aiMessage().text();
-            return !StringUtils.hasText(content)
-                    ? mockReply(request.getMessage())
-                    : content;
+            return StringUtils.hasText(content) ? content : mockReply(request.getMessage());
         } catch (Exception ignored) {
             return mockReply(request.getMessage());
         }
@@ -240,7 +230,15 @@ public class AiChatServiceImpl implements AiChatService {
         return messages;
     }
 
-    private void emitMockChunks(String reply, StreamListener listener) {
+    private String buildSystemPrompt(String petProfile) {
+        String profile = StringUtils.hasText(petProfile) ? "当前宠物档案：" + petProfile + "。" : "";
+        return "你是 PetNest 暖窝商城的智能客服，负责宠物日常照护、饮食、洗护、行为训练和用品选择建议。"
+                + profile
+                + "回答要具体、温和、可执行。涉及急性症状、持续恶化、明显疼痛、频繁呕吐腹泻或疑似误食时，必须提醒用户及时联系宠物医生。"
+                + "不要编造平台库存、订单状态或无法确认的物流信息；如果需要商品、订单或门店数据，先说明需要用户补充信息。";
+    }
+
+    private void emitChunks(String reply, StreamListener listener) {
         for (String chunk : splitReply(reply, 12)) {
             listener.onDelta(chunk);
             try {
@@ -255,11 +253,8 @@ public class AiChatServiceImpl implements AiChatService {
     private List<String> splitReply(String reply, int chunkSize) {
         String text = reply == null ? "" : reply;
         List<String> chunks = new ArrayList<>();
-        int index = 0;
-        while (index < text.length()) {
-            int next = Math.min(index + chunkSize, text.length());
-            chunks.add(text.substring(index, next));
-            index = next;
+        for (int index = 0; index < text.length(); index += chunkSize) {
+            chunks.add(text.substring(index, Math.min(index + chunkSize, text.length())));
         }
         if (chunks.isEmpty()) {
             chunks.add("");
@@ -267,25 +262,18 @@ public class AiChatServiceImpl implements AiChatService {
         return chunks;
     }
 
-    private String buildSystemPrompt(String petProfile) {
-        String profile = StringUtils.hasText(petProfile) ? "当前宠物档案：" + petProfile + "。" : "";
-        return "你是 PetNest 宠物商城的暖窝 AI 助手，负责日常养宠、饮食、洗护、行为训练和用品选择建议。"
-                + profile
-                + "回答要具体、温和、可执行。涉及疾病、急性症状、持续恶化时，必须提醒用户及时联系宠物医生。";
-    }
-
     private String mockReply(String message) {
         String text = message == null ? "" : message;
         if (text.contains("猫粮") || text.contains("换粮") || text.contains("饮食")) {
-            return "可以先按 7 天换粮法处理：前两天旧粮 75% + 新粮 25%，中间两三天各一半，最后逐步提高新粮比例。肠胃敏感的小家伙要观察便便、呕吐和精神状态，任何明显异常都先暂停换粮。";
+            return "可以先按 7 天换粮法处理：前两天旧粮 75% + 新粮 25%，中间两三天各一半，最后逐步提高新粮比例。观察便便、呕吐和精神状态，如果明显异常，先暂停换粮并咨询宠物医生。";
         }
         if (text.contains("呕吐") || text.contains("不吃") || text.contains("拉稀") || text.contains("精神")) {
-            return "先记录持续时间、呕吐或排便次数、是否喝水、精神状态和体温变化。轻微且短时间可以观察，但如果持续加重、精神差、频繁呕吐拉稀或疑似误食，请及时联系宠物医生。";
+            return "先记录持续时间、呕吐或排便次数、是否喝水、精神状态和体温变化。轻微且短时间可以观察，但如果持续加重、精神差、频繁呕吐腹泻或疑似误食，请及时联系宠物医生。";
         }
         if (text.contains("第一次") || text.contains("新手") || text.contains("接") || text.contains("回家")) {
-            return "第一次接它回家，先准备安静隔离区、食盆水碗、主粮、猫砂盆或尿垫、航空箱和基础清洁用品。第一晚不要频繁打扰，让它自己探索，稳定吃喝和排便比立刻亲近更重要。";
+            return "第一次接宠物回家，先准备安静隔离区、食盆水碗、主粮、猫砂盆或尿垫、航空箱和基础清洁用品。第一晚不要频繁打扰，让它自己探索，稳定吃喝和排便比立刻亲近更重要。";
         }
-        return "可以的。建议你先从年龄、体重、饮食、精神状态和最近变化说起，我会帮你拆成日常照护、风险观察和用品准备三部分来处理。";
+        return "可以的。建议你先说清宠物的年龄、体重、品种、当前饮食、精神状态和最近变化，我会帮你拆成日常照护、风险观察和用品准备三部分处理。";
     }
 
     private AiChatResponse buildResponse(String sessionId, String reply, String message) {

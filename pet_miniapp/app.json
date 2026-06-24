@@ -1,1 +1,51 @@
-{"pages":["pages/index/index","pages/video/detail","pages/detail/detail","pages/cart/cart","pages/chat/chat","pages/user/user","pages/order/list","pages/order/detail","pages/store/list","pages/video/list","pages/address/list"],"window":{"navigationBarBackgroundColor":"#faf7ef","navigationBarTitleText":"暖窝","navigationBarTextStyle":"black","backgroundColor":"#faf7ef"},"tabBar":{"color":"#8f7366","selectedColor":"#e8927c","backgroundColor":"#ffffff","borderStyle":"white","list":[{"pagePath":"pages/index/index","text":"首页"},{"pagePath":"pages/store/list","text":"门店"},{"pagePath":"pages/cart/cart","text":"购物车"},{"pagePath":"pages/user/user","text":"我的"}]},"style":"v2","sitemapLocation":"sitemap.json"}
+{
+  "pages": [
+    "pages/index/index",
+    "pages/video/detail",
+    "pages/detail/detail",
+    "pages/cart/cart",
+    "pages/chat/chat",
+    "pages/user/user",
+    "pages/order/list",
+    "pages/order/detail",
+    "pages/store/list",
+    "pages/video/list",
+    "pages/address/list"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#faf7ef",
+    "navigationBarTitleText": "暖窝",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#faf7ef"
+  },
+  "tabBar": {
+    "color": "#8f7366",
+    "selectedColor": "#e8927c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/store/list",
+        "text": "门店"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "text": "AI客服"
+      },
+      {
+        "pagePath": "pages/cart/cart",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

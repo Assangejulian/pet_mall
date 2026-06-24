@@ -1,4 +1,4 @@
-﻿package com.pat.store.entity;
+package com.pat.store.entity;
 
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;

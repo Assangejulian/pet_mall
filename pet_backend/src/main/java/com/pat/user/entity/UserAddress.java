@@ -1,4 +1,4 @@
-﻿package com.pat.user.entity;
+package com.pat.user.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.pat.common.domain.BaseEntity;

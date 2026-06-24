@@ -1,1 +1,199 @@
-Page({data:{post:{},followed:false,liked:false,collected:false,product:{},comments:[],inputText:''},onLoad:function(o){var that=this;var posts=[{id:1,title:'金毛幼犬的日常撒娇',cover:'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800',author:'暖窝小暖',avatar:'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=100',likes:'2.3k',commentCount:156,productId:1},{id:2,title:'英短蓝猫卖萌合集',cover:'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800',author:'猫咪日记',avatar:'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100',likes:'5.1k',commentCount:432,productId:2},{id:3,title:'柯基小短腿赛跑大赛',cover:'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=800',author:'短腿俱乐部',avatar:'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100',likes:'1.8k',commentCount:89,productId:3},{id:4,title:'布偶猫的仙女日常',cover:'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800',author:'仙女猫本仙',avatar:'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=100',likes:'3.6k',commentCount:278,productId:4},{id:5,title:'仓鼠跑轮太可爱了叭',cover:'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800',author:'吱星日记',avatar:'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100',likes:'980',commentCount:45,productId:5},{id:6,title:'哈士奇拆家实况',cover:'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800',author:'拆家办主任',avatar:'https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=100',likes:'4.2k',commentCount:567,productId:6}];var p=posts.find(function(item){return item.id==o.id})||posts[0];var products={1:{name:'金毛幼犬',price:'1888'},2:{name:'英短蓝猫',price:'2580'},3:{name:'柯基犬',price:'3200'},4:{name:'布偶猫',price:'4500'},5:{name:'仓鼠',price:'38'},6:{name:'哈士奇',price:'2200'}};that.setData({post:p,product:products[p.productId]||{},comments:[{id:1,user:'小鱼干',avatar:'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',text:'太可爱了吧！每天都想看',time:'2小时前'},{id:2,user:'毛球控',avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',text:'同款在哪里买的呀？',time:'5小时前'},{id:3,user:'铲屎官小王',avatar:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',text:'哈哈哈哈太治愈了',time:'昨天'}]});},toggleFollow:function(){this.setData({followed:!this.data.followed});},toggleLike:function(){this.setData({liked:!this.data.liked});},toggleCollect:function(){this.setData({collected:!this.data.collected});},goProduct:function(){var p=this.data.post.productId;if(p)wx.navigateTo({url:'/pages/detail/detail?id='+p});},goChat:function(){wx.navigateTo({url:'/pages/chat/chat?store='+(this.data.post.author||'卖家')});},onInput:function(e){this.setData({inputText:e.detail.value});},sendComment:function(){var t=this.data.inputText.trim();if(!t)return;var cmt=this.data.comments;cmt.unshift({id:Date.now(),user:'我',avatar:'',text:t,time:'刚刚'});this.setData({comments:cmt,inputText:''});}});
+const app = getApp();
+
+const fallbackPosts = [
+  {
+    id: 1,
+    title: "第一次接它回家",
+    desc: "从隔离区到第一晚观察，把小家伙安稳接回家。",
+    url: "https://samplelib.com/preview/mp4/sample-5s.mp4",
+    cover: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800",
+    author: "暖窝小鱼",
+    avatar: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=100",
+    likes: 2300,
+    commentCount: 156,
+    productId: ""
+  },
+  {
+    id: 2,
+    title: "狗狗兴奋乱扑怎么办",
+    desc: "先让它学会坐下等待，再把奖励和社交绑定起来。",
+    url: "https://samplelib.com/preview/mp4/sample-10s.mp4",
+    cover: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800",
+    author: "布偶田田",
+    avatar: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100",
+    likes: 1860,
+    commentCount: 89,
+    productId: ""
+  }
+];
+
+const fallbackComments = [
+  {
+    id: 1,
+    user: "小鱼干",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
+    text: "隔离区这个点很有用，第一晚确实别太频繁打扰。",
+    time: "2小时前"
+  },
+  {
+    id: 2,
+    user: "毛球控",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+    text: "坐下等待比直接压住它有效多了。",
+    time: "5小时前"
+  }
+];
+
+const products = {
+  1: { name: "幼宠基础用品包", price: "99" },
+  2: { name: "低敏主粮试吃装", price: "39" },
+  3: { name: "耐咬训练玩具", price: "59" }
+};
+
+function formatCount(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return value || "0";
+  if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1) + "k";
+  return String(number);
+}
+
+function normalizePost(item, id) {
+  const source = item || {};
+  const fallback = fallbackPosts.find((post) => String(post.id) === String(id)) || fallbackPosts[0];
+  return {
+    id: source.id || fallback.id,
+    title: source.title || fallback.title,
+    desc: source.desc || source.description || fallback.desc,
+    url: source.url || source.videoUrl || fallback.url,
+    cover: source.cover || source.coverUrl || fallback.cover,
+    author: source.author || source.userName || "暖窝用户",
+    avatar: source.avatar || fallback.avatar,
+    likes: formatCount(source.likes || source.likeCount || fallback.likes),
+    commentCount: source.commentCount || fallback.commentCount || 0,
+    productId: source.productId || fallback.productId || ""
+  };
+}
+
+function normalizeComment(item) {
+  return {
+    id: item.id || Date.now(),
+    user: item.user || item.userName || "暖窝用户",
+    avatar: item.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
+    text: item.text || item.content || "",
+    time: item.time || "刚刚"
+  };
+}
+
+Page({
+  data: {
+    post: {},
+    followed: false,
+    liked: false,
+    collected: false,
+    product: {},
+    comments: [],
+    inputText: "",
+    useMock: false
+  },
+
+  onLoad(options) {
+    const id = options.id || 1;
+    this.loadDetail(id);
+    this.loadComments(id);
+  },
+
+  loadDetail(id) {
+    wx.request({
+      url: app.globalData.baseUrl + "/api/video/" + id,
+      method: "GET",
+      success: (res) => {
+        const post = normalizePost(res.data && res.data.data, id);
+        this.setData({
+          post,
+          product: products[post.productId] || {},
+          useMock: false
+        });
+      },
+      fail: () => {
+        const post = normalizePost(null, id);
+        this.setData({
+          post,
+          product: products[post.productId] || {},
+          useMock: true
+        });
+        wx.showToast({ title: "后端连接失败，展示本地详情", icon: "none" });
+      }
+    });
+  },
+
+  loadComments(id) {
+    wx.request({
+      url: app.globalData.baseUrl + "/api/video/" + id + "/comments",
+      method: "GET",
+      success: (res) => {
+        const data = res.data && res.data.data;
+        const comments = Array.isArray(data) ? data.map(normalizeComment) : fallbackComments;
+        this.setData({ comments });
+      },
+      fail: () => {
+        this.setData({ comments: fallbackComments });
+      }
+    });
+  },
+
+  toggleFollow() {
+    this.setData({ followed: !this.data.followed });
+  },
+
+  toggleLike() {
+    const nextLiked = !this.data.liked;
+    this.setData({ liked: nextLiked });
+    if (!nextLiked) return;
+    wx.request({
+      url: app.globalData.baseUrl + "/api/video/" + this.data.post.id + "/like",
+      method: "POST"
+    });
+  },
+
+  toggleCollect() {
+    this.setData({ collected: !this.data.collected });
+  },
+
+  goProduct() {
+    const productId = this.data.post.productId;
+    if (productId) wx.navigateTo({ url: "/pages/detail/detail?id=" + productId });
+  },
+
+  goChat() {
+    wx.switchTab({ url: "/pages/chat/chat" });
+  },
+
+  onInput(event) {
+    this.setData({ inputText: event.detail.value });
+  },
+
+  sendComment() {
+    const text = (this.data.inputText || "").trim();
+    if (!text) return;
+    const localComment = {
+      id: Date.now(),
+      user: "我",
+      avatar: "",
+      text,
+      time: "刚刚"
+    };
+    this.setData({
+      comments: [localComment].concat(this.data.comments),
+      inputText: ""
+    });
+    wx.request({
+      url: app.globalData.baseUrl + "/api/video/" + this.data.post.id + "/comment",
+      method: "POST",
+      header: { "content-type": "application/json" },
+      data: {
+        userId: app.globalData.user && app.globalData.user.id,
+        content: text
+      }
+    });
+  }
+});

@@ -1,28 +1,64 @@
 <view class="page">
-  <image class="cover" src="{{post.cover}}" mode="widthFix" />
-  <view class="info">
-    <view class="author-row">
-      <image class="av" src="{{post.avatar}}" mode="aspectFill" />
-      <view class="au-info"><text class="au-name">{{post.author}}</text><text class="au-desc">{{post.title}}</text></view>
-      <view class="follow-btn {{followed?'on':''}}" bindtap="toggleFollow">{{followed?'已关注':'+ 关注'}}</view>
-    </view>
-    <view class="actions">
-      <view class="act" bindtap="toggleLike"><text>{{liked?'❤':'♡'}}</text><text>{{post.likes}}</text></view>
-      <view class="act"><text>💬</text><text>{{post.commentCount}}</text></view>
-      <view class="act" bindtap="toggleCollect"><text>{{collected?'★':'☆'}}</text><text>收藏</text></view>
-    </view>
-    <view class="link-row" wx:if="{{post.productId}}">
-      <view class="product-tag" bindtap="goProduct"><text>🔗 {{product.name}} ¥{{product.price}}</text></view>
-      <view class="chat-btn" bindtap="goChat"><text>💬 联系卖家</text></view>
+  <view class="media-card">
+    <video wx:if="{{post.url}}" class="video-player" src="{{post.url}}" poster="{{post.cover}}" controls object-fit="cover"></video>
+    <image wx:else class="cover" src="{{post.cover}}" mode="aspectFill" />
+    <view class="shade" wx:if="{{!post.url}}"></view>
+    <view class="media-copy" wx:if="{{!post.url}}">
+      <text class="eyebrow">PETNEST VIDEO</text>
+      <text class="media-title">{{post.title}}</text>
     </view>
   </view>
 
-  <view class="comments">
-    <text class="sec-title">评论 ({{comments.length}})</text>
-    <view class="cmt" wx:for="{{comments}}" wx:key="id">
-      <image class="cmt-av" src="{{item.avatar}}" mode="aspectFill" />
-      <view class="cmt-body"><text class="cmt-name">{{item.user}}</text><text class="cmt-text">{{item.text}}</text><text class="cmt-time">{{item.time}}</text></view>
+  <view class="content">
+    <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据。</view>
+
+    <view class="author-card">
+      <image class="avatar" src="{{post.avatar}}" mode="aspectFill" />
+      <view class="author-info">
+        <text class="author">{{post.author}}</text>
+        <text class="desc">{{post.desc}}</text>
+      </view>
+      <view class="follow {{followed ? 'on' : ''}}" bindtap="toggleFollow">{{followed ? '已关注' : '+ 关注'}}</view>
     </view>
-    <view class="cmt-input"><input placeholder="说点什么..." value="{{inputText}}" bindinput="onInput" confirm-type="send" bindconfirm="sendComment" /><text class="send-btn" bindtap="sendComment">发送</text></view>
+
+    <view class="actions">
+      <view class="action {{liked ? 'on' : ''}}" bindtap="toggleLike">
+        <text>{{liked ? '♥' : '♡'}}</text>
+        <text>{{post.likes}}</text>
+      </view>
+      <view class="action">
+        <text>评</text>
+        <text>{{comments.length || post.commentCount}}</text>
+      </view>
+      <view class="action {{collected ? 'on' : ''}}" bindtap="toggleCollect">
+        <text>{{collected ? '★' : '☆'}}</text>
+        <text>收藏</text>
+      </view>
+    </view>
+
+    <view class="link-row">
+      <view class="product-tag" wx:if="{{post.productId}}" bindtap="goProduct">
+        <text class="tag-label">关联商品</text>
+        <text class="tag-main">{{product.name}} ¥{{product.price}}</text>
+      </view>
+      <view class="ai-link" bindtap="goChat">问客服</view>
+    </view>
+
+    <view class="comments">
+      <text class="section-title">评论 {{comments.length}}</text>
+      <view class="comment" wx:for="{{comments}}" wx:key="id">
+        <image class="comment-avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <view class="comment-body">
+          <text class="comment-name">{{item.user}}</text>
+          <text class="comment-text">{{item.text}}</text>
+          <text class="comment-time">{{item.time}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="comment-input">
+    <input placeholder="说点什么..." value="{{inputText}}" bindinput="onInput" confirm-type="send" bindconfirm="sendComment" />
+    <view class="send {{inputText ? 'active' : ''}}" bindtap="sendComment">发送</view>
   </view>
 </view>

@@ -10,11 +10,15 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("video")
 public class Video extends BaseEntity {
+    private Long userId;
     private String title;
-    private String videoUrl;
-    private String coverUrl;
+    private String description;
+    private String url;
+    private String cover;
     private Long productId;
     private Integer playCount;
+    private Integer likes;
+    private Integer commentCount;
     private Integer duration;
     private Integer status;
     

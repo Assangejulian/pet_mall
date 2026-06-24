@@ -1,4 +1,4 @@
-﻿package com.pat.video.entity;
+package com.pat.video.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.pat.common.domain.BaseEntity;

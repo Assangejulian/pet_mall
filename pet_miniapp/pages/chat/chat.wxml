@@ -1,15 +1,96 @@
 <view class="page">
-  <view class="topbar">
-    <image class="tb-av" src="{{merchant.avatar}}" mode="aspectFill" />
-    <text class="tb-name">{{merchant.name}}</text>
+  <view class="history-mask" wx:if="{{historyOpen}}" bindtap="closeHistory"></view>
+  <view class="history-drawer {{historyOpen ? 'open' : ''}}">
+    <view class="drawer-head">
+      <text>聊天历史</text>
+      <view class="drawer-close" bindtap="closeHistory">×</view>
+    </view>
+    <view class="drawer-new" bindtap="clearChat">+ 新对话</view>
+    <scroll-view scroll-y class="history-list">
+      <view
+        wx:for="{{chatSessions}}"
+        wx:key="id"
+        class="history-item {{currentSessionKey === item.id ? 'active' : ''}}"
+        bindtap="selectSession"
+        data-id="{{item.id}}"
+      >
+        <view class="history-main">
+          <text class="history-title">{{item.title}}</text>
+          <text class="history-time">{{item.pinned ? '已置顶 · ' : ''}}{{item.displayTime}}</text>
+        </view>
+        <view class="history-actions">
+          <view class="history-action" catchtap="togglePinSession" data-id="{{item.id}}">{{item.pinned ? '取消' : '置顶'}}</view>
+          <view class="history-action danger" catchtap="deleteSession" data-id="{{item.id}}">删除</view>
+        </view>
+      </view>
+      <view class="history-empty" wx:if="{{!chatSessions.length}}">还没有聊天记录</view>
+    </scroll-view>
   </view>
-  <scroll-view class="msg-list" scroll-y scroll-into-view="{{lastId}}">
-    <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg {{item.from==='me'?'right':'left'}}">
-      <view class="bubble">{{item.text}}</view>
+
+  <view class="hero">
+    <view class="history-btn" bindtap="openHistory">☰</view>
+    <view class="hero-dot">AI</view>
+    <view class="hero-copy">
+      <text class="eyebrow">PETNEST SERVICE</text>
+      <text class="title">{{title}}</text>
+      <text class="subtitle">{{subtitle}}</text>
+    </view>
+    <view class="status {{online ? 'on' : ''}}">
+      <text class="status-dot"></text>
+      <text>{{online ? '在线' : '离线'}}</text>
+    </view>
+  </view>
+
+  <view class="control-row">
+    <view class="model-switch">
+      <view wx:for="{{modelOptions}}" wx:key="id" class="model-item {{modelMode === item.id ? 'active' : ''}}" bindtap="switchModel" data-mode="{{item.id}}">
+        <text class="model-name">{{item.label}}</text>
+        <text class="model-desc">{{item.desc}}</text>
+      </view>
+    </view>
+    <view class="model-badge">{{modelLabel}}</view>
+  </view>
+
+  <view class="prompt-strip">
+    <scroll-view scroll-x class="prompt-scroll" show-scrollbar="false">
+      <view class="prompt-row">
+        <view wx:for="{{quickPrompts}}" wx:key="*this" class="prompt-card" bindtap="usePrompt" data-text="{{item}}">
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <scroll-view class="msg-list" scroll-y scroll-into-view="{{lastId}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <block wx:for="{{messages}}" wx:key="id">
+      <view wx:if="{{item.from === 'me' || item.text}}" id="msg-{{item.id}}" class="msg {{item.from === 'me' ? 'right' : 'left'}}">
+        <view class="avatar {{item.from === 'me' ? 'me' : 'ai'}}">{{item.from === 'me' ? '我' : 'AI'}}</view>
+        <view class="bubble-wrap">
+          <view class="bubble">{{item.text}}</view>
+          <text class="time">{{item.time}}</text>
+        </view>
+      </view>
+    </block>
+    <view class="typing" wx:if="{{loading && !streamingStarted}}">
+      <view class="avatar ai">AI</view>
+      <view class="typing-card"><text></text><text></text><text></text></view>
     </view>
   </scroll-view>
-  <view class="input-bar">
-    <input placeholder="输入消息..." value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="send" />
-    <text class="sbtn" bindtap="send">发送</text>
+
+  <view class="input-wrap">
+    <view class="command-panel" wx:if="{{showCommands}}">
+      <view wx:for="{{visibleCommands}}" wx:key="id" class="command-item" bindtap="useCommand" data-id="{{item.id}}">
+        <text class="command-label">{{item.label}}</text>
+        <text class="command-desc">{{item.desc}}</text>
+      </view>
+    </view>
+    <view class="input-bar">
+      <input placeholder="问商品、订单、售后或照护问题，输入 / 可选指令..." value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="send" />
+      <view class="send {{input ? 'active' : ''}}" bindtap="send">发送</view>
+    </view>
+    <view class="footer-row">
+      <text>健康类建议仅作日常照护参考，急性或持续症状请联系宠物医生。</text>
+      <text class="clear" bindtap="clearChat">新对话</text>
+    </view>
   </view>
 </view>

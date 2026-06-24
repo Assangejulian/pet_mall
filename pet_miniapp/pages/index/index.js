@@ -1,1 +1,177 @@
-Page({data:{videos:[],curTab:'recommend',loading:true,tabs:[{id:'follow',label:'关注'},{id:'recommend',label:'推荐'},{id:'nearby',label:'附近'}]},onLoad:function(){this.load();},load:function(){var that=this;that.setData({loading:true});var list=[{id:1,title:'金毛幼犬的日常撒娇',desc:'每天早上都会叼着拖鞋来叫醒我，太治愈了',cover:'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800',author:'暖窝小暖',avatar:'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=100',likes:'2.3k',commentCount:156,productId:1},{id:2,title:'英短蓝猫卖萌合集',desc:'包子脸的终极奥义就是装无辜',cover:'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800',author:'猫咪日记',avatar:'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100',likes:'5.1k',commentCount:432,productId:2},{id:3,title:'柯基小短腿赛跑',desc:'腿虽短但跑起来谁也不服',cover:'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=800',author:'短腿俱乐部',avatar:'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100',likes:'1.8k',commentCount:89,productId:3},{id:4,title:'布偶猫的仙女日常',desc:'每天醒来看到这张脸，感觉世界都温柔了',cover:'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800',author:'仙女猫本仙',avatar:'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=100',likes:'3.6k',commentCount:278,productId:4},{id:5,title:'仓鼠跑轮停不下来',desc:'跑了一小时还在跑，这体力我服',cover:'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800',author:'吱星日记',avatar:'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100',likes:'980',commentCount:45,productId:5},{id:6,title:'哈士奇拆家实况',desc:'出门两小时回来沙发没了，微笑面对',cover:'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800',author:'拆家办主任',avatar:'https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=100',likes:'4.2k',commentCount:567,productId:6}];that.setData({videos:list,loading:false});},swTab:function(e){this.setData({curTab:e.currentTarget.dataset.id});this.load();},goDetail:function(e){wx.navigateTo({url:'/pages/video/detail?id='+e.currentTarget.dataset.id});}});
+const app = getApp();
+
+const fallbackVideos = [
+  {
+    id: 1,
+    title: "第一次接它回家",
+    desc: "从隔离区到第一晚观察，把小家伙安稳接回家。",
+    cover: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800",
+    author: "暖窝小鱼",
+    avatar: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=100",
+    likes: "2.3k",
+    commentCount: 156,
+    size: "tall"
+  },
+  {
+    id: 2,
+    title: "狗狗兴奋乱扑怎么办",
+    desc: "先让它学会坐下等待，再把奖励和社交绑定起来。",
+    cover: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800",
+    author: "布偶田田",
+    avatar: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100",
+    likes: "1.8k",
+    commentCount: 89,
+    size: "short"
+  },
+  {
+    id: 3,
+    title: "猫咪食欲变差怎么办",
+    desc: "排查换粮、温度、压力和精神状态，先观察重点信号。",
+    cover: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800",
+    author: "猫咪日记",
+    avatar: "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=100",
+    likes: "5.1k",
+    commentCount: 432,
+    size: "medium"
+  },
+  {
+    id: 4,
+    title: "幼宠用品清单",
+    desc: "笼具、食盆、牵引和清洁用品先准备基础款，别一开始买太多。",
+    cover: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800",
+    author: "吱星日记",
+    avatar: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100",
+    likes: "980",
+    commentCount: 45,
+    size: "tall"
+  }
+];
+
+function formatCount(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return value || "0";
+  if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1) + "k";
+  return String(number);
+}
+
+function normalizeVideo(item, index) {
+  const source = item || {};
+  const fallback = fallbackVideos[index % fallbackVideos.length];
+  const sizes = ["tall", "short", "medium", "tall", "short", "medium"];
+  return {
+    id: source.id || fallback.id,
+    title: source.title || fallback.title,
+    desc: source.desc || source.description || fallback.desc,
+    cover: source.cover || source.coverUrl || fallback.cover,
+    url: source.url || source.videoUrl || "",
+    author: source.author || source.userName || "暖窝用户",
+    avatar: source.avatar || fallback.avatar,
+    likes: formatCount(source.likes || source.likeCount || fallback.likes),
+    commentCount: source.commentCount || fallback.commentCount || 0,
+    productId: source.productId || fallback.productId || "",
+    duration: source.duration || "",
+    size: source.size || fallback.size || sizes[index % sizes.length]
+  };
+}
+
+function extractRows(body) {
+  const data = body && body.data ? body.data : body;
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.records)) return data.records;
+  return [];
+}
+
+Page({
+  data: {
+    videos: [],
+    leftVideos: [],
+    rightVideos: [],
+    curTab: "recommend",
+    loading: true,
+    useMock: false,
+    tabs: [
+      { id: "recommend", label: "推荐" },
+      { id: "care", label: "照护" },
+      { id: "nearby", label: "附近" }
+    ]
+  },
+
+  onLoad() {
+    this.load();
+  },
+
+  onPullDownRefresh() {
+    this.load(() => wx.stopPullDownRefresh());
+  },
+
+  load(done) {
+    this.setData({ loading: true });
+    wx.request({
+      url: app.globalData.baseUrl + "/api/video/feed",
+      method: "GET",
+      data: { page: 1, size: 20 },
+      success: (res) => {
+        const rows = extractRows(res.data);
+        if (rows.length) {
+          this.setVideos(rows.map(normalizeVideo), false);
+        } else {
+          this.useFallback("后端暂无视频，临时展示本地演示数据");
+        }
+      },
+      fail: () => this.useFallback("无法连接后端，临时展示本地演示数据"),
+      complete: () => {
+        if (done) done();
+      }
+    });
+  },
+
+  useFallback(message) {
+    this.setVideos(fallbackVideos, true);
+    if (message) {
+      wx.showToast({ title: message, icon: "none" });
+    }
+  },
+
+  setVideos(videos, useMock) {
+    const leftVideos = [];
+    const rightVideos = [];
+    videos.forEach((item, index) => {
+      if (index % 2 === 0) {
+        leftVideos.push(item);
+      } else {
+        rightVideos.push(item);
+      }
+    });
+    this.setData({
+      videos,
+      leftVideos,
+      rightVideos,
+      loading: false,
+      useMock
+    });
+  },
+
+  swTab(event) {
+    this.setData({ curTab: event.currentTarget.dataset.id });
+    this.load();
+  },
+
+  goDetail(event) {
+    const id = event.currentTarget.dataset.id;
+    if (!id) {
+      wx.showToast({ title: "视频数据缺少 ID", icon: "none" });
+      return;
+    }
+    wx.navigateTo({
+      url: "/pages/video/detail?id=" + id,
+      fail: () => {
+        wx.showToast({ title: "视频详情页打开失败", icon: "none" });
+      }
+    });
+  },
+
+  goAi() {
+    wx.switchTab({ url: "/pages/chat/chat" });
+  }
+});
