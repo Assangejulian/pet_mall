@@ -1,0 +1,106 @@
+<view class="login-page">
+  <view class="login-header">
+    <view class="login-logo">暖窝</view>
+    <text class="login-subtitle">温暖每一个养宠人</text>
+  </view>
+
+  <view class="tab-bar">
+    <view wx:for="{{tabs}}" wx:key="id" class="tab-item {{curTab===item.id?'active':''}}" bindtap="swTab" data-id="{{item.id}}">
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <view class="tab-body" wx:if="{{curTab===0}}">
+    <view class="input-group">
+      <view class="input-row">
+        <text class="input-prefix">+86</text>
+        <input class="input-field" type="number" placeholder="请输入手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11"/>
+      </view>
+      <view class="input-row">
+        <input class="input-field" type="{{showPassword?'text':'password'}}" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput"/>
+        <view class="input-suffix" bindtap="togglePassword">
+          <text>{{showPassword?'🙈':'👁'}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="forgot-pwd" bindtap="onForgotPassword"><text>忘记密码?</text></view>
+    <view class="agreement">
+      <view class="agree-check {{agreed?'checked':''}}" bindtap="toggleAgreed"><text wx:if="{{agreed}}">✓</text></view>
+      <text class="agree-text">我已阅读并同意</text>
+      <text class="agree-link">《用户协议》</text>
+      <text class="agree-text">和</text>
+      <text class="agree-link">《隐私政策》</text>
+    </view>
+    <view class="login-btn-wrap">
+      <button class="login-btn" bindtap="onPasswordLogin">登 录</button>
+    </view>
+  </view>
+
+  <view class="tab-body" wx:if="{{curTab===1}}">
+    <view class="input-group">
+      <view class="input-row">
+        <text class="input-prefix">+86</text>
+        <input class="input-field" type="number" placeholder="请输入手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11"/>
+      </view>
+      <view class="input-row">
+        <input class="input-field sms-input" type="number" placeholder="请输入验证码" value="{{smsCode}}" bindinput="onSmsCodeInput" maxlength="6"/>
+        <view class="sms-btn {{canSendSms?'':'disabled'}}" bindtap="onSendSms">
+          <text wx:if="{{smsCountdown===0}}">获取验证码</text>
+          <text wx:else>{{smsCountdown}}s后重发</text>
+        </view>
+      </view>
+    </view>
+    <view class="agreement">
+      <view class="agree-check {{agreed?'checked':''}}" bindtap="toggleAgreed"><text wx:if="{{agreed}}">✓</text></view>
+      <text class="agree-text">我已阅读并同意</text>
+      <text class="agree-link">《用户协议》</text>
+      <text class="agree-text">和</text>
+      <text class="agree-link">《隐私政策》</text>
+    </view>
+    <view class="login-btn-wrap">
+      <button class="login-btn" bindtap="onSmsLogin">登 录</button>
+    </view>
+  </view>
+
+  <view class="tab-body tab-center" wx:if="{{curTab===2}}">
+    <view class="wx-icon-wrap"><view class="wx-icon">💬</view></view>
+    <text class="wx-desc">使用微信账号快速登录</text>
+    <view class="agreement">
+      <view class="agree-check {{agreed?'checked':''}}" bindtap="toggleAgreed"><text wx:if="{{agreed}}">✓</text></view>
+      <text class="agree-text">我已阅读并同意</text>
+      <text class="agree-link">《用户协议》</text>
+      <text class="agree-text">和</text>
+      <text class="agree-link">《隐私政策》</text>
+    </view>
+    <view class="login-btn-wrap">
+      <button class="login-btn wx-btn" bindtap="onWechatLogin">微信一键登录</button>
+    </view>
+  </view>
+
+  <view class="tab-body tab-center" wx:if="{{curTab===3}}">
+    <view class="face-icon-wrap"><view class="face-icon">😊</view></view>
+    <text class="face-desc">人脸识别 · 安全便捷</text>
+    <view class="agreement">
+      <view class="agree-check {{agreed?'checked':''}}" bindtap="toggleAgreed"><text wx:if="{{agreed}}">✓</text></view>
+      <text class="agree-text">我已阅读并同意</text>
+      <text class="agree-link">《用户协议》</text>
+      <text class="agree-text">和</text>
+      <text class="agree-link">《隐私政策》</text>
+    </view>
+    <view class="login-btn-wrap">
+      <button class="login-btn face-btn" bindtap="onFaceLogin">开始人脸识别</button>
+    </view>
+  </view>
+
+  <view class="other-login">
+    <view class="divider">
+      <view class="divider-line"></view>
+      <text class="divider-text">其他登录方式</text>
+      <view class="divider-line"></view>
+    </view>
+    <view class="other-icons">
+      <view class="other-item"><text class="other-icon">🍎</text><text class="other-label">Apple</text></view>
+      <view class="other-item"><text class="other-icon">💳</text><text class="other-label">支付宝</text></view>
+    </view>
+  </view>
+</view>

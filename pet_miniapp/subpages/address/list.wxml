@@ -1,0 +1,7 @@
+<view class="page">
+  <view class="card" wx:for="{{list}}" wx:key="id">
+    <view class="at"><text class="an">{{item.receiverName}}</text><text class="ap">{{item.phone}}</text><text class="adef" wx:if="{{item.defaulted}}">默认</text></view>
+    <text class="aa">{{item.province}}{{item.city}}{{item.district}} {{item.detail}}</text>
+  </view>
+  <view class="empty-tip" wx:if="{{!list.length}}"><text>还没有地址</text></view>
+</view>
