@@ -1,17 +1,24 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/video/detail",
-    "pages/detail/detail",
-    "pages/cart/cart",
-    "pages/chat/chat",
-    "pages/user/user",
-    "pages/order/list",
-    "pages/order/detail",
     "pages/store/list",
-    "pages/video/list",
-    "pages/address/list",
-    "pages/login/login"
+    "pages/chat/chat",
+    "pages/cart/cart",
+    "pages/user/user"
+  ],
+  "subpackages": [
+    {
+      "root": "subpages",
+      "pages": [
+        "detail/detail",
+        "video/list",
+        "video/detail",
+        "order/list",
+        "order/detail",
+        "address/list",
+        "login/login"
+      ]
+    }
   ],
   "window": {
     "navigationBarBackgroundColor": "#faf7ef",
@@ -27,11 +34,12 @@
     "list": [
       { "pagePath": "pages/index/index", "text": "首页" },
       { "pagePath": "pages/store/list", "text": "门店" },
-      { "pagePath": "pages/chat/chat", "iconPath": "images/tab-chart.png", "selectedIconPath": "images/tab-chart-active.png" },
+      { "pagePath": "pages/chat/chat", "iconPath": "images/tab-chart.png", "selectedIconPath": "images/tab-chart-active.png", "text": "消息" },
       { "pagePath": "pages/cart/cart", "text": "购物车" },
       { "pagePath": "pages/user/user", "text": "我的" }
     ]
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
 }

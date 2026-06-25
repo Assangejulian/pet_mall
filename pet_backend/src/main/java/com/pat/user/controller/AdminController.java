@@ -1,5 +1,7 @@
 package com.pat.user.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
 import com.pat.common.utils.JwtUtil;
 import com.pat.common.utils.UserHolder;
@@ -17,6 +19,7 @@ import java.util.Map;
  * 管理后台 API（/api/admin/* 由 AdminAuthInterceptor 保护）
  */
 @RestController
+@Tag(name = "后台管理", description = "管理员信息")
 @RequestMapping("/api/admin")
 public class AdminController {
 
@@ -26,7 +29,8 @@ public class AdminController {
     /**
      * 获取当前管理员信息（用于页面刷新后恢复登录态）
      */
-    @GetMapping("/info")
+        @Operation(summary = "获取当前管理员信息")
+@GetMapping("/info")
     public Result<Map<String, Object>> info() {
         Long userId = UserHolder.getUserId();
         if (userId == null) {

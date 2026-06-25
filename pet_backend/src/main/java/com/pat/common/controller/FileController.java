@@ -1,5 +1,7 @@
 package com.pat.common.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,12 +15,14 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 @RestController
+@Tag(name = "文件上传", description = "通用文件上传")
 @RequestMapping("/api/upload")
 public class FileController {
 
     @Value("${upload.dir:uploads}")
     private String uploadDir;
 
+    @Operation(summary = "上传文件")
     @PostMapping
     public Result<String> upload(@RequestParam("file") MultipartFile file) throws Exception {
         // 确保目录存在

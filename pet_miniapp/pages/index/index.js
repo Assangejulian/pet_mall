@@ -164,7 +164,7 @@ Page({
       return;
     }
     wx.navigateTo({
-      url: "/pages/video/detail?id=" + id,
+      url: "/subpages/video/detail?id=" + id,
       fail: () => {
         wx.showToast({ title: "视频详情页打开失败", icon: "none" });
       }

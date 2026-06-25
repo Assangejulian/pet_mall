@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.common.domain.BaseEntity;
+import io.swagger.v3.oas.annotations.Operation;
 import com.pat.common.domain.Result;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +28,8 @@ public abstract class BaseDeleteController<E extends BaseEntity, P, VO>
     }
 
     /** 恢复已逻辑删除记录。默认通过 mapper 直接 set deleted=0 绕过 @TableLogic 过滤。 */
-    @PutMapping("/{id}/restore")
+        @Operation(summary = "恢复已逻辑删除记录")
+@PutMapping("/{id}/restore")
     public Result<Boolean> restore(@PathVariable Long id) {
         int rows = baseService.getBaseMapper().update(null,
                 new UpdateWrapper<E>().eq("id", id).set("deleted", 0)
@@ -36,7 +38,8 @@ public abstract class BaseDeleteController<E extends BaseEntity, P, VO>
     }
 
     /** 分页查询含已删除记录。默认直接透传 page 参数，如需绕过 @TableLogic 过滤则 override。 */
-    @GetMapping("/search-with-deleted")
+        @Operation(summary = "分页查询含已删除")
+@GetMapping("/search-with-deleted")
     public Result<Page<E>> searchWithDeleted(Page<E> page, P param) {
         return Result.success(baseService.page(page, buildQueryWrapper(param)));
     }

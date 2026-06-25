@@ -1,1 +1,65 @@
-var app=getApp();Page({data:{userName:'',isLogin:false,tabs:[{s:'0',i:'○',l:'待支付'},{s:'1',i:'◐',l:'待发货'},{s:'2',i:'◑',l:'待收货'},{s:'3',i:'●',l:'待评价'},{s:'-2',i:'◌',l:'退单'}]},onShow:function(){var t=app.globalData.token;this.setData({isLogin:!!t,userName:t?'用户':''});},goLogin:function(){wx.navigateTo({url:'/pages/login/login'});},goOrders:function(e){if(!this.data.isLogin)return this.goLogin();wx.navigateTo({url:'/pages/order/list?status='+e.currentTarget.dataset.s});},goAddr:function(){if(!this.data.isLogin)return this.goLogin();wx.navigateTo({url:'/pages/address/list'});},goStores:function(){wx.navigateTo({url:'/pages/store/list'});},goVideos:function(){wx.navigateTo({url:'/pages/video/list'});},logout:function(){app.globalData.token='';wx.removeStorageSync('token');this.setData({isLogin:false,userName:''});wx.showToast({title:'已退出',icon:'none'});}});
+var app = getApp();
+
+Page({
+  data: {
+    userName: "",
+    isLogin: false,
+    tabs: [
+      { s: "0", i: "O", l: "待付款" },
+      { s: "1", i: "O", l: "待发货" },
+      { s: "2", i: "O", l: "待收货" },
+      { s: "3", i: "O", l: "待评价" },
+      { s: "-2", i: "O", l: "退款" }
+    ]
+  },
+
+  onShow: function () {
+    var token = app.globalData.token;
+    var user = app.globalData.user;
+    var name = (user && user.name) || "";
+    this.setData({
+      isLogin: !!token,
+      userName: name || (token ? "用户" : "")
+    });
+  },
+
+  goLogin: function () {
+    wx.navigateTo({ url: "/subpages/login/login" });
+  },
+
+  goOrders: function (e) {
+    if (!this.data.isLogin) return this.goLogin();
+    wx.navigateTo({ url: "/subpages/order/list?status=" + e.currentTarget.dataset.s });
+  },
+
+  goAddr: function () {
+    if (!this.data.isLogin) return this.goLogin();
+    wx.navigateTo({ url: "/subpages/address/list" });
+  },
+
+  goStores: function () {
+    wx.navigateTo({ url: "/pages/store/list" });
+  },
+
+  goVideos: function () {
+    wx.navigateTo({ url: "/subpages/video/list" });
+  },
+
+  logout: function () {
+    var that = this;
+    wx.showModal({
+      title: "退出确认",
+      content: "确定要退出登录吗？",
+      success: function (r) {
+        if (r.confirm) {
+          app.globalData.token = "";
+          app.globalData.user = null;
+          wx.removeStorageSync("token");
+          wx.removeStorageSync("userId");
+          that.setData({ isLogin: false, userName: "" });
+          wx.showToast({ title: "已退出", icon: "none" });
+        }
+      }
+    });
+  }
+});

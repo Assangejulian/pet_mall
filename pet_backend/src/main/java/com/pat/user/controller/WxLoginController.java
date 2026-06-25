@@ -1,5 +1,7 @@
 package com.pat.user.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.utils.JwtUtil;
 import com.pat.user.entity.User;
 import com.pat.user.service.auth.WxAuthService;
@@ -18,6 +20,7 @@ import java.nio.charset.StandardCharsets;
  * PC 端微信扫码登录回调（OAuth2 网页授权）
  * 用户扫码 → 微信回调此地址 → 登录成功重定向回前端
  */
+@Tag(name = "微信登录", description = "微信扫码/小程序登录")
 @Slf4j
 @Controller
 public class WxLoginController {
@@ -27,6 +30,7 @@ public class WxLoginController {
 
     private static final String FRONTEND_URL = "http://localhost:5173";
 
+    @Operation(summary = "微信扫码登录/小程序登录")
     @GetMapping("/wxLogin")
     public String wxLogin(@RequestParam String code,
                           @RequestParam(required = false) String state,

@@ -1,5 +1,7 @@
 package com.pat.ai.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.ai.dto.AiChatRequest;
 import com.pat.ai.service.AiChatService;
 import com.pat.ai.vo.AiChatResponse;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
+@Tag(name = "AI 智能客服", description = "AI 聊天同步/流式对话")
 @RequestMapping("/api/ai")
 public class AiChatController {
 
@@ -29,12 +32,14 @@ public class AiChatController {
         this.aiChatService = aiChatService;
     }
 
-    @PostMapping("/chat")
+        @Operation(summary = "AI 对话（同步）")
+@PostMapping("/chat")
     public Result<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request) {
         return Result.success(aiChatService.chat(request));
     }
 
-    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        @Operation(summary = "AI 对话（SSE 流式）")
+@PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L);
         Thread.ofVirtual().start(() -> {
@@ -63,7 +68,8 @@ public class AiChatController {
         return emitter;
     }
 
-    @DeleteMapping("/session/{sessionId}")
+        @Operation(summary = "删除对话会话")
+@DeleteMapping("/session/{sessionId}")
     public Result<Void> deleteSession(@PathVariable String sessionId) {
         aiChatService.deleteSession(sessionId);
         return Result.success();
