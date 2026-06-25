@@ -1,4 +1,4 @@
-var app = getApp();
+﻿var app = getApp();
 
 function getBaseUrl() {
   return (app && app.globalData && app.globalData.baseUrl) || "http://localhost:8080";
