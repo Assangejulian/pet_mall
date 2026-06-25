@@ -531,4 +531,18 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Long size = query.getSize() != null ? query.getSize() : query.getPageSize();
         return size == null ? 10L : Math.min(size, 100L);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deductStock(Long productId, Integer quantity) {
+        if (productId == null || quantity == null || quantity <= 0) {
+            return false;
+        }
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                .setSql("stock = stock - " + quantity)
+                .eq(Product::getId, productId)
+                .ge(Product::getStock, quantity)
+                .eq(Product::getStatus, STATUS_ONLINE));
+        return rows > 0;
+    }
 }

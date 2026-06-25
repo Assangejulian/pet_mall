@@ -26,4 +26,6 @@ public interface ProductService extends IProductService {
     ProductVO getPublicDetail(Long id);
 
     ProductVO getAdminDetail(Long id);
+
+    boolean deductStock(Long productId, Integer quantity);
 }
