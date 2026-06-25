@@ -5,6 +5,8 @@ import com.pat.common.controller.BaseController;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.domain.Result;
 import com.pat.common.exception.BusinessException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.store.dto.StoreDTO;
 import com.pat.store.entity.Store;
 import com.pat.store.service.IStoreService;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@Tag(name = "门店管理（后台）", description = "管理端门店审核/CRUD")
 @RequestMapping("/api/admin/store")
 public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
 
@@ -26,7 +29,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         this.storeService = service;
     }
 
-    @Override
+    
     protected StoreVO toVO(Store entity) {
         StoreVO vo = new StoreVO();
         vo.setId(entity.getId());
@@ -49,7 +52,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         return vo;
     }
 
-    @Override
+    
     protected Store toDO(StoreDTO param) {
         Store entity = new Store();
         entity.setId(param.getId());
@@ -68,7 +71,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         return entity;
     }
 
-    @Override
+    
     protected QueryWrapper<Store> buildQueryWrapper(StoreDTO param) {
         QueryWrapper<Store> wrapper = new QueryWrapper<>();
         if (param == null) {
@@ -82,18 +85,18 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         return wrapper;
     }
 
-    @Override
+    
     protected void preSave(StoreDTO param) {
         validateRequiredForCreate(param);
         storeService.validateStatus(param.getStatus());
     }
 
-    @Override
+    
     protected void preUpdate(StoreDTO param) {
         storeService.validateStatus(param.getStatus());
     }
 
-    @Override
+    
     protected boolean doSave(Store entity, StoreDTO param) {
         if (entity.getStatus() == null) {
             entity.setStatus(0);
@@ -102,7 +105,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         return storeService.save(entity);
     }
 
-    @Override
+    
     protected boolean doUpdate(Long id, Store entity, StoreDTO param) {
         if (Integer.valueOf(2).equals(param.getStatus())) {
             storeService.ensureCanCloseOrDelete(id);
@@ -110,31 +113,35 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         return storeService.updateById(entity);
     }
 
-    @Override
+    
     protected boolean doRemove(Long id) {
         storeService.ensureCanCloseOrDelete(id);
         return storeService.removeById(id);
     }
 
-    @Override
+    
+    @Operation(summary = "门店列表（禁用）")
     @GetMapping("/list")
     public Result<List<StoreVO>> getList(StoreDTO param) {
         return Result.error(ErrorCode.FARAMS_ERROR, "商店列表请使用分页接口 /search");
     }
 
-    @Override
+    
+    @Operation(summary = "门店批量新增（禁用）")
     @PostMapping("/batch")
     public Result<Boolean> saveBatch(@RequestBody @Valid List<StoreDTO> paramList) {
         return Result.error(ErrorCode.FARAMS_ERROR, "商店不支持批量新增");
     }
 
-    @Override
+    
+    @Operation(summary = "门店批量修改（禁用）")
     @PutMapping("/batch")
     public Result<Boolean> updateBatch(@RequestBody @Valid List<StoreDTO> paramList) {
         return Result.error(ErrorCode.FARAMS_ERROR, "商店不支持批量修改");
     }
 
-    @Override
+    
+    @Operation(summary = "门店批量删除（禁用）")
     @DeleteMapping("/batch")
     public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
         return Result.error(ErrorCode.FARAMS_ERROR, "商店不支持批量删除");
