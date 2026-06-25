@@ -21,6 +21,12 @@ public class User extends BaseEntity {
     private String role;
     private Integer status;
 
+    /** 微信小程序 openid */
+    private String openid;
+
+    /** 微信开放平台 unionid（跨公众号/小程序统一标识） */
+    private String unionid;
+
     @TableField(exist = false)
     private String roleName;
 }

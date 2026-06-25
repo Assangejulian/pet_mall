@@ -56,3 +56,10 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+wx:
+  miniapp:
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
+  pc:
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
