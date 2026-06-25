@@ -214,3 +214,7 @@ CREATE TABLE sys_message (
 INSERT INTO user(id, username, password, role, status, real_name) VALUES
 (1, 'admin', 'admin123', 'admin', 1, '系统管理员'),
 (2, 'user',  'user123',  'user',  1, '测试用户');
+
+
+INSERT INTO user (id, username, password, role, status)
+VALUES (1, 'admin', '123456', 'admin', 1);
