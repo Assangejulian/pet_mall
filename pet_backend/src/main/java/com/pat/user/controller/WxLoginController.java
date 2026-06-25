@@ -1,4 +1,4 @@
-﻿package com.pat.user.controller;
+package com.pat.user.controller;
 
 import com.pat.common.utils.JwtUtil;
 import com.pat.user.entity.User;

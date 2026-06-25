@@ -1,4 +1,4 @@
-﻿package com.pat.user.service.auth;
+package com.pat.user.service.auth;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
