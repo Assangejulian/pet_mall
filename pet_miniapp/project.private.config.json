@@ -1,5 +1,5 @@
 {
-  "libVersion": "3.16.2",
+  "libVersion": "3.6.0",
   "projectname": "pet_miniapp",
   "setting": {
     "urlCheck": true,
@@ -9,6 +9,6 @@
     "preloadBackgroundData": false,
     "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "compileHotReLoad": true
+    "compileHotReLoad": false
   }
 }
