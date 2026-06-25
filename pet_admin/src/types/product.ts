@@ -1,4 +1,4 @@
-export interface Product {
+﻿export interface Product {
   id: string;
   productName?: string;
   productType?: number;
@@ -13,6 +13,7 @@ export interface Product {
   image?: string;
   images?: string;
   storeId: string;
+  name?: string;  // alias for productName
   videoId?: number;
   createTime: string;
 }

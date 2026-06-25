@@ -40,7 +40,7 @@ public class AuthController {
         dto.setAuthType(authType);
         User user = authServiceRouter.getService(authType).authenticate(dto);
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.USER_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "管理员登录（强制密码）")
@@ -50,7 +50,7 @@ public class AuthController {
         User user = authServiceRouter.getService("password").authenticate(dto);
         if (!"admin".equals(user.getRole())) return Result.error("无管理员权限");
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.ADMIN_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "发送邮箱验证码")

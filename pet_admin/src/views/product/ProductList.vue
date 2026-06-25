@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-page">
     <div class="page-header"><h2>商品管理</h2><p>管理平台商品信息</p></div>
 
@@ -92,7 +92,7 @@ const currentPage = ref(1)
 const pageSize = 10
 const showModal = ref(false)
 const isAdd = ref(false)
-const form = reactive<Record<string, any>>({})
+const form = reactive({}) as any
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize))
 
@@ -115,7 +115,7 @@ function statusLabel(item: Product) {
 }
 
 async function fetchData() {
-  const params: Record<string, any> = { current: currentPage.value, size: pageSize }
+  const params = { current: currentPage.value, size: pageSize, keyword: keyword.value || undefined, productType: typeFilter.value >= 0 ? typeFilter.value : undefined, status: statusFilter.value || undefined }
   if (keyword.value) params.keyword = keyword.value
   if (typeFilter.value >= 0) params.productType = typeFilter.value
   if (statusFilter.value) params.status = statusFilter.value
@@ -205,3 +205,4 @@ onMounted(fetchData)
 .form-row { display: flex; gap: 16px; }
 .form-row .form-group { flex: 1; }
 </style>
+

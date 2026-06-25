@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-page">
     <div class="page-header"><h2>视频管理</h2><p>管理平台视频内容</p></div>
 
@@ -18,7 +18,7 @@
           <tr v-for="item in store.list" :key="item.id">
             <td>{{ item.id }}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.title }}</td>
-            <td><img :src="item.cover" class="img-preview" @error="$event.target.style.display='none'" /></td>
+            <td><img :src="item.cover" class="img-preview" @error="handleImgError" /></td>
             <td>{{ item.playCount ?? 0 }}</td>
             <td>{{ item.likes ?? 0 }}</td>
             <td>{{ formatDuration(item.duration) }}</td>
@@ -88,7 +88,7 @@ function formatDuration(s: number) {
 }
 
 async function fetchData() {
-  const params: Record<string, any> = { page: currentPage.value, size: pageSize }
+  const params = { page: currentPage.value, size: pageSize, keyword: keyword.value || undefined, status: statusFilter.value >= 0 ? statusFilter.value : undefined }
   if (keyword.value) params.keyword = keyword.value
   if (statusFilter.value >= 0) params.status = statusFilter.value
   await store.fetch(params)
@@ -139,6 +139,11 @@ async function handleDelete(item: Video) {
   }
 }
 
+function handleImgError(e: Event) {
+  const target = e.target as HTMLImageElement | null
+  if (target) target.style.display = 'none'
+}
+
 function dispatchToast(msg: string, type: string) {
   const event = new CustomEvent('toast', { detail: { message: msg, type } })
   document.dispatchEvent(event)
@@ -151,3 +156,5 @@ onMounted(fetchData)
 .form-row { display: flex; gap: 16px; }
 .form-row .form-group { flex: 1; }
 </style>
+
+

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-page">
     <div class="page-header">
       <h2>概览</h2>
@@ -27,6 +27,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
 import http from "../api/index"
+import { unwrap } from "../api/helper"
 
 const stats = ref({
   userCount: 0, storeCount: 0, productCount: 0,
@@ -60,9 +61,8 @@ const orderStatusList = computed(() =>
 
 onMounted(async () => {
   try {
-    const res = await http.get("/dashboard/stats")
-    const body = res.data || res
-    if (body.code === 200) stats.value = body.data
+    const data = await unwrap<any>(http.get("/dashboard/stats"))
+    stats.value = data
   } catch {
     stats.value = {
       userCount: 1284, storeCount: 12, productCount: 156,
@@ -74,6 +74,30 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.stat-card {
+  background: var(--card-bg, #fff);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow, 0 1px 4px rgba(0,0,0,.06));
+}
+.stat-card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.stat-card .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text1);
+  line-height: 1.2;
+}
+.stat-card .unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text3);
+  margin-left: 4px;
+}
 .card-section {
   background: var(--card-bg, #fff);
   border-radius: var(--radius);
@@ -89,3 +113,4 @@ onMounted(async () => {
 }
 .count { font-size: 18px; font-weight: 700; color: var(--text1); }
 </style>
+
