@@ -5,25 +5,25 @@ const fallbackPosts = [
     id: 1,
     title: "第一次接它回家",
     desc: "从隔离区到第一晚观察，把小家伙安稳接回家。",
-    url: "https://samplelib.com/preview/mp4/sample-5s.mp4",
-    cover: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800",
+    url: "",
+    cover: "/images/mock/cat-cover.jpg",
     author: "暖窝小鱼",
-    avatar: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=100",
+    avatar: "/images/mock/cat-avatar.jpg",
     likes: 2300,
     commentCount: 156,
-    productId: ""
+    productId: 1
   },
   {
     id: 2,
     title: "狗狗兴奋乱扑怎么办",
     desc: "先让它学会坐下等待，再把奖励和社交绑定起来。",
-    url: "https://samplelib.com/preview/mp4/sample-10s.mp4",
-    cover: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800",
+    url: "",
+    cover: "/images/mock/golden.jpg",
     author: "布偶田田",
-    avatar: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100",
+    avatar: "/images/mock/dog-avatar.jpg",
     likes: 1860,
     commentCount: 89,
-    productId: ""
+    productId: 3
   }
 ];
 
@@ -31,14 +31,14 @@ const fallbackComments = [
   {
     id: 1,
     user: "小鱼干",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
+    avatar: "/images/mock/cat-avatar.jpg",
     text: "隔离区这个点很有用，第一晚确实别太频繁打扰。",
     time: "2小时前"
   },
   {
     id: 2,
     user: "毛球控",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+    avatar: "/images/mock/dog-avatar.jpg",
     text: "坐下等待比直接压住它有效多了。",
     time: "5小时前"
   }
@@ -47,7 +47,8 @@ const fallbackComments = [
 const products = {
   1: { name: "幼宠基础用品包", price: "99" },
   2: { name: "低敏主粮试吃装", price: "39" },
-  3: { name: "耐咬训练玩具", price: "59" }
+  3: { name: "耐咬训练玩具", price: "59" },
+  4: { name: "观察记录卡", price: "19.9" }
 };
 
 function formatCount(value) {
@@ -66,7 +67,7 @@ function normalizePost(item, id) {
     desc: source.desc || source.description || fallback.desc,
     url: source.url || source.videoUrl || fallback.url,
     cover: source.cover || source.coverUrl || fallback.cover,
-    author: source.author || source.userName || "暖窝用户",
+    author: source.author || source.userName || fallback.author || "暖窝用户",
     avatar: source.avatar || fallback.avatar,
     likes: formatCount(source.likes || source.likeCount || fallback.likes),
     commentCount: source.commentCount || fallback.commentCount || 0,
@@ -78,7 +79,7 @@ function normalizeComment(item) {
   return {
     id: item.id || Date.now(),
     user: item.user || item.userName || "暖窝用户",
-    avatar: item.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
+    avatar: item.avatar || "/images/mock/cat-avatar.jpg",
     text: item.text || item.content || "",
     time: item.time || "刚刚"
   };
@@ -178,7 +179,7 @@ Page({
     const localComment = {
       id: Date.now(),
       user: "我",
-      avatar: "",
+      avatar: "/images/mock/cat-avatar.jpg",
       text,
       time: "刚刚"
     };
