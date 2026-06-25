@@ -1,4 +1,4 @@
--- ============================================
+﻿-- ============================================
 -- 宠物商店 - Docker 初始化脚本 v1.1
 -- 数据库：pet_store / 字符集：utf8mb4
 -- 主键：雪花算法 BIGINT（MyBatis-Plus ASSIGN_ID）
@@ -186,6 +186,14 @@ CREATE TABLE IF NOT EXISTS comment (
     video_id    BIGINT       NOT NULL COMMENT '视频ID',
     user_id     BIGINT       NOT NULL COMMENT '评论者',
     content     VARCHAR(500) NOT NULL COMMENT '评论内容',
+    status      TINYINT      NOT NULL DEFAULT 1 COMMENT '状态 0-隐藏 1-正常',
+    deleted     TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '逻辑删除 0-正常 1-已删除',
+    create_time DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    update_time DATETIME(3)  NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    delete_time DATETIME(3)  NULL COMMENT '删除时间',
+    create_by   BIGINT       NULL COMMENT '创建人',
+    update_by   BIGINT       NULL COMMENT '更新人',
+    INDEX idx_video_id (video_id)
     create_time DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     INDEX idx_video_id (video_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频评论';
@@ -233,7 +241,7 @@ INSERT IGNORE INTO video(id, user_id, title, description, url, cover, product_id
 (5, 2, '仓鼠跑轮停不下来',   '跑了一小时还在跑，这体力我服',                    '/video/5.mp4', 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800', 5, 980,  45,  1),
 (6, 3, '哈士奇拆家实况',     '出门两小时回来沙发没了，微笑面对',                '/video/6.mp4', 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800', 6, 4200, 567, 3);
 
-INSERT IGNORE INTO comment(id, video_id, user_id, content) VALUES
+INSERT IGNORE INTO comment(id, video_id, user_id, content, status) VALUES
 (1, 1, 4, '太可爱了吧！每天都想看'),
 (2, 1, 3, '同款在哪里买的呀？'),
 (3, 4, 4, '哈哈哈哈太治愈了'),

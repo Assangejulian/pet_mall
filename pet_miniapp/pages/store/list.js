@@ -1,4 +1,4 @@
-var storeApi = require("../../utils/api/store");
+﻿var storeApi = require("../../utils/api/store");
 
 function extractRows(data) {
   if (!data) return [];
@@ -45,3 +45,4 @@ Page({
     });
   }
 });
+

@@ -1,4 +1,4 @@
-var userApi = require("../../utils/api/user");
+﻿var userApi = require("../../utils/api/user");
 
 Page({
   data: { list: [], loading: true },
@@ -14,3 +14,4 @@ Page({
     });
   }
 });
+

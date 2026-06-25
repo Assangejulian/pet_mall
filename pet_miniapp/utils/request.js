@@ -1,11 +1,13 @@
-var app = getApp();
+﻿var app = getApp();
 
 function getBaseUrl() {
   return (app && app.globalData && app.globalData.baseUrl) || "http://localhost:8080";
 }
 
 function getToken() {
-  return (app && app.globalData && app.globalData.token) || "";
+  var t = (app && app.globalData && app.globalData.token) || "";
+  if (!t) t = wx.getStorageSync("token") || "";
+  return t;
 }
 
 function buildQuery(url, params) {
@@ -20,10 +22,13 @@ function buildQuery(url, params) {
   return qs.length ? url + "?" + qs.join("&") : url;
 }
 
-/** 请求/响应拦截器 — 参考 B端 Axios 模式 */
+/**
+ * 小程序请求/响应拦截器 — 参考 B端 Axios 模式
+ * 统一处理 token 注入、401 跳转登录、业务状态码检查
+ */
 function request(method, url, data) {
   return new Promise(function(resolve, reject) {
-    // Request interceptor: attach token
+    // Request interceptor: 自动注入 token
     var token = getToken();
     var header = { "Content-Type": "application/json" };
     if (token) header["Authorization"] = "Bearer " + token;
@@ -39,29 +44,23 @@ function request(method, url, data) {
 
         // Response interceptor: 401 → 清除 token → 跳转登录页
         if (res.statusCode === 401) {
-          if (app) {
-            app.globalData.token = "";
-            app.globalData.user = null;
-          }
-          wx.removeStorageSync("token");
-          wx.removeStorageSync("userId");
+          clearAuth();
           wx.showToast({ title: "登录已过期，请重新登录", icon: "none" });
-          // 跳转到登录页（参考 B端 location.hash = "#/login"）
-          wx.navigateTo({ url: "/subpages/login/login" });
+          redirectToLogin();
           reject(new Error("unauthorized"));
           return;
         }
 
         // 403: 无权限
         if (res.statusCode === 403) {
-          wx.showToast({ title: body?.message || "无权限访问", icon: "none" });
-          reject(new Error(body?.message || "forbidden"));
+          wx.showToast({ title: body && body.message || "无权限访问", icon: "none" });
+          reject(new Error(body && body.message || "forbidden"));
           return;
         }
 
         // 成功: 检查业务状态码 (参考 B端 unwrap: body.code !== 200 → throw)
-        if (body && body.code === 200) {
-          resolve(body.data);
+        if (body && (body.code === 200 || body.code === undefined)) {
+          resolve(body.code === 200 ? body.data : body);
         } else {
           var msg = (body && body.message) || "请求失败";
           reject(new Error(msg));
@@ -74,6 +73,29 @@ function request(method, url, data) {
       }
     });
   });
+}
+
+function clearAuth() {
+  if (app) {
+    app.globalData.token = "";
+    app.globalData.user = null;
+  }
+  wx.removeStorageSync("token");
+  wx.removeStorageSync("userId");
+}
+
+function redirectToLogin() {
+  var pages = getCurrentPages();
+  var isOnLogin = false;
+  for (var i = 0; i < pages.length; i++) {
+    if (pages[i].route && pages[i].route.indexOf("login") !== -1) {
+      isOnLogin = true;
+      break;
+    }
+  }
+  if (!isOnLogin) {
+    wx.navigateTo({ url: "/subpages/login/login" });
+  }
 }
 
 module.exports = {
