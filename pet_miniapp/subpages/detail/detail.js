@@ -23,16 +23,16 @@ Page({
     loading: true
   },
 
-  onLoad: function(options) {
+  onLoad: function (options) {
     this.setData({ cartCount: app.getCartCount() });
     this.loadProduct(options && options.id);
   },
 
-  onShow: function() {
+  onShow: function () {
     this.setData({ cartCount: app.getCartCount() });
   },
 
-  loadProduct: function(id) {
+  loadProduct: function (id) {
     if (!id) {
       wx.showToast({ title: "商品ID缺失", icon: "none" });
       this.setData({ loading: false });
@@ -40,20 +40,22 @@ Page({
     }
     var that = this;
     that.setData({ loading: true });
-    productApi.detail(id).then(function(res) {
-      var product = normalizeProduct(res);
-      var categoryNames = { dog: "狗狗", cat: "猫咪", other: "小宠" };
-      that.setData({
-        product: product,
-        categoryName: categoryNames[product.category] || product.category || "",
-        loading: false
+    productApi.detail(id)
+      .then(function (res) {
+        var product = normalizeProduct(res);
+        var categoryNames = { dog: "狗狗", cat: "猫咪", other: "小宠" };
+        that.setData({
+          product: product,
+          categoryName: categoryNames[product.category] || product.category || "",
+          loading: false
+        });
+      })
+      .catch(function () {
+        that.setData({ loading: false });
       });
-    }).catch(function() {
-      that.setData({ loading: false });
-    });
   },
 
-  addCart: function() {
+  addCart: function () {
     if (!this.data.product || !this.data.product.id) {
       wx.showToast({ title: "商品不可加入购物车", icon: "none" });
       return;
@@ -67,7 +69,19 @@ Page({
     wx.showToast({ title: "已加入购物车", icon: "success" });
   },
 
-  goCart: function() {
+  /** 立即购买（需登录） */
+  buyNow: function () {
+    if (!app.requireAuth()) return;
+    if (!this.data.product || !this.data.product.id) return;
+    if (!this.data.product.stock) {
+      wx.showToast({ title: "商品暂无库存", icon: "none" });
+      return;
+    }
+    app.addToCart(this.data.product);
+    wx.switchTab({ url: "/pages/cart/cart" });
+  },
+
+  goCart: function () {
     wx.switchTab({ url: "/pages/cart/cart" });
   }
 });

@@ -13,6 +13,13 @@ App({
     this.globalData.token = token;
   },
 
+  /** 检查登录态，未登录则跳转登录页 */
+  requireAuth() {
+    if (this.globalData.token) return true;
+    wx.navigateTo({ url: "/subpages/login/login" });
+    return false;
+  },
+
   getCartCount() {
     return this.globalData.cart.reduce((sum, item) => sum + item.quantity, 0);
   },

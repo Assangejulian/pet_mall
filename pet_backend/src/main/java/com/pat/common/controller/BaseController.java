@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.common.domain.BaseEntity;
+import io.swagger.v3.oas.annotations.Operation;
 import com.pat.common.domain.Result;
 import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,13 +54,15 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
         return baseService.removeById(id);
     }
 
-    @GetMapping("/{id}")
+        @Operation(summary = "根据 ID 查询")
+@GetMapping("/{id}")
     public Result<VO> getById(@PathVariable Long id) {
         E entity = baseService.getById(id);
         return entity == null ? Result.error("数据不存在") : Result.success(toVO(entity));
     }
 
-    @PostMapping
+        @Operation(summary = "新增")
+@PostMapping
     public Result<Boolean> save(@RequestBody @Valid P param) {
         preSave(param);
         E entity = toDO(param);
@@ -68,6 +71,7 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
         return Result.success(ok);
     }
 
+    @Operation(summary = "修改")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid P param) {
         preUpdate(param);
@@ -78,12 +82,14 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
         return Result.success(ok);
     }
 
-    @DeleteMapping("/{id}")
+        @Operation(summary = "删除")
+@DeleteMapping("/{id}")
     public Result<Boolean> remove(@PathVariable Long id) {
         return Result.success(doRemove(id));
     }
 
-    @DeleteMapping("/batch")
+        @Operation(summary = "批量删除")
+@DeleteMapping("/batch")
     @Transactional(rollbackFor = Exception.class)
     public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
         for (Long id : ids) {
@@ -94,19 +100,22 @@ public abstract class BaseController<E extends BaseEntity, P, VO> {
         return Result.success(true);
     }
 
-    @GetMapping("/search")
+        @Operation(summary = "分页查询")
+@GetMapping("/search")
     public Result<IPage<VO>> search(P param, Page<E> page) {
         Page<E> result = baseService.page(page, buildQueryWrapper(param));
         return Result.success(result.convert(this::toVO));
     }
 
-    @GetMapping("/list")
+        @Operation(summary = "列表查询")
+@GetMapping("/list")
     public Result<List<VO>> getList(P param) {
         List<E> list = baseService.list(buildQueryWrapper(param));
         return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
     }
 
-    @GetMapping("/by-ids")
+        @Operation(summary = "批量查询")
+@GetMapping("/by-ids")
     public Result<List<VO>> getByIds(@RequestParam List<Long> ids) {
         List<E> list = baseService.listByIds(ids);
         return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));

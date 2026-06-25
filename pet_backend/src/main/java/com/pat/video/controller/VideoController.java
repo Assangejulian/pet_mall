@@ -8,6 +8,8 @@ import com.pat.common.domain.Result;
 import com.pat.user.entity.User;
 import com.pat.user.service.UserService;
 import com.pat.video.entity.Comment;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.video.entity.Video;
 import com.pat.video.service.ICommentService;
 import com.pat.video.service.IVideoService;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
+@Tag(name = "视频管理", description = "视频 Feed/播放/点赞/评论")
 @RequestMapping("/api/video")
 public class VideoController extends BaseController<Video, Video, Video> {
 
@@ -78,7 +81,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return wrapper;
     }
 
-    @GetMapping("/feed")
+        @Operation(summary = "视频 Feed 流")
+@GetMapping("/feed")
     public Result<IPage<Map<String, Object>>> feed(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
@@ -96,6 +100,7 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(voPage);
     }
 
+    @Operation(summary = "视频详情（播放量+1）")
     @GetMapping("/{id}")
     @Override
     public Result<Video> getById(@PathVariable Long id) {
@@ -103,19 +108,22 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return super.getById(id);
     }
 
-    @GetMapping("/play/{id}")
+        @Operation(summary = "视频播放（播放量+1）")
+@GetMapping("/play/{id}")
     public Result<Video> play(@PathVariable Long id) {
         videoService.incrementPlayCount(id);
         return Result.success(videoService.getById(id));
     }
 
-    @PostMapping("/{id}/like")
+        @Operation(summary = "点赞视频")
+@PostMapping("/{id}/like")
     public Result<Void> like(@PathVariable Long id) {
         videoService.incrementLikes(id);
         return Result.success();
     }
 
-    @GetMapping("/{id}/comments")
+        @Operation(summary = "视频评论列表")
+@GetMapping("/{id}/comments")
     public Result<List<Map<String, Object>>> comments(@PathVariable Long id) {
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
         wrapper.eq("video_id", id).orderByDesc("create_time");
@@ -126,7 +134,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(records);
     }
 
-    @PostMapping("/{id}/comment")
+        @Operation(summary = "发表评论")
+@PostMapping("/{id}/comment")
     public Result<Comment> addComment(@PathVariable Long id, @RequestBody Comment comment) {
         comment.setVideoId(id);
         if (comment.getUserId() == null) {
@@ -142,7 +151,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(comment);
     }
 
-    @PostMapping("/upload")
+        @Operation(summary = "上传视频文件")
+@PostMapping("/upload")
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return Result.error(400, "文件不能为空");
