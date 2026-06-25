@@ -2,7 +2,7 @@ var request = require("../request");
 var mock = require("../data/mock");
 module.exports = {
   list: function(page, size) {
-    return request.get("/api/video/list", { page: page || 1, size: size || 10 })
+    return request.get("/api/video/feed", { page: page || 1, size: size || 10 })
       .catch(function() { return mock.videos; });
   },
   detail: function(id) {

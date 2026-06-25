@@ -1,4 +1,5 @@
 const app = getApp();
+var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [
   {
@@ -106,23 +107,19 @@ Page({
   },
 
   load(done) {
-    this.setData({ loading: true });
-    wx.request({
-      url: app.globalData.baseUrl + "/api/video/feed",
-      method: "GET",
-      data: { page: 1, size: 20 },
-      success: (res) => {
-        const rows = extractRows(res.data);
-        if (rows.length) {
-          this.setVideos(rows.map(normalizeVideo), false);
-        } else {
-          this.useFallback("后端暂无视频，临时展示本地演示数据");
-        }
-      },
-      fail: () => this.useFallback("无法连接后端，临时展示本地演示数据"),
-      complete: () => {
-        if (done) done();
+    var that = this;
+    that.setData({ loading: true });
+    videoApi.list(1, 20).then(function(res) {
+      var rows = extractRows(res);
+      if (rows.length) {
+        that.setVideos(rows.map(normalizeVideo), false);
+      } else {
+        that.useFallback("后端暂无视频");
       }
+    }).catch(function() {
+      that.useFallback("无法连接后端，展示本地演示数据");
+    }).finally(function() {
+      if (done) done();
     });
   },
 

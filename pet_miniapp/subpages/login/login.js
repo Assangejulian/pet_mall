@@ -4,7 +4,7 @@ var authApi = require("../../utils/api/auth");
 Page({
   data: {
     curTab: 0,
-    phone: "",
+    username: "",
     password: "",
     showPassword: false,
     email: "",
@@ -24,7 +24,7 @@ Page({
     this.setData({ curTab: e.currentTarget.dataset.id });
   },
 
-  onPhoneInput: function (e) { this.setData({ phone: e.detail.value }); },
+  onUsernameInput: function (e) { this.setData({ username: e.detail.value }); },
   onPasswordInput: function (e) { this.setData({ password: e.detail.value }); },
   togglePassword: function () { this.setData({ showPassword: !this.data.showPassword }); },
   onEmailInput: function (e) { this.setData({ email: e.detail.value }); },
@@ -57,12 +57,12 @@ Page({
 
   onPasswordLogin: function () {
     if (!this.checkAgreed()) return;
-    var p = this.data.phone;
-    if (!p || p.length !== 11) { wx.showToast({ title: "请输入正确的手机号", icon: "none" }); return; }
+    var u = this.data.username;
+    if (!u || u.length < 2) { wx.showToast({ title: "请输入用户名", icon: "none" }); return; }
     if (!this.data.password || this.data.password.length < 6) { wx.showToast({ title: "密码至少6位", icon: "none" }); return; }
     var t = this;
     wx.showLoading({ title: "登录中..." });
-    authApi.login({ authType: "password", phone: p, username: p, password: this.data.password })
+    authApi.login({ authType: "password", username: u, password: this.data.password })
       .then(function (r) { wx.hideLoading(); t.doLogin(r); })
       .catch(function (err) { wx.hideLoading(); wx.showToast({ title: err.message || "登录失败", icon: "none" }); });
   },

@@ -1,4 +1,6 @@
 const app = getApp();
+var videoApi = require("../../utils/api/video");
+var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [
   {
@@ -75,28 +77,25 @@ Page({
   },
 
   loadVideos(done) {
-    this.setData({ loading: true });
-    wx.request({
-      url: app.globalData.baseUrl + "/api/video/feed",
-      method: "GET",
-      data: { page: 1, size: 20 },
-      success: (res) => {
-        const rows = extractRows(res.data);
-        if (rows.length) {
-          this.setData({
-            videos: rows.map(normalizeVideo),
-            loading: false,
-            useMock: false
-          });
-        } else {
-          this.useFallback();
-        }
-      },
-      fail: () => this.useFallback(),
-      complete: () => {
-        if (done) done();
+    var that = this;
+    that.setData({ loading: true });
+    videoApi.list(1, 20).then(function(res) {
+      var rows = extractRows(res);
+      if (rows.length) {
+        that.setData({
+          videos: rows.map(normalizeVideo),
+          loading: false,
+          useMock: false
+        });
+      } else {
+        that.useFallback();
       }
+    }).catch(function() {
+      that.useFallback();
+    }).finally(function() {
+      if (done) done();
     });
+  }).catch(function() { this.useFallback(); }).finally(function() { if (done) done(); });
   },
 
   useFallback() {

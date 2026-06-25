@@ -1,1 +1,16 @@
-Page({data:{list:[]},onShow:function(){this.setData({list:[{id:'1',receiverName:'张三',phone:'13800138000',province:'福建省',city:'厦门市',district:'集美区',detail:'理工路600号',defaulted:true},{id:'2',receiverName:'张三',phone:'13900139000',province:'福建省',city:'厦门市',district:'思明区',detail:'中山路100号',defaulted:false}]})}});
+var userApi = require("../../utils/api/user");
+
+Page({
+  data: { list: [], loading: true },
+
+  onShow: function() {
+    var that = this;
+    that.setData({ loading: true });
+    userApi.addressList().then(function(res) {
+      var list = Array.isArray(res) ? res : [];
+      that.setData({ list: list, loading: false });
+    }).catch(function() {
+      that.setData({ loading: false });
+    });
+  }
+});
