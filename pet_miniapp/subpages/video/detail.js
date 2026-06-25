@@ -162,7 +162,7 @@ Page({
 
   goProduct() {
     const productId = this.data.post.productId;
-    if (productId) wx.navigateTo({ url: "/pages/detail/detail?id=" + productId });
+    if (productId) wx.navigateTo({ url: "/subpages/detail/detail?id=" + productId });
   },
 
   goChat() {

@@ -110,7 +110,7 @@ Page({
   goDetail(event) {
     const id = event.currentTarget.dataset.id;
     wx.navigateTo({
-      url: "/pages/video/detail?id=" + id,
+      url: "/subpages/video/detail?id=" + id,
       fail: () => wx.showToast({ title: "视频详情页打开失败", icon: "none" })
     });
   },
@@ -118,6 +118,6 @@ Page({
   goProduct(event) {
     const id = event.currentTarget.dataset.pid;
     if (!id) return;
-    wx.navigateTo({ url: "/pages/detail/detail?id=" + id });
+    wx.navigateTo({ url: "/subpages/detail/detail?id=" + id });
   }
 });
