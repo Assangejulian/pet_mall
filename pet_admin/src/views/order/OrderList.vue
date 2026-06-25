@@ -48,7 +48,7 @@
               <span class="badge" :class="statusBadge(item.status)">
                 {{ statusLabel(item.status) }}
                 <template v-if="item.status === '-1' && item.cancelType">
-                  ({{ item.cancelType === 'timeout' ? '超时' : '用户' }})
+                  ({{ String(item.cancelType) === 'timeout' ? '超时' : '用户' }})
                 </template>
               </span>
             </td>
@@ -56,10 +56,10 @@
             <td>{{ item.createTime }}</td>
             <td class="actions">
               <button v-if="canCancel(item)" class="btn btn-warning btn-sm" @click="cancelOrder(item)">取消</button>
-              <button v-if="item.status === '1'" class="btn btn-primary btn-sm" @click="shipOrder(item)">发货</button>
-              <button v-if="item.status === '2'" class="btn btn-success btn-sm" @click="completeOrder(item)">收货完成</button>
+              <button v-if="String(item.status) === '1'" class="btn btn-primary btn-sm" @click="shipOrder(item)">发货</button>
+              <button v-if="String(item.status) === '2'" class="btn btn-success btn-sm" @click="completeOrder(item)">收货完成</button>
               <button v-if="canDirectReturn(item)" class="btn btn-danger btn-sm" @click="directReturn(item)">退单</button>
-              <template v-if="item.status === '-2'">
+              <template v-if="String(item.status) === '-2'">
                 <button class="btn btn-success btn-sm" @click="approveReturn(item)">通过</button>
                 <button class="btn btn-danger btn-sm" @click="rejectReturn(item)">拒绝</button>
               </template>
@@ -135,13 +135,13 @@ const badgeMap: Record<string, string> = {
 
 function statusLabel(s: OrderStatus) { return statusMap[s] || s }
 function statusBadge(s: OrderStatus) { return badgeMap[s] || 'badge-gray' }
-function canCancel(o: Order) { return o.status === '0' || o.status === '1' }
-function canDirectReturn(o: Order) { return o.status === '3' }
+function canCancel(o: Order) { const s = String(o.status); return s === '0' || s === '1' }
+function canDirectReturn(o: Order) { return String(o.status) === '3' }
 
 async function fetchData() {
   await store.fetch({
     page: currentPage.value, size: pageSize,
-    status: (statusFilter.value as OrderStatus) || undefined
+    orderStatus: statusFilter.value || undefined
   })
 }
 

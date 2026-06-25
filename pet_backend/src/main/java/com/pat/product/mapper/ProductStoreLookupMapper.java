@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import com.pat.store.entity.Store;
+import com.pat.store.domain.entity.Store;
 
 @Mapper
 public interface ProductStoreLookupMapper {

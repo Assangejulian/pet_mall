@@ -1,7 +1,7 @@
 package com.pat.video.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.pat.video.entity.Video;
+import com.pat.video.domain.entity.Video;
 import com.pat.video.mapper.VideoMapper;
 import com.pat.video.service.IVideoService;
 import org.springframework.stereotype.Service;

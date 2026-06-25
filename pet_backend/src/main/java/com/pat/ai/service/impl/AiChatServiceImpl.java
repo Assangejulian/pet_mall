@@ -1,10 +1,10 @@
 package com.pat.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
-import com.pat.ai.dto.AiChatRequest;
-import com.pat.ai.entity.AiChatRecord;
+import com.pat.ai.domain.dto.AiChatRequest;
+import com.pat.ai.domain.entity.AiChatRecord;
 import com.pat.ai.service.AiChatService;
-import com.pat.ai.vo.AiChatResponse;
+import com.pat.ai.domain.vo.AiChatResponse;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -158,7 +158,7 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     private List<AiChatRecord> loadRecentContext(String sessionId) {
-        return jdbcTemplate.query("""
+        List<AiChatRecord> records = jdbcTemplate.query("""
                         SELECT id, user_id, session_id, role, content, create_time
                         FROM ai_chat_record
                         WHERE session_id = ?
@@ -176,8 +176,11 @@ public class AiChatServiceImpl implements AiChatService {
                     record.setCreateTime(rs.getTimestamp("create_time").toLocalDateTime());
                     return record;
                 },
-                sessionId)
-                .reversed();
+                sessionId);
+
+                java.util.Collections.reverse(records);
+
+                return records;
     }
 
     private void saveRecord(Long userId, String sessionId, String role, String content) {

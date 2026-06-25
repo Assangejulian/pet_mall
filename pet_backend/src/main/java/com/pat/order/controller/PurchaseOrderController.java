@@ -3,7 +3,7 @@ package com.pat.order.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.controller.BaseController;
-import com.pat.order.entity.PurchaseOrder;
+import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.IPurchaseOrderService;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +28,11 @@ public class PurchaseOrderController extends BaseController<PurchaseOrder, Purch
 
     @Override
     protected QueryWrapper<PurchaseOrder> buildQueryWrapper(PurchaseOrder param) {
-        return new QueryWrapper<>();
+        QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<>();
+        if (param != null && param.getOrderStatus() != null) {
+            wrapper.eq("order_status", param.getOrderStatus());
+        }
+        wrapper.orderByDesc("create_time");
+        return wrapper;
     }
 }

@@ -2,9 +2,9 @@ package com.pat.ai.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.pat.ai.dto.AiChatRequest;
+import com.pat.ai.domain.dto.AiChatRequest;
 import com.pat.ai.service.AiChatService;
-import com.pat.ai.vo.AiChatResponse;
+import com.pat.ai.domain.vo.AiChatResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
 import jakarta.validation.Valid;
@@ -42,7 +42,7 @@ public class AiChatController {
 @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L);
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             try {
                 aiChatService.chatStream(request, new AiChatService.StreamListener() {
                     @Override

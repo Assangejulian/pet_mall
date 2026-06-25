@@ -1,6 +1,6 @@
 package com.pat.user.service.auth;
 
-import com.pat.user.entity.User;
+import com.pat.user.domain.entity.User;
 
 /**
  * 微信登录服务接口（小程序 wx.login / PC 扫码）

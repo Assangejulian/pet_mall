@@ -1,16 +1,16 @@
-package com.pat.video.controller;
+﻿package com.pat.video.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.controller.BaseController;
 import com.pat.common.domain.Result;
-import com.pat.user.entity.User;
+import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
-import com.pat.video.entity.Comment;
+import com.pat.video.domain.entity.Comment;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.pat.video.entity.Video;
+import com.pat.video.domain.entity.Video;
 import com.pat.video.service.ICommentService;
 import com.pat.video.service.IVideoService;
 import jakarta.annotation.Resource;
@@ -82,7 +82,7 @@ public class VideoController extends BaseController<Video, Video, Video> {
     }
 
         @Operation(summary = "视频 Feed 流")
-@GetMapping("/feed")
+@GetMapping({"/feed", "/list", "/search"})
     public Result<IPage<Map<String, Object>>> feed(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
@@ -209,3 +209,4 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return item;
     }
 }
+

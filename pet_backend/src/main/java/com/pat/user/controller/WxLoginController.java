@@ -3,7 +3,7 @@ package com.pat.user.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.utils.JwtUtil;
-import com.pat.user.entity.User;
+import com.pat.user.domain.entity.User;
 import com.pat.user.service.auth.WxAuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;

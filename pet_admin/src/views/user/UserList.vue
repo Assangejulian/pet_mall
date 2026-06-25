@@ -70,7 +70,7 @@ const totalPages = computed(() => Math.ceil(store.total / pageSize))
 function badgeClass(level: number) { return ["badge-gray","badge-blue","badge-orange","badge-green"][level] || "badge-gray" }
 function memberLabel(level: number) { return ["普通","白银","黄金","钻石"][level] || "普通" }
 
-async function fetchData() { await store.fetch({ page: currentPage.value, size: pageSize, keyword: keyword.value || undefined }) }
+async function fetchData() { await store.fetch({ page: currentPage.value, size: pageSize, username: keyword.value || undefined }) }
 function handleSearch() { currentPage.value = 1; fetchData() }
 function resetSearch() { keyword.value = ""; currentPage.value = 1; fetchData() }
 function goPage(p: number) { currentPage.value = p; fetchData() }

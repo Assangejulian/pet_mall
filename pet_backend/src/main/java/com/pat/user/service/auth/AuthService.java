@@ -1,7 +1,7 @@
 package com.pat.user.service.auth;
 
-import com.pat.user.dto.LoginDTO;
-import com.pat.user.entity.User;
+import com.pat.user.domain.dto.LoginDTO;
+import com.pat.user.domain.entity.User;
 
 /**
  * 认证策略接口 —— 每种登录方式一个实现

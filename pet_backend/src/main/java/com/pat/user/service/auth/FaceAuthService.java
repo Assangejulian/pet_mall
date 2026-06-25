@@ -1,8 +1,8 @@
 package com.pat.user.service.auth;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.pat.user.dto.LoginDTO;
-import com.pat.user.entity.User;
+import com.pat.user.domain.dto.LoginDTO;
+import com.pat.user.domain.entity.User;
 import com.pat.user.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

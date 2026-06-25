@@ -2,9 +2,9 @@ package com.pat.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.pat.common.domain.Result;
-import com.pat.product.dto.ProductQueryDTO;
+import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.service.ProductService;
-import com.pat.product.vo.ProductVO;
+import com.pat.product.domain.vo.ProductVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

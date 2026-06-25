@@ -6,7 +6,7 @@ import type { Order, OrderStatus } from '../types/order'
 export function listOrders(params: {
   page: number
   size: number
-  status?: OrderStatus
+  orderStatus?: string
 }): Promise<PageResult<Order>> {
   return unwrap(http.get('/order/list', { params }))
 }
