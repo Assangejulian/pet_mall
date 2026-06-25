@@ -1,8 +1,0 @@
-<view class="page">
-  <view class="sb" style="background:{{sbg[order.status]||'#faf7ef'}}"><text class="si">{{sic[order.status]||'○'}}</text><view><text class="st">{{sl[order.status]}}</text></view></view>
-  <view class="card"><text class="ct">收货信息</text><text class="ad">{{order.address||'厦门市集美区'}}</text></view>
-  <view class="card"><text class="ct">商品信息</text>
-    <view class="oit"><image class="oimg" src="{{order.image}}" mode="aspectFill" /><view class="oinfo"><text class="oinm">{{order.name}}</text><text class="oiq">x1</text></view><text class="oip">¥{{order.price}}</text></view>
-  </view>
-  <view class="card"><view class="pr"><text>实付</text><text style="color:#e8927c;font-weight:700">¥{{order.price}}</text></view></view>
-</view>
