@@ -1,4 +1,4 @@
-﻿var app = getApp();
+var app = getApp();
 var productApi = require("../../utils/api/product");
 
 function normalizeProduct(source) {

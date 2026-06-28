@@ -1,4 +1,4 @@
-﻿const app = getApp();
+const app = getApp();
 var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [

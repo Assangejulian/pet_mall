@@ -1,5 +1,7 @@
 package com.pat.user.service.auth;
 
+import java.security.SecureRandom;
+
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -18,8 +20,9 @@ import java.util.Map;
 /**
  * 人脸识别登录
  * authType = face
- * 使用百度AI人脸库实现注册+搜索登录
+ * 使用百度AI人脸库实现注册/搜索登录
  * 首次拍照自动注册，后续拍照自动识别
+ * 注册时生成友好的随机用户名
  */
 @Slf4j
 @Service("faceAuthService")
@@ -41,6 +44,10 @@ public class FaceAuthService implements AuthService {
     /** 百度人脸库组名 */
     private static final String FACE_GROUP = "pet_store_users";
 
+    /** 随机用户名生成器（去掉了易混淆的 0/o/1/l/i） */
+    private static final String CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     @Override
     public User authenticate(LoginDTO dto) {
         String imageBase64 = dto.getFaceToken();
@@ -55,7 +62,7 @@ public class FaceAuthService implements AuthService {
         return findOrCreateUser(imageBase64);
     }
 
-    /** 百度AI 人脸登录：搜索人脸库 → 找到则登录，未找到则注册 */
+    /** 百度AI 人脸登录：搜索人脸库 -> 找到则登录，未找到则注册 */
     private User baiduFaceLogin(String imageBase64) {
         String accessToken = getAccessToken();
         if (accessToken == null) {
@@ -70,15 +77,15 @@ public class FaceAuthService implements AuthService {
             if (user != null) return user;
         }
 
-        // 2. 未找到 → 检测人脸，注册新人
+        // 2. 未找到 -> 检测人脸，注册新人
         String faceToken = detectFace(accessToken, imageBase64);
         if (faceToken == null) {
             throw new RuntimeException("未检测到人脸");
         }
 
-        // 创建用户
+        // 创建用户（生成友好的随机名）
         User user = new User();
-        user.setUsername("face_" + System.currentTimeMillis());
+        user.setUsername(generateUsername());
         user.setPassword("");
         user.setRole("user");
         user.setStatus(1);
@@ -89,7 +96,7 @@ public class FaceAuthService implements AuthService {
         user.setFaceId(faceToken);
         userMapper.updateById(user);
 
-        log.info("新人脸注册成功，userId: {}", user.getId());
+        log.info("新人脸注册成功，userId: {}, username: {}", user.getId(), user.getUsername());
         return user;
     }
 
@@ -181,13 +188,13 @@ public class FaceAuthService implements AuthService {
         }
     }
 
-    /** mock 模式：直接用 faceToken 做 userId */
+    /** mock 模式：直接用 faceToken 当 userId */
     private User findOrCreateUser(String faceToken) {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getFaceId, faceToken));
         if (user == null) {
             user = new User();
-            user.setUsername("face_" + faceToken.substring(0, 8));
+            user.setUsername(generateUsername());
             user.setPassword("");
             user.setRole("user");
             user.setStatus(1);
@@ -195,5 +202,14 @@ public class FaceAuthService implements AuthService {
             userMapper.insert(user);
         }
         return user;
+    }
+
+    /** 生成友好的随机用户名：face_ + 8位易读字符 */
+    private String generateUsername() {
+        StringBuilder sb = new StringBuilder("face_");
+        for (int i = 0; i < 8; i++) {
+            sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
+        }
+        return sb.toString();
     }
 }

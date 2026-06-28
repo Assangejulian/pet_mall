@@ -1,4 +1,4 @@
-﻿var app = getApp();
+var app = getApp();
 var authApi = require("../../utils/api/auth");
 
 Page({

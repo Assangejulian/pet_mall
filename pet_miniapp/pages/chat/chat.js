@@ -1,4 +1,4 @@
-﻿const app = getApp();
+const app = getApp();
 
 const quickPrompts = [
   "怎么给刚接回家的猫适应环境？",
