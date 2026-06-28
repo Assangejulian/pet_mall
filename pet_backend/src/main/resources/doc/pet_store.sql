@@ -39,12 +39,18 @@ SET @sql_openid = (SELECT IF(COUNT(*) = 0,
 ) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'openid');
 PREPARE stmt FROM @sql_openid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- 补充人脸识别字段
+SET @sql_faceid = (SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE user ADD COLUMN face_id VARCHAR(100) COMMENT ''人脸识别ID'' AFTER openid',
+    'SELECT 1'
+) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'face_id');
+PREPARE stmt FROM @sql_faceid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @sql_unionid = (SELECT IF(COUNT(*) = 0,
-    'ALTER TABLE user ADD COLUMN unionid VARCHAR(100) COMMENT ''微信开放平台 unionid'' AFTER openid',
+    'ALTER TABLE user ADD COLUMN unionid VARCHAR(100) COMMENT ''微信开放平台 unionid'' AFTER face_id',
     'SELECT 1'
 ) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'unionid');
 PREPARE stmt FROM @sql_unionid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
 -- ============================================
 -- 2. user_address — 收货地址
 -- ============================================

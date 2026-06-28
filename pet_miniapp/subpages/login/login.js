@@ -12,11 +12,16 @@ Page({
     codeCountdown: 0,
     canSendCode: true,
     agreed: false,
+    smsPhone: "",
+    smsCode: "",
+    smsCountdown: 0,
+    canSendSmsCode: true,
     tabs: [
       { id: 0, label: "密码登录" },
       { id: 1, label: "邮箱登录" },
-      { id: 2, label: "微信登录" },
-      { id: 3, label: "人脸登录" }
+      { id: 2, label: "短信登录" },
+      { id: 3, label: "微信登录" },
+      { id: 4, label: "人脸登录" }
     ]
   },
 
@@ -29,6 +34,31 @@ Page({
   togglePassword: function () { this.setData({ showPassword: !this.data.showPassword }); },
   onEmailInput: function (e) { this.setData({ email: e.detail.value }); },
   onCodeInput: function (e) { this.setData({ code: e.detail.value }); },
+  onSmsPhoneInput: function (e) { this.setData({ smsPhone: e.detail.value }); },
+  onSmsCodeInput: function (e) { this.setData({ smsCode: e.detail.value }); },
+
+  onSendSmsCode: function () {
+    var phone = this.data.smsPhone;
+    if (!phone || phone.length < 11) {
+      wx.showToast({ title: "请输入正确的手机号", icon: "none" });
+      return;
+    }
+    this.setData({ smsCountdown: 60, canSendSmsCode: false });
+    var t = this;
+    var i = setInterval(function () {
+      var c = t.data.smsCountdown - 1;
+      if (c <= 0) { clearInterval(i); t.setData({ smsCountdown: 0, canSendSmsCode: true }); }
+      else { t.setData({ smsCountdown: c }); }
+    }, 1000);
+
+    authApi.sendSmsCode(phone)
+      .then(function () { wx.showToast({ title: "验证码已发送到手机", icon: "success" }); })
+      .catch(function (err) {
+        clearInterval(i);
+        t.setData({ smsCountdown: 0, canSendSmsCode: true });
+        wx.showToast({ title: err.message || "发送失败", icon: "none" });
+      });
+  },
 
   onSendCode: function () {
     var email = this.data.email;
@@ -75,6 +105,18 @@ Page({
     var t = this;
     wx.showLoading({ title: "登录中..." });
     authApi.login({ authType: "email_code", email: email, code: this.data.code })
+      .then(function (r) { wx.hideLoading(); t.doLogin(r); })
+      .catch(function (err) { wx.hideLoading(); wx.showToast({ title: err.message || "登录失败", icon: "none" }); });
+  },
+
+  onSmsLogin: function () {
+    if (!this.checkAgreed()) return;
+    var phone = this.data.smsPhone;
+    if (!phone || phone.length < 11) { wx.showToast({ title: "请输入正确的手机号", icon: "none" }); return; }
+    if (!this.data.smsCode || this.data.smsCode.length < 4) { wx.showToast({ title: "请输入验证码", icon: "none" }); return; }
+    var t = this;
+    wx.showLoading({ title: "登录中..." });
+    authApi.login({ authType: "sms", phone: phone, code: this.data.smsCode })
       .then(function (r) { wx.hideLoading(); t.doLogin(r); })
       .catch(function (err) { wx.hideLoading(); wx.showToast({ title: err.message || "登录失败", icon: "none" }); });
   },

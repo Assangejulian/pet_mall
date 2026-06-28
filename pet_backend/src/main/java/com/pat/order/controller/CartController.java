@@ -28,6 +28,11 @@ public class CartController extends BaseController<Cart, Cart, Cart> {
 
     @Override
     protected QueryWrapper<Cart> buildQueryWrapper(Cart param) {
-        return new QueryWrapper<>();
+        QueryWrapper<Cart> wrapper = new QueryWrapper<>();
+        if (param != null && param.getUserId() != null) {
+            wrapper.eq("user_id", param.getUserId());
+        }
+        wrapper.orderByDesc("create_time");
+        return wrapper;
     }
 }

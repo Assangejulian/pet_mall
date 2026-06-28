@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
  * 邮箱验证码登录
  * authType = email_code
  */
-@Service("emailCodeAuthService")
-public class EmailCodeAuthService implements AuthService {
+@Service("emailAuthService")
+public class EmailAuthService implements AuthService {
 
     @Autowired
     private UserMapper userMapper;

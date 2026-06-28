@@ -20,8 +20,8 @@ spring:
   mail:
     host: smtp.qq.com
     port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:1337284817@qq.com}
+    password: ${MAIL_PASSWORD:opojnycdzuktjacj}
     properties:
       mail:
         smtp:
@@ -58,8 +58,8 @@ knife4j:
     language: zh_cn
 wx:
   miniapp:
-    appid: ${WECHAT_APPID:}
-    secret: ${WECHAT_SECRET:}
+    appid: ${WECHAT_MINI_APPID:}
+    secret: ${WECHAT_MINI_SECRET:}
   pc:
-    appid: ${WECHAT_APPID:}
-    secret: ${WECHAT_SECRET:}
+    appid: ${WECHAT_PC_APPID:}
+    secret: ${WECHAT_PC_SECRET:}

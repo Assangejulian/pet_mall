@@ -68,4 +68,19 @@ public class AuthController {
                 true);
         return Result.success();
     }
+
+    @Operation(summary = "发送短信验证码")
+    @PostMapping("/api/user/send-sms-code")
+    public Result<Void> sendSmsCode(@RequestBody LoginDTO dto) {
+        String phone = dto.getPhone();
+        if (phone == null || phone.isBlank() || phone.length() < 11) {
+            return Result.error("请输入正确的手机号");
+        }
+        String code = MailUtils.generateCode(6);
+        String key = RedisConstants.SMS_CODE_KEY + phone;
+        redisTemplate.opsForValue().set(key, code, RedisConstants.SMS_CODE_TTL, TimeUnit.MINUTES);
+        System.out.println("[SMS] verification code " + code + " sent to " + phone + " (TODO: integrate SMS gateway)");
+        return Result.success();
+    }
+
 }

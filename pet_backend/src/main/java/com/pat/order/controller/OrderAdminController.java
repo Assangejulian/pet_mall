@@ -3,7 +3,9 @@ package com.pat.order.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.pat.common.domain.ErrorCode;
 import com.pat.common.domain.Result;
+import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.IPurchaseOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/admin/order")
@@ -23,6 +26,23 @@ public class OrderAdminController {
 
     public OrderAdminController(IPurchaseOrderService orderService) {
         this.orderService = orderService;
+    }
+
+    /** 状态机：允许的跳转 */
+    private static final Map<Integer, Set<Integer>> STATE_MACHINE = Map.of(
+            0,  Set.of(1, -1),       // 待支付 → 已支付 / 取消
+            1,  Set.of(2),            // 已支付 → 已发货
+            2,  Set.of(3, -2, -4),    // 已发货 → 已收货 / 申请退单 / 直接退单
+            3,  Set.of(4),            // 已收货 → 已评价
+            -2, Set.of(-3, 3)         // 申请退单 → 退单通过 / 拒绝（恢复已收货）
+    );
+
+    private void validateTransition(Integer current, Integer target) {
+        Set<Integer> allowed = STATE_MACHINE.get(current);
+        if (allowed == null || !allowed.contains(target)) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR,
+                    "状态非法: " + current + " → " + target);
+        }
     }
 
     @Operation(summary = "订单分页查询")
@@ -46,13 +66,16 @@ public class OrderAdminController {
         if (order == null) return Result.error("订单不存在");
 
         Object statusObj = body.get("status");
-        int status = statusObj instanceof Integer ? (Integer) statusObj : Integer.parseInt(statusObj.toString());
-        order.setOrderStatus(status);
+        int targetStatus = statusObj instanceof Integer ? (Integer) statusObj : Integer.parseInt(statusObj.toString());
 
+        // 状态机校验
+        validateTransition(order.getOrderStatus(), targetStatus);
+
+        order.setOrderStatus(targetStatus);
         String reason = (String) body.get("reason");
         LocalDateTime now = LocalDateTime.now();
 
-        switch (status) {
+        switch (targetStatus) {
             case -1: order.setCancelReason(reason); order.setCancelTime(now); break;
             case 1:  order.setPayTime(now); break;
             case 2:  order.setShipTime(now); break;
@@ -69,8 +92,14 @@ public class OrderAdminController {
         PurchaseOrder order = orderService.getById(id);
         if (order == null) return Result.error("订单不存在");
 
+        // 状态机校验：当前必须是 -2（申请退单）
+        if (order.getOrderStatus() != -2) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "当前订单状态不是申请退单");
+        }
+
         boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        order.setOrderStatus(approved ? -3 : 3); // -3=退单通过, 3=已收货，拒绝后恢复
+        int targetStatus = approved ? -3 : 3;
+        order.setOrderStatus(targetStatus);
         order.setRefundAuditTime(LocalDateTime.now());
 
         if (!approved) {

@@ -263,6 +263,11 @@ page {
   box-shadow: 0 4rpx 16rpx rgba(7,193,96,0.20);
 }
 
+.login-btn--sms {
+  background: #ff9800;
+  box-shadow: 0 4rpx 16rpx rgba(255,152,0,0.20);
+}
+
 .login-btn--face {
   background: #5b8def;
   box-shadow: 0 4rpx 16rpx rgba(91,141,239,0.20);

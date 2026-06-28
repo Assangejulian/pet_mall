@@ -24,6 +24,9 @@ public class User extends BaseEntity {
     /** 微信小程序 openid */
     private String openid;
 
+    /** 人脸识别ID */
+    private String faceId;
+
     /** 微信开放平台 unionid（跨公众号/小程序统一标识） */
     private String unionid;
 
