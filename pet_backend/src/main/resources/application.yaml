@@ -56,6 +56,24 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
+
+
+arcsoft:
+  app-id: ${ARCSOFT_APPID:}
+  sdk-key: ${ARCSOFT_SDKKEY:}
+  timeout: 10
+
+
+face:
+  provider: ${FACE_PROVIDER:mock}
+  api-key: ${BAIDU_FACE_API_KEY:}
+  secret-key: ${BAIDU_FACE_SECRET_KEY:}
+
 wx:
   miniapp:
     appid: ${WECHAT_MINI_APPID:}

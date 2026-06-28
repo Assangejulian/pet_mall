@@ -139,6 +139,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
+
+        <!-- ==================== 支付宝 ==================== -->
+        <dependency>
+            <version>4.39.250.ALL</version>
+        </dependency>
         </dependency>
     </dependencies>
 
@@ -165,10 +170,10 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <jvmArguments>-Dfile.encoding=UTF-8</jvmArguments>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
                 </configuration>

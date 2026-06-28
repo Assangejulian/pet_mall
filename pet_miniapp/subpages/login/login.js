@@ -143,25 +143,7 @@ Page({
 
   onFaceLogin: function () {
     if (!this.checkAgreed()) return;
-    var t = this;
-    wx.showModal({
-      title: "人脸识别",
-      content: "请将面部对准屏幕中央，保持光线充足",
-      confirmText: "开始识别",
-      cancelText: "取消",
-      success: function (r) {
-        if (r.confirm) {
-          wx.showLoading({ title: "识别中..." });
-          setTimeout(function () {
-            wx.hideLoading();
-            wx.showLoading({ title: "登录中..." });
-            authApi.login({ authType: "face", faceToken: "face_" + Date.now() })
-              .then(function (r) { wx.hideLoading(); t.doLogin(r); })
-              .catch(function (err) { wx.hideLoading(); wx.showToast({ title: err.message || "人脸登录失败", icon: "none" }); });
-          }, 1500);
-        }
-      }
-    });
+    wx.navigateTo({ url: "/subpages/login/face_capture" });
   },
 
   doLogin: function (r) {

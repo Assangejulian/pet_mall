@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import { useUserStore } from "../stores/user"
@@ -125,6 +125,37 @@ async function handleEmailLogin() {
   }
 }
 
+
+async function handleFaceLogin() {
+  loading.value = true
+  errorMsg.value = ""
+  try {
+    // 调用 PC 摄像头拍照
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+    const video = document.createElement("video")
+    video.srcObject = stream
+    video.play()
+
+    // 等摄像头就绪后截取一帧
+    await new Promise(r => setTimeout(r, 500))
+    const canvas = document.createElement("canvas")
+    canvas.width = video.videoWidth || 640
+    canvas.height = video.videoHeight || 480
+    canvas.getContext("2d")!.drawImage(video, 0, 0)
+
+    // 停止摄像头
+    stream.getTracks().forEach(t => t.stop())
+
+    // 转 Base64
+    const base64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1]
+    await userStore.login({ authType: "face", faceToken: base64 } as any)
+    router.push((route.query.redirect as string) || "/")
+  } catch (e: any) {
+    errorMsg.value = e.message || "人脸登录失败"
+  } finally {
+    loading.value = false
+  }
+}
 async function sendSmsCode() {
   if (!smsPhone.value || smsPhone.value.length < 11) {
     errorMsg.value = "请输入正确的手机号"
@@ -227,6 +258,10 @@ function handleWechatLogin() {
         <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? "登录中..." : "登录" }}</button>
       </form>
 
+            <div v-show="curTab === 4">
+        <p style="text-align:center;color:#888;margin-bottom:16px;font-size:13px;">调用摄像头实时拍照识别</p>
+        <button type="button" class="btn-face" @click="handleFaceLogin" :disabled="loading">{{ loading ? "识别中..." : "摄像头拍照识别" }}</button>
+      </div>
       <div v-show="curTab === 3">
         <div class="wechat-qr-placeholder">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#07c160" stroke-width="1.5">
@@ -265,6 +300,9 @@ label input:focus, .code-row input:focus { outline: none; border-color: #e8927c;
 .wechat-qr-placeholder svg { display: block; margin: 0 auto 12px; }
 .btn-wechat { width: 100%; padding: 12px; background: #07c160; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
 .btn-wechat:disabled { opacity: .6; }
+.btn-face { width: 100%; padding: 12px; background: #667eea; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all .2s; }
+.btn-face:hover:not(:disabled) { background: #5a6fd6; }
+.btn-face:disabled { opacity: .6; cursor: not-allowed; }
 </style>
 
 

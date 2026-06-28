@@ -16,7 +16,8 @@
         "order/list",
         "order/detail",
         "address/list",
-        "login/login"
+        "login/login",
+        "login/face_capture"
       ]
     }
   ],
