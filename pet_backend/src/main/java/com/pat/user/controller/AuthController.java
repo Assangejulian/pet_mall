@@ -1,5 +1,7 @@
 package com.pat.user.controller;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.pat.common.constant.RedisConstants;
 import com.pat.common.utils.MailUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @RestController
 @Tag(name = "用户认证", description = "登录接口：密码/邮箱验证码/微信/人脸")
 public class AuthController {
@@ -79,7 +82,7 @@ public class AuthController {
         String code = MailUtils.generateCode(6);
         String key = RedisConstants.SMS_CODE_KEY + phone;
         redisTemplate.opsForValue().set(key, code, RedisConstants.SMS_CODE_TTL, TimeUnit.MINUTES);
-        System.out.println("[SMS] verification code " + code + " sent to " + phone + " (TODO: integrate SMS gateway)");
+        log.info("[SMS] verification code {} sent to {} (TODO: integrate SMS gateway)", code, phone);
         return Result.success();
     }
 

@@ -1,8 +1,11 @@
 package com.pat.user.service.auth;
 
 import cn.hutool.json.JSONObject;
+import com.pat.common.domain.ErrorCode;
+import com.pat.common.exception.BusinessException;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.entity.User;
+import com.pat.user.helper.WechatHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +41,7 @@ public class WechatPcAuthService implements AuthService {
     private String getWxCode(LoginDTO dto) {
         String wxCode = dto.getWxCode();
         if (wxCode == null || wxCode.isBlank()) {
-            throw new RuntimeException("微信授权 code 不能为空");
+            throw new BusinessException(ErrorCode.WX_CODE_EMPTY);
         }
         return wxCode;
     }

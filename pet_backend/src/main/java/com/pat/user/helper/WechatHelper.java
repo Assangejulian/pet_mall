@@ -1,10 +1,11 @@
-package com.pat.user.service.auth;
+package com.pat.user.helper;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.pat.common.domain.ErrorCode;
+import com.pat.common.exception.BusinessException;
 import com.pat.user.domain.entity.User;
-import com.pat.user.mapper.UserMapper;
 import com.pat.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +22,6 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Component
 public class WechatHelper {
-
-    @Autowired
-    private UserMapper userMapper;
 
     @Autowired
     private UserService userService;
@@ -45,9 +43,9 @@ public class WechatHelper {
             String errMsg = resp.getStr("errmsg");
             log.error("微信 {} 接口失败，缺少 {}，响应: {}", apiName, fieldName, resp);
             if (errCode != null) {
-                throw new RuntimeException("微信登录失败(errCode=" + errCode + "): " + errMsg);
+                throw new BusinessException(ErrorCode.WX_API_FAILED);
             }
-            throw new RuntimeException("微信登录失败，无法获取 " + fieldName);
+            throw new BusinessException(ErrorCode.WX_API_FAILED);
         }
         return value;
     }
@@ -64,18 +62,18 @@ public class WechatHelper {
 
     private User findUserByWechat(String openid, String unionid) {
         if (unionid != null && !unionid.isBlank()) {
-            User user = userMapper.selectOne(
+            User user = userService.getOne(
                     new LambdaQueryWrapper<User>().eq(User::getUnionid, unionid));
             if (user != null) return user;
         }
-        return userMapper.selectOne(
+        return userService.getOne(
                 new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
     }
 
     private void syncUnionid(User user, String unionid) {
         if (unionid != null && !unionid.isBlank() && user.getUnionid() == null) {
             user.setUnionid(unionid);
-            userMapper.updateById(user);
+            userService.updateById(user);
         }
     }
 
@@ -90,6 +88,6 @@ public class WechatHelper {
 
     /** 更新用户信息（用于同步微信昵称/头像） */
     public void updateUserById(User user) {
-        userMapper.updateById(user);
+        userService.updateById(user);
     }
 }

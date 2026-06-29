@@ -1,6 +1,8 @@
 package com.pat.user.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pat.common.domain.ErrorCode;
+import com.pat.common.exception.BusinessException;
 import com.pat.user.domain.entity.User;
 import com.pat.user.mapper.UserMapper;
 import com.pat.user.service.UserService;
@@ -16,5 +18,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user.getStatus() == null) user.setStatus(1);
         save(user);
         return user;
+    }
+
+    @Override
+    public void checkUserActive(User user) {
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        if (user.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.USER_DISABLED);
+        }
     }
 }
