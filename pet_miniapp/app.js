@@ -48,3 +48,4 @@ App({
     wx.setStorageSync("cart", cart);
   }
 });
+

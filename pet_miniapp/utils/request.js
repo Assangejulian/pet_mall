@@ -5,7 +5,9 @@ function getBaseUrl() {
 }
 
 function getToken() {
-  return (app && app.globalData && app.globalData.token) || "";
+  var t = (app && app.globalData && app.globalData.token) || "";
+  if (!t) t = wx.getStorageSync("token") || "";
+  return t;
 }
 
 function buildQuery(url, params) {
@@ -20,8 +22,13 @@ function buildQuery(url, params) {
   return qs.length ? url + "?" + qs.join("&") : url;
 }
 
+/**
+ * 小程序请求/响应拦截器 — 参考 B端 Axios 模式
+ * 统一处理 token 注入、401 跳转登录、业务状态码检查
+ */
 function request(method, url, data) {
   return new Promise(function(resolve, reject) {
+    // Request interceptor: 自动注入 token
     var token = getToken();
     var header = { "Content-Type": "application/json" };
     if (token) header["Authorization"] = "Bearer " + token;
@@ -34,25 +41,61 @@ function request(method, url, data) {
       timeout: 10000,
       success: function(res) {
         var body = res.data;
+
+        // Response interceptor: 401 → 清除 token → 跳转登录页
         if (res.statusCode === 401) {
+          clearAuth();
           wx.showToast({ title: "登录已过期，请重新登录", icon: "none" });
-          if (app) { app.globalData.token = ""; }
-          wx.removeStorageSync("token");
+          redirectToLogin();
           reject(new Error("unauthorized"));
           return;
         }
-        if (body && body.code === 200) {
-          resolve(body.data);
+
+        // 403: 无权限
+        if (res.statusCode === 403) {
+          wx.showToast({ title: body && body.message || "无权限访问", icon: "none" });
+          reject(new Error(body && body.message || "forbidden"));
+          return;
+        }
+
+        // 成功: 检查业务状态码 (参考 B端 unwrap: body.code !== 200 → throw)
+        if (body && (body.code === 200 || body.code === undefined)) {
+          resolve(body.code === 200 ? body.data : body);
         } else {
           var msg = (body && body.message) || "请求失败";
           reject(new Error(msg));
         }
       },
       fail: function(err) {
+        // 网络错误
+        wx.showToast({ title: "网络异常，请检查连接", icon: "none" });
         reject(err);
       }
     });
   });
+}
+
+function clearAuth() {
+  if (app) {
+    app.globalData.token = "";
+    app.globalData.user = null;
+  }
+  wx.removeStorageSync("token");
+  wx.removeStorageSync("userId");
+}
+
+function redirectToLogin() {
+  var pages = getCurrentPages();
+  var isOnLogin = false;
+  for (var i = 0; i < pages.length; i++) {
+    if (pages[i].route && pages[i].route.indexOf("login") !== -1) {
+      isOnLogin = true;
+      break;
+    }
+  }
+  if (!isOnLogin) {
+    wx.navigateTo({ url: "/subpages/login/login" });
+  }
 }
 
 module.exports = {

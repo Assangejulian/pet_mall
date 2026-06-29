@@ -8,6 +8,11 @@ spring:
     url: jdbc:mysql://127.0.0.1:${DB_PORT:3306}/pet_store?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:doc/pet_store.sql,classpath:doc/seed.sql
+      continue-on-error: true
   servlet:
     multipart:
       max-file-size: 20MB
@@ -20,8 +25,8 @@ spring:
   mail:
     host: smtp.qq.com
     port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:1337284817@qq.com}
+    password: ${MAIL_PASSWORD:opojnycdzuktjacj}
     properties:
       mail:
         smtp:
@@ -56,10 +61,28 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
+
+
+arcsoft:
+  app-id: ${ARCSOFT_APPID:}
+  sdk-key: ${ARCSOFT_SDKKEY:}
+  timeout: 10
+
+
+face:
+  provider: ${FACE_PROVIDER:mock}
+  api-key: ${BAIDU_FACE_API_KEY:}
+  secret-key: ${BAIDU_FACE_SECRET_KEY:}
+
 wx:
   miniapp:
-    appid: ${WECHAT_APPID:}
-    secret: ${WECHAT_SECRET:}
+    appid: ${WECHAT_MINI_APPID:}
+    secret: ${WECHAT_MINI_SECRET:}
   pc:
-    appid: ${WECHAT_APPID:}
-    secret: ${WECHAT_SECRET:}
+    appid: ${WECHAT_PC_APPID:}
+    secret: ${WECHAT_PC_SECRET:}

@@ -1,7 +1,7 @@
 package com.pat.store.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.pat.store.entity.Store;
+import com.pat.store.domain.entity.Store;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

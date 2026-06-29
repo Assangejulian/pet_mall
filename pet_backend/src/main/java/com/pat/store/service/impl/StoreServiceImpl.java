@@ -3,7 +3,7 @@ package com.pat.store.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
-import com.pat.store.entity.Store;
+import com.pat.store.domain.entity.Store;
 import com.pat.store.mapper.StoreMapper;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;

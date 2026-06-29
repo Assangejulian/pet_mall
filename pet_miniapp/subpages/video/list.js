@@ -1,41 +1,20 @@
 const app = getApp();
+var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [
-  {
-    id: 1,
-    title: "第一次接它回家",
-    desc: "从到家动线、隔离区到第一晚观察，把小家伙安稳接回家。",
-    cover: "/images/mock/cat-cover.jpg",
-    url: "",
-    author: "暖窝小鱼",
-    views: "2.3k",
-    likes: "156",
-    productName: "幼宠基础用品包",
-    productId: 1
-  },
-  {
-    id: 2,
-    title: "狗狗兴奋乱扑怎么办",
-    desc: "先让它学会坐下等待，再把奖励和社交绑定起来。",
-    cover: "/images/mock/golden.jpg",
-    url: "",
-    author: "布偶田田",
-    views: "1.8k",
-    likes: "89",
-    productName: "耐咬训练玩具",
-    productId: 3
-  }
+  { id: 1, title: "第一次接它回家", desc: "从到家动线、隔离区到第一晚观察，把小家伙安稳接回家。", cover: "/images/mock/cat-cover.jpg", url: "", author: "暖窝小鱼", views: "2.3k", likes: "156", productName: "幼宠基础用品包", productId: 1 },
+  { id: 2, title: "狗狗兴奋乱扑怎么办", desc: "先让它学会坐下等待，再把奖励和社交绑定起来。", cover: "/images/mock/golden.jpg", url: "", author: "布偶田田", views: "1.8k", likes: "89", productName: "耐咬训练玩具", productId: 3 }
 ];
 
 function formatCount(value) {
-  const number = Number(value || 0);
+  var number = Number(value || 0);
   if (!Number.isFinite(number)) return value || "0";
   if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1) + "k";
   return String(number);
 }
 
 function extractRows(body) {
-  const data = body && body.data ? body.data : body;
+  var data = body && body.data ? body.data : body;
   if (!data) return [];
   if (Array.isArray(data)) return data;
   if (Array.isArray(data.records)) return data.records;
@@ -43,8 +22,8 @@ function extractRows(body) {
 }
 
 function normalizeVideo(item, index) {
-  const source = item || {};
-  const fallback = fallbackVideos[index % fallbackVideos.length];
+  var source = item || {};
+  var fallback = fallbackVideos[index % fallbackVideos.length];
   return {
     id: source.id || fallback.id,
     title: source.title || fallback.title,
@@ -66,57 +45,43 @@ Page({
     useMock: false
   },
 
-  onShow() {
+  onShow: function() {
     this.loadVideos();
   },
 
-  onPullDownRefresh() {
-    this.loadVideos(() => wx.stopPullDownRefresh());
+  onPullDownRefresh: function() {
+    this.loadVideos(function() { wx.stopPullDownRefresh(); });
   },
 
-  loadVideos(done) {
-    this.setData({ loading: true });
-    wx.request({
-      url: app.globalData.baseUrl + "/api/video/feed",
-      method: "GET",
-      data: { page: 1, size: 20 },
-      success: (res) => {
-        const rows = extractRows(res.data);
-        if (rows.length) {
-          this.setData({
-            videos: rows.map(normalizeVideo),
-            loading: false,
-            useMock: false
-          });
-        } else {
-          this.useFallback();
-        }
-      },
-      fail: () => this.useFallback(),
-      complete: () => {
-        if (done) done();
+  loadVideos: function(done) {
+    var that = this;
+    that.setData({ loading: true });
+    function finish() { if (done) done(); }
+    videoApi.list(1, 20).then(function(res) {
+      var rows = extractRows(res);
+      if (rows.length) {
+        that.setData({ videos: rows.map(normalizeVideo), loading: false, useMock: false });
+      } else {
+        that.useFallback();
       }
+      finish();
+    }).catch(function() {
+      that.useFallback();
+      finish();
     });
   },
 
-  useFallback() {
-    this.setData({
-      videos: fallbackVideos,
-      loading: false,
-      useMock: true
-    });
+  useFallback: function() {
+    this.setData({ videos: fallbackVideos, loading: false, useMock: true });
   },
 
-  goDetail(event) {
-    const id = event.currentTarget.dataset.id;
-    wx.navigateTo({
-      url: "/subpages/video/detail?id=" + id,
-      fail: () => wx.showToast({ title: "视频详情页打开失败", icon: "none" })
-    });
+  goDetail: function(event) {
+    var id = event.currentTarget.dataset.id;
+    wx.navigateTo({ url: "/subpages/video/detail?id=" + id });
   },
 
-  goProduct(event) {
-    const id = event.currentTarget.dataset.pid;
+  goProduct: function(event) {
+    var id = event.currentTarget.dataset.pid;
     if (!id) return;
     wx.navigateTo({ url: "/subpages/detail/detail?id=" + id });
   }

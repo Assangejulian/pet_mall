@@ -1,7 +1,7 @@
 package com.pat.video.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.pat.video.entity.Video;
+import com.pat.video.domain.entity.Video;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

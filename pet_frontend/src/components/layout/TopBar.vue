@@ -1,52 +1,79 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import "../../styles/TopBar.css"
 import { useCartStore } from "../../stores/cart"
 import { useUserStore } from "../../stores/user"
+
 const cart = useCartStore()
 const user = useUserStore()
 
 const pages = [
-  { id: "home", path: "/", label: "作品" },
-  { id: "market", path: "/market", label: "市集" },
-  { id: "community", path: "/community", label: "社区" },
-  { id: "notes", path: "/notes", label: "笔记" },
-  { id: "ai", path: "/ai", label: "AI助手" },
+  { id: "home", path: "/", label: "\u4f5c\u54c1" },
+  { id: "market", path: "/market", label: "\u5e02\u96c6" },
+  { id: "community", path: "/community", label: "\u793e\u533a" },
+  { id: "notes", path: "/notes", label: "\u7b14\u8bb0" },
+  { id: "ai", path: "/ai", label: "AI\u52a9\u624b" },
 ]
+
+function doLogout() {
+  user.logout()
+}
 </script>
 
 <template>
   <header class="topbar">
     <router-link to="/" class="brand">
-      <span class="brand-mark">♡</span>
+      <span class="brand-mark">&#9829;</span>
       <span>Pet<span>Nest</span></span>
     </router-link>
 
-    <nav class="tabs" aria-label="页面导航">
-      <router-link v-for="p in pages" :key="p.id" :to="p.path" :class="{ active: $route.name === p.id }">
+    <nav class="tabs" aria-label="\u9875\u9762\u5bfc\u822a">
+      <router-link v-for="p in pages" :key="p.id" :to="p.path" :class="{ active: .name === p.id }">
         {{ p.label }}
       </router-link>
     </nav>
 
     <div class="nav-actions">
-      <button class="cart-button" type="button" aria-label="购物车">
+      <button class="cart-button" type="button" aria-label="\u8d2d\u7269\u8f66">
         <span class="cart-glyph"></span>
         <span class="cart-badge">{{ cart.count }}</span>
       </button>
-      <div class="user-menu">
-        <button class="user-trigger" type="button">
-          <span class="user-avatar">人</span>
-          <span>{{ user.profile.name }}</span>
-          <small>▾</small>
-        </button>
-        <div class="user-dropdown">
-          <button type="button">我的主页</button>
-          <button type="button">我的毛孩子</button>
-          <button type="button">我的订单</button>
-          <button type="button">我的收藏</button>
-          <hr />
-          <button type="button">账号设置</button>
+
+      <template v-if="user.isLoggedIn">
+        <div class="user-menu">
+          <button class="user-trigger" type="button">
+            <span class="user-avatar">\u4eba</span>
+            <span>{{ user.profile?.username }}</span>
+            <small>&#9660;</small>
+          </button>
+          <div class="user-dropdown">
+            <button type="button">\u6211\u7684\u4e3b\u9875</button>
+            <button type="button">\u6211\u7684\u6bdb\u5b69\u5b50</button>
+            <button type="button">\u6211\u7684\u8ba2\u5355</button>
+            <button type="button">\u6211\u7684\u6536\u85cf</button>
+            <hr />
+            <button type="button">\u8d26\u53f7\u8bbe\u7f6e</button>
+            <button type="button" @click="doLogout">\u9000\u51fa\u767b\u5f55</button>
+          </div>
         </div>
-      </div>
+      </template>
+      <template v-else>
+        <router-link to="/login" class="btn-login">\u767b\u5f55</router-link>
+      </template>
     </div>
   </header>
 </template>
+
+<style scoped>
+.btn-login {
+  padding: 8px 20px;
+  background: #e8927c;
+  color: #fff;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.btn-login:hover {
+  background: #d47a64;
+}
+</style>

@@ -31,7 +31,26 @@ CREATE TABLE user (
     UNIQUE INDEX idx_username (username),
     UNIQUE INDEX idx_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户';
+-- 补充微信登录字段（安全重复执行）
+-- 补充微信登录字段
+SET @sql_openid = (SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE user ADD COLUMN openid VARCHAR(100) COMMENT ''微信小程序 openid'' AFTER email',
+    'SELECT 1'
+) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'openid');
+PREPARE stmt FROM @sql_openid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- 补充人脸识别字段
+SET @sql_faceid = (SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE user ADD COLUMN face_id VARCHAR(100) COMMENT ''人脸识别ID'' AFTER openid',
+    'SELECT 1'
+) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'face_id');
+PREPARE stmt FROM @sql_faceid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql_unionid = (SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE user ADD COLUMN unionid VARCHAR(100) COMMENT ''微信开放平台 unionid'' AFTER face_id',
+    'SELECT 1'
+) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'unionid');
+PREPARE stmt FROM @sql_unionid; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ============================================
 -- 2. user_address — 收货地址
 -- ============================================
@@ -179,6 +198,20 @@ CREATE TABLE video (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频';
 
 -- ============================================
+-- 视频评论
+
+-- 视频评论
+CREATE TABLE IF NOT EXISTS `comment` (
+    `id`          BIGINT       NOT NULL PRIMARY KEY COMMENT '雪花ID',
+    `video_id`    BIGINT       NOT NULL COMMENT '视频ID',
+    `user_id`     BIGINT       COMMENT '评论用户ID',
+    `content`     TEXT         NOT NULL COMMENT '评论内容',
+    `create_time` DATETIME(3)  DEFAULT CURRENT_TIMESTAMP(3) NOT NULL,
+    `update_time` DATETIME(3)  DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) NOT NULL,
+    INDEX idx_video_id (video_id),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频评论';
+
 -- 9. ai_chat_record — AI对话记录
 -- ============================================
 CREATE TABLE ai_chat_record (

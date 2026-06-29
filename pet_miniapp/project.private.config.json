@@ -2,7 +2,7 @@
   "libVersion": "3.6.0",
   "projectname": "pet_miniapp",
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "coverView": true,
     "lazyloadPlaceholderEnable": false,
     "skylineRenderEnable": false,

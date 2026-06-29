@@ -6,7 +6,7 @@ import com.pat.common.controller.BaseController;
 import com.pat.common.domain.Result;
 import com.pat.common.utils.UserHolder;
 import com.pat.order.dto.OrderSubmitDTO;
-import com.pat.order.entity.PurchaseOrder;
+import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.IPurchaseOrderService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;

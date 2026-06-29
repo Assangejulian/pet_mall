@@ -6,9 +6,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
 import com.pat.common.utils.JwtUtil;
-import com.pat.user.dto.LoginDTO;
-import com.pat.user.dto.LoginVO;
-import com.pat.user.entity.User;
+import com.pat.user.domain.dto.LoginDTO;
+import com.pat.user.domain.dto.LoginVO;
+import com.pat.user.domain.entity.User;
 import com.pat.user.service.auth.AuthServiceRouter;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class AuthController {
         dto.setAuthType(authType);
         User user = authServiceRouter.getService(authType).authenticate(dto);
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.USER_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "管理员登录（强制密码）")
@@ -50,7 +50,7 @@ public class AuthController {
         User user = authServiceRouter.getService("password").authenticate(dto);
         if (!"admin".equals(user.getRole())) return Result.error("无管理员权限");
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.ADMIN_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "发送邮箱验证码")
@@ -68,4 +68,19 @@ public class AuthController {
                 true);
         return Result.success();
     }
+
+    @Operation(summary = "发送短信验证码")
+    @PostMapping("/api/user/send-sms-code")
+    public Result<Void> sendSmsCode(@RequestBody LoginDTO dto) {
+        String phone = dto.getPhone();
+        if (phone == null || phone.isBlank() || phone.length() < 11) {
+            return Result.error("请输入正确的手机号");
+        }
+        String code = MailUtils.generateCode(6);
+        String key = RedisConstants.SMS_CODE_KEY + phone;
+        redisTemplate.opsForValue().set(key, code, RedisConstants.SMS_CODE_TTL, TimeUnit.MINUTES);
+        System.out.println("[SMS] verification code " + code + " sent to " + phone + " (TODO: integrate SMS gateway)");
+        return Result.success();
+    }
+
 }

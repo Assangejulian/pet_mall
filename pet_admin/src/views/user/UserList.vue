@@ -81,3 +81,4 @@ async function toggleStatus(item: User) { await updateUser(item.id, { status: it
 
 onMounted(fetchData)
 </script>
+

@@ -3,8 +3,8 @@ package com.pat.user.service.auth;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.pat.user.dto.LoginDTO;
-import com.pat.user.entity.User;
+import com.pat.user.domain.dto.LoginDTO;
+import com.pat.user.domain.entity.User;
 import com.pat.user.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  * 微信登录
- * authType = wechat
+ * authType = wechat / wechat_pc
  * 支持：小程序 wx.login（code2session）、PC 网页扫码（OAuth2）
  */
 @Slf4j
@@ -28,25 +28,28 @@ public class WechatAuthService implements AuthService, WxAuthService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("")
+    @Value("${wx.miniapp.appid}")
     private String miniappAppid;
 
-    @Value("")
+    @Value("${wx.miniapp.secret}")
     private String miniappSecret;
 
-    @Value("")
+    @Value("${wx.pc.appid}")
     private String pcAppid;
 
-    @Value("")
+    @Value("${wx.pc.secret}")
     private String pcSecret;
 
-    // ========== AuthService 策略入口（小程序端） ==========
+    // ========== AuthService 策略入口（wechat / wechat_pc） ==========
 
     @Override
     public User authenticate(LoginDTO dto) {
         String wxCode = dto.getWxCode();
         if (wxCode == null || wxCode.isBlank()) {
             throw new RuntimeException("微信授权 code 不能为空");
+        }
+        if ("wechat_pc".equals(dto.getAuthType())) {
+            return pcScanLogin(wxCode);
         }
         return miniappLogin(wxCode);
     }
@@ -55,11 +58,16 @@ public class WechatAuthService implements AuthService, WxAuthService {
 
     @Override
     public User miniappLogin(String code) {
-        // 1. 调微信 code2session
+        // 1. 调用微信 code2session
         JSONObject session = code2session(miniappAppid, miniappSecret, code);
         String openid = session.getStr("openid");
         if (openid == null) {
-            log.error("微信 code2session 失败: {}", session);
+            log.error("微信 code2session 失败，完整响应: {}", session);
+            Integer errCode = session.getInt("errcode");
+            String errMsg = session.getStr("errmsg");
+            if (errCode != null) {
+                throw new RuntimeException("微信登录失败(errCode=" + errCode + "): " + errMsg);
+            }
             throw new RuntimeException("微信登录失败，无法获取 openid");
         }
         String unionid = session.getStr("unionid");
@@ -99,7 +107,7 @@ public class WechatAuthService implements AuthService, WxAuthService {
 
     // ========== 微信 API 调用 ==========
 
-    /** code2session（小程序） */
+    /** code2session（小程序）*/
     private JSONObject code2session(String appid, String secret, String code) {
         String url = String.format(
                 "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
@@ -108,7 +116,7 @@ public class WechatAuthService implements AuthService, WxAuthService {
         return JSONUtil.parseObj(resp);
     }
 
-    /** 获取 access_token（PC 扫码 OAuth2） */
+    /** 获取 access_token（PC 扫码 OAuth2）*/
     private JSONObject getAccessToken(String appid, String secret, String code) {
         String url = String.format(
                 "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code",
@@ -117,7 +125,7 @@ public class WechatAuthService implements AuthService, WxAuthService {
         return JSONUtil.parseObj(resp);
     }
 
-    /** 获取用户信息（PC 扫码） */
+    /** 获取用户信息（PC 扫码）*/
     private JSONObject getUserInfo(String accessToken, String openid) {
         String url = String.format(
                 "https://api.weixin.qq.com/sns/userinfo?access_token=%s&openid=%s&lang=zh_CN",
@@ -126,7 +134,7 @@ public class WechatAuthService implements AuthService, WxAuthService {
         return JSONUtil.parseObj(resp);
     }
 
-    // ========== 用户查/建 ==========
+    // ========== 用户查/建==========
 
     @Transactional
     public User findOrCreateUser(String openid, String unionid) {
@@ -161,3 +169,4 @@ public class WechatAuthService implements AuthService, WxAuthService {
         return user;
     }
 }
+
