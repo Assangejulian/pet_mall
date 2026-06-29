@@ -30,6 +30,7 @@ public class StoreVO {
     private Integer status;
     private String statusText;
     private Long productCount;
+    private BigDecimal distanceKm;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;

@@ -1,5 +1,6 @@
 <view class="page">
   <view class="map-place"><view class="map-inner"><text style="font-size:64rpx">◉</text><text class="serif" style="font-size:30rpx;font-weight:700;margin:12rpx 0 6rpx">附近门店</text><text style="color:#8f7366;font-size:24rpx">接入地图后可查看附近门店位置</text></view></view>
+  <view class="empty-tip" wx:if="{{errorText}}"><text>{{errorText}}</text></view>
   <view class="card" wx:for="{{stores}}" wx:key="id">
     <view class="sr"><image class="si" src="{{item.image}}" mode="aspectFill" /><view class="sc"><text class="sn serif">{{item.storeName}}</text><view class="sm"><text>✦ {{item.rating}}</text><text>{{item.distance}}</text></view><text class="sa">{{item.address}}</text><view class="st"><text class="tg" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="t">{{t}}</text></view></view></view>
   </view>

@@ -27,6 +27,14 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#faf7ef"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于查询附近营业门店"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
   "tabBar": {
     "color": "#8f7366",
     "selectedColor": "#e8927c",

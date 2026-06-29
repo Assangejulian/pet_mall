@@ -56,6 +56,9 @@ public class StoreDTO {
     @DecimalMax(value = "90.0", message = "纬度不能大于90")
     private BigDecimal latitude;
 
+    @Schema(description = "附近商店查询半径，单位公里")
+    private BigDecimal radiusKm;
+
     @Min(value = 0, message = "商店状态只能为0、1或2")
     @Max(value = 2, message = "商店状态只能为0、1或2")
     private Integer status;
