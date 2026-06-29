@@ -38,9 +38,8 @@ Page({
     currentLng: 0,
     located: false,
     radius: 5,
-    showMap: true,
+    showMap: false,
     loading: true,
-    located: false,
     selectedStore: null,
     detailVisible: false
   },
@@ -93,6 +92,7 @@ Page({
           mapCenter: { latitude: lat, longitude: lng },
           located: true
         });
+        that.setData({ showMap: true });
         that.searchNearby();
       },
       fail: function() {
@@ -195,15 +195,52 @@ Page({
       wx.showToast({ title: "\u95e8\u5e97\u4f4d\u7f6e\u4fe1\u606f\u4e0d\u5b8c\u6574", icon: "none" });
       return;
     }
-    wx.openLocation({
-      latitude: store.latitude,
-      longitude: store.longitude,
-      name: store.storeName,
-      address: store.address,
-      scale: 18
+    var that = this;
+    wx.showActionSheet({
+      itemList: ["\u9ad8\u5fb7\u5730\u56fe\u5bfc\u822a", "\u767e\u5ea6\u5730\u56fe\u5bfc\u822a", "\u7cfb\u7edf\u5730\u56fe"],
+      success: function(res) {
+        var lat = store.latitude;
+        var lng = store.longitude;
+        var name = encodeURIComponent(store.storeName);
+        if (res.tapIndex === 0) {
+          // \u9ad8\u5fb7\u5730\u56fe - \u7528uri.amap.com\u6253\u5f00\u5bfc\u822a
+          var url = "https://uri.amap.com/navigation?from=" + that.data.currentLng + "," + that.data.currentLat + "(%E6%88%91%E7%9A%84%E4%BD%8D%E7%BD%AE)&to=" + lng + "," + lat + "(" + name + ")&mode=car&coordinate=gaode";
+          wx.setClipboardData({
+            data: url,
+            success: function() {
+              wx.showModal({
+                title: "\u5df2\u590d\u5236\u9ad8\u5fb7\u5bfc\u822a\u94fe\u63a5",
+                content: "\u8bf7\u6253\u5f00\u6d4f\u89c8\u5668\u7c98\u8d34\u5730\u5740\uff0c\u5373\u53ef\u8df3\u8f6c\u9ad8\u5fb7\u5730\u56feAPP\u5bfc\u822a\uff0c\u4eab\u53d7\u9ad8\u7cbe\u5ea6\u5b9a\u4f4d",
+                showCancel: false
+              });
+            }
+          });
+        } else if (res.tapIndex === 1) {
+          // \u767e\u5ea6\u5730\u56fe
+          var url = "baidumap://map/direction?origin=myLocation&destination=latlng:" + lat + "," + lng + "|name:" + name + "&coord_type=gcj02&mode=driving";
+          wx.setClipboardData({
+            data: url,
+            success: function() {
+              wx.showModal({
+                title: "\u5df2\u590d\u5236\u767e\u5ea6\u5bfc\u822a\u94fe\u63a5",
+                content: "\u8bf7\u6253\u5f00\u6d4f\u89c8\u5668\u7c98\u8d34\u5730\u5740\uff0c\u5373\u53ef\u8df3\u8f6c\u767e\u5ea6\u5730\u56feAPP\u5bfc\u822a",
+                showCancel: false
+              });
+            }
+          });
+        } else {
+          // \u7cfb\u7edf\u5730\u56fe\uff08\u9ed8\u8ba4\u9ad8\u5fb7\uff09
+          wx.openLocation({
+            latitude: lat,
+            longitude: lng,
+            name: store.storeName,
+            address: store.address,
+            scale: 18
+          });
+        }
+      }
     });
   },
-
   /** 切换搜索半径 */
   changeRadius: function(e) {
     var r = Number(e.detail.value);
@@ -213,6 +250,10 @@ Page({
 
   /** 切换列表/地图视图 */
   toggleView: function() {
-    this.setData({ showMap: !this.data.showMap });
+    var show = !this.data.showMap;
+    this.setData({ showMap: show });
+    if (show && !this.data.located && !this.data.currentLat) {
+      this.getLocationAndSearch();
+    }
   }
 });

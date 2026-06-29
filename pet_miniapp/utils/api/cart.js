@@ -1,7 +1,7 @@
 var request = require("../request");
 module.exports = {
   list: function() {
-    return request.get("/api/cart/list");
+    return request.get("/api/cart/search");
   },
   add: function(item) {
     return request.post("/api/cart", item);

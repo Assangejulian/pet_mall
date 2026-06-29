@@ -3,6 +3,7 @@ package com.pat.store.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import cn.hutool.core.bean.BeanUtil;
 import com.pat.common.domain.Result;
 import com.pat.product.domain.entity.Product;
 import com.pat.store.domain.dto.NearbyQuery;
@@ -81,23 +82,10 @@ public class StorePublicController {
 
     private StoreVO toVO(Store entity) {
         StoreVO vo = new StoreVO();
-        vo.setId(entity.getId());
-        vo.setUserId(entity.getUserId());
-        vo.setStoreName(entity.getStoreName());
-        vo.setStoreLogo(entity.getStoreLogo());
-        vo.setStorePhone(entity.getStorePhone());
-        vo.setStoreDesc(entity.getStoreDesc());
-        vo.setProvince(entity.getProvince());
-        vo.setCity(entity.getCity());
-        vo.setDistrict(entity.getDistrict());
-        vo.setAddress(entity.getAddress());
-        vo.setLongitude(entity.getLongitude());
-        vo.setLatitude(entity.getLatitude());
-        vo.setStatus(entity.getStatus());
+        BeanUtil.copyProperties(entity, vo);
+        // 门店坐标已为 GCJ-02 (火星坐标系)，与 wx.getLocation() 一致，直接透传
         vo.setStatusText("营业中");
         vo.setProductCount(storeService.countActiveProducts(entity.getId()));
-        vo.setCreateTime(entity.getCreateTime());
-        vo.setUpdateTime(entity.getUpdateTime());
         return vo;
     }
 }

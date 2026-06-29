@@ -252,3 +252,18 @@ INSERT INTO user(id, username, password, role, status, real_name) VALUES
 -- 补充: address_snapshot 字段（订单地址快照）
 -- ============================================
 ALTER TABLE purchase_order ADD COLUMN address_snapshot JSON COMMENT '收货地址快照(JSON)' AFTER address_id;
+
+
+
+ALTER TABLE purchase_order ADD COLUMN remark VARCHAR(200) COMMENT '订单备注' AFTER pay_amount;
+
+
+-- purchase_order 缺的列
+ALTER TABLE purchase_order ADD COLUMN address_snapshot JSON      COMMENT '收货地址快照(JSON)' AFTER address_id;
+ALTER TABLE purchase_order ADD COLUMN remark         VARCHAR(200) COMMENT '订单备注'          AFTER pay_amount;
+ALTER TABLE purchase_order ADD COLUMN create_time    DATETIME(3)  COMMENT '创建时间';
+ALTER TABLE purchase_order ADD COLUMN update_time    DATETIME(3)  COMMENT '更新时间';
+
+-- order_item 缺的列
+ALTER TABLE order_item ADD COLUMN create_time DATETIME(3) COMMENT '创建时间';
+ALTER TABLE order_item ADD COLUMN update_time DATETIME(3) COMMENT '更新时间';

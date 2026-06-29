@@ -49,9 +49,14 @@ Page({
     ]).then(function(results) {
       var order = results[0] || {};
       var items = (results[1] || []).map(normalizeItem);
+      var addressParsed = null;
+      if (order.addressSnapshot) {
+        try { addressParsed = JSON.parse(order.addressSnapshot); } catch(e) {}
+      }
       that.setData({
         order: order,
         items: items,
+        addressParsed: addressParsed,
         loading: false
       });
     }).catch(function() {
@@ -61,8 +66,22 @@ Page({
   },
 
   /** \u62e8\u6253\u5ba2\u670d */
+  payOrder: function() {
+    var that = this;
+    var order = this.data.order;
+    if (!order || !order.orderNo) return;
+    wx.showLoading({ title: "支付中..." });
+    orderApi.pay(order.orderNo).then(function(res) {
+      wx.hideLoading();
+      wx.showToast({ title: "支付成功", icon: "success" });
+      that.loadOrder(order.id);
+    }).catch(function() {
+      wx.hideLoading();
+      wx.showToast({ title: "支付失败", icon: "none" });
+    });
+  },
+
   callService: function() {
-    wx.showToast({ title: "\u5ba2\u670d\u7535\u8bdd: 400-000-0000", icon: "none" });
+    wx.showToast({ title: "客服电话: 400-000-0000", icon: "none" });
   }
 });
-

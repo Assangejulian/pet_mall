@@ -14,10 +14,12 @@ public class PurchaseOrder extends BaseEntity {
     private String orderNo;
     private Long userId;
     private Long addressId;
+    private String addressSnapshot;
     private BigDecimal totalAmount;
     private BigDecimal discountAmount;
     private BigDecimal payAmount;
     private Integer orderStatus;
+    private String remark;
     private String cancelReason;
     private LocalDateTime cancelTime;
     private LocalDateTime payTime;

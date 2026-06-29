@@ -10,6 +10,11 @@ module.exports = {
   create: function(data) {
     return request.post("/api/order/create", data);
   },
+  /** 支付订单 */
+  pay: function(orderNo) {
+    return request.post("/api/order/pay", { orderNo: orderNo });
+  },
+
   /** 获取订单明细 */
   items: function(orderId) {
     return request.get("/api/order/item/search", { orderId: orderId });

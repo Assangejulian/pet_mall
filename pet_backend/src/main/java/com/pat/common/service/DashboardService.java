@@ -2,7 +2,7 @@ package com.pat.common.service;
 
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.mapper.PurchaseOrderMapper;
-import com.pat.order.service.IPurchaseOrderService;
+import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.product.service.ProductService;
 import com.pat.store.service.IStoreService;
 import com.pat.user.service.UserService;
@@ -22,7 +22,7 @@ public class DashboardService {
     private final UserService userService;
     private final IStoreService storeService;
     private final ProductService productService;
-    private final IPurchaseOrderService orderService;
+    private final PurchaseOrderBaseService orderService;
     private final PurchaseOrderMapper orderMapper;
 
     public long getUserCount() {
