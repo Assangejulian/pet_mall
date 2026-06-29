@@ -10,7 +10,7 @@ public class LoginDTO {
     private String username;
     private String password;
 
-    /** 认证类型: password / sms / email_code / wechat / face */
+    /** 认证类型: password / sms / email_code / wechat / wechat_pc / face */
     @NotBlank
     private String authType;
 

@@ -1,6 +1,7 @@
-App({
+﻿App({
   globalData: {
-    baseUrl: "http://192.168.123.234:8080",
+    // baseUrl: "http://192.168.123.234:8080",
+    baseUrl: "http://127.0.0.1:8080",
     cart: [],
     user: null,
     token: ""
