@@ -1,4 +1,4 @@
-﻿package com.pat.store.mapper;
+package com.pat.store.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.pat.product.domain.entity.Product;

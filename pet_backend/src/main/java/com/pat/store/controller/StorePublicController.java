@@ -1,4 +1,4 @@
-﻿package com.pat.store.controller;
+package com.pat.store.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;

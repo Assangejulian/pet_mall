@@ -33,39 +33,76 @@ Page({
   data: {
     stores: [],
     storeMarkers: [],
-    mapCenter: { latitude: 24.4547, longitude: 118.0822 },
-    currentLat: 24.4547,
-    currentLng: 118.0822,
+    mapCenter: { latitude: 0, longitude: 0 },
+    currentLat: 0,
+    currentLng: 0,
+    located: false,
     radius: 5,
     showMap: true,
     loading: true,
+    located: false,
     selectedStore: null,
     detailVisible: false
   },
 
   onShow: function() {
+    // 每次显示页面都重新定位（用户在移动中）
+    this.getLocationAndSearch();
+  },
+
+
+  onLoad: function() {
+    // 页面加载时尝试定位
     this.getLocationAndSearch();
   },
 
   /** 获取当前位置，然后搜索附近门店 */
   getLocationAndSearch: function() {
     var that = this;
+
+    // 用缓存定位快速展示（如果有）
+    var cached = wx.getStorageSync("cached_location");
+    if (cached && cached.lat && cached.lng) {
+      that.setData({
+        currentLat: cached.lat,
+        currentLng: cached.lng,
+        mapCenter: { latitude: cached.lat, longitude: cached.lng }
+      });
+      that.searchNearby();
+    }
+
+    // 高精度 GPS 定位覆盖缓存结果
     wx.getLocation({
       type: "gcj02",
+      isHighAccuracy: true,
+      highAccuracyExpireTime: 3000,
       success: function(res) {
         var lat = res.latitude;
         var lng = res.longitude;
+        var accuracy = res.accuracy || 0;
+
+        // 精度 > 500m 时弃用 GPS 结果，保留缓存
+        if (accuracy > 500 && cached && cached.lat && cached.lng) {
+          return;
+        }
+
+        wx.setStorageSync("cached_location", { lat: lat, lng: lng });
         that.setData({
           currentLat: lat,
           currentLng: lng,
-          mapCenter: { latitude: lat, longitude: lng }
+          mapCenter: { latitude: lat, longitude: lng },
+          located: true
         });
         that.searchNearby();
       },
       fail: function() {
-        // 定位失败，使用默认坐标搜索
-        wx.showToast({ title: "\u5b9a\u4f4d\u5931\u8d25\uff0c\u4f7f\u7528\u9ed8\u8ba4\u4f4d\u7f6e", icon: "none" });
-        that.searchNearby();
+        // 定位失败但已有缓存 → 不打扰用户
+        if (cached && cached.lat && cached.lng) {
+          return;
+        }
+        // 真的无法定位
+        that.setData({ loading: false });
+        wx.showToast({ title: "无法获取位置", icon: "none" });
       }
     });
   },
@@ -83,13 +120,11 @@ Page({
       var stores = extractRows(res).map(normalizeStore);
       var markers = stores.filter(function(s) { return s.latitude && s.longitude; }).map(function(s, i) {
         return {
-          id: s.id || i,
+          id: Number(s.id) || i,
           latitude: s.latitude,
           longitude: s.longitude,
           title: s.storeName,
-          iconPath: "/images/map-marker.png",
-          width: 30,
-          height: 40,
+          // 使用默认 marker
           callout: {
             content: s.storeName,
             fontSize: 12,

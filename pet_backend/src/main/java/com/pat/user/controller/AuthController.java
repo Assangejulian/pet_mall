@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.pat.common.constant.RedisConstants;
 import com.pat.user.utils.MailUtils;
+import com.pat.user.utils.SmsHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
@@ -34,6 +35,9 @@ public class AuthController {
 
     @Autowired
     private MailUtils mailUtils;
+
+    @Autowired
+    private SmsHelper smsHelper;
 
     @Operation(summary = "用户登录（多策略）")
     @PostMapping("/api/user/login")

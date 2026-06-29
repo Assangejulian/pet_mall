@@ -1,4 +1,4 @@
-﻿var request = require("../request");
+var request = require("../request");
 module.exports = {
   list: function(params) {
     return request.get("/api/store/search", params || { current: 1, size: 20 });

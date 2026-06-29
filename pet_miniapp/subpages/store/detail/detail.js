@@ -1,4 +1,4 @@
-﻿var storeApi = require("../../utils/api/store");
+var storeApi = require("../../utils/api/store");
 
 function normalizeProduct(source) {
   source = source || {};

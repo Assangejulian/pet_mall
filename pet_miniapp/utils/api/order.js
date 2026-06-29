@@ -5,5 +5,13 @@ module.exports = {
   },
   detail: function(id) {
     return request.get("/api/order/" + id);
+  },
+  /** 创建订单 */
+  create: function(data) {
+    return request.post("/api/order/create", data);
+  },
+  /** 获取订单明细 */
+  items: function(orderId) {
+    return request.get("/api/order/item/search", { orderId: orderId });
   }
 };

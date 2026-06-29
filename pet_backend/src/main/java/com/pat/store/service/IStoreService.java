@@ -1,4 +1,4 @@
-﻿package com.pat.store.service;
+package com.pat.store.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.pat.product.domain.entity.Product;
