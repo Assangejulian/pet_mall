@@ -20,4 +20,7 @@ public class OrderItem extends BaseEntity {
     private String evaluateContent;
     private Integer evaluateStar;
     private LocalDateTime evaluateTime;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private LocalDateTime updateTime;
 }

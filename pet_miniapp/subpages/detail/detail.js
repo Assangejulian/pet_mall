@@ -1,5 +1,6 @@
 var app = getApp();
 var productApi = require("../../utils/api/product");
+var cartApi = require("../../utils/api/cart");
 
 function normalizeProduct(source) {
   source = source || {};
@@ -24,12 +25,11 @@ Page({
   },
 
   onLoad: function (options) {
-    this.setData({ cartCount: app.getCartCount() });
     this.loadProduct(options && options.id);
   },
 
   onShow: function () {
-    this.setData({ cartCount: app.getCartCount() });
+    // Optionally fetch cart count from backend here
   },
 
   loadProduct: function (id) {
@@ -56,6 +56,7 @@ Page({
   },
 
   addCart: function () {
+    if (!app.requireAuth()) return;
     if (!this.data.product || !this.data.product.id) {
       wx.showToast({ title: "商品不可加入购物车", icon: "none" });
       return;
@@ -64,9 +65,18 @@ Page({
       wx.showToast({ title: "商品暂无库存", icon: "none" });
       return;
     }
-    app.addToCart(this.data.product);
-    this.setData({ cartCount: app.getCartCount() });
-    wx.showToast({ title: "已加入购物车", icon: "success" });
+    wx.showLoading({ title: "添加中..." });
+    cartApi.add({
+      productId: this.data.product.id,
+      quantity: 1,
+      checked: 1
+    }).then(() => {
+      wx.hideLoading();
+      wx.showToast({ title: "已加入购物车", icon: "success" });
+    }).catch(() => {
+      wx.hideLoading();
+      wx.showToast({ title: "添加失败", icon: "none" });
+    });
   },
 
   /** 立即购买（需登录） */
@@ -77,8 +87,18 @@ Page({
       wx.showToast({ title: "商品暂无库存", icon: "none" });
       return;
     }
-    app.addToCart(this.data.product);
-    wx.switchTab({ url: "/pages/cart/cart" });
+    wx.showLoading({ title: "处理中..." });
+    cartApi.add({
+      productId: this.data.product.id,
+      quantity: 1,
+      checked: 1
+    }).then(() => {
+      wx.hideLoading();
+      wx.switchTab({ url: "/pages/cart/cart" });
+    }).catch(() => {
+      wx.hideLoading();
+      wx.showToast({ title: "系统繁忙", icon: "none" });
+    });
   },
 
   goCart: function () {

@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="amount-section">
+    <view class="amount-title">支付金额</view>
+    <view class="amount-value"><text class="symbol">¥</text>{{amount}}</view>
+    <view class="order-no">订单号：{{orderNo}}</view>
+  </view>
+
+  <view class="method-section">
+    <view class="section-title">选择支付方式</view>
+    
+    <view class="method-item" bindtap="selectMethod" data-method="wechat">
+      <view class="method-left">
+        <text class="method-icon wechat">W</text>
+        <text class="method-name">微信支付</text>
+      </view>
+      <view class="method-right">
+        <view class="radio {{payMethod === 'wechat' ? 'checked' : ''}}"></view>
+      </view>
+    </view>
+    
+    <view class="method-item" bindtap="selectMethod" data-method="balance">
+      <view class="method-left">
+        <text class="method-icon balance">B</text>
+        <text class="method-name">余额支付</text>
+        <text class="method-desc">(模拟)</text>
+      </view>
+      <view class="method-right">
+        <view class="radio {{payMethod === 'balance' ? 'checked' : ''}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <view class="btn-pay" bindtap="confirmPay">确认支付 ¥{{amount}}</view>
+  </view>
+</view>

@@ -21,31 +21,17 @@ App({
   },
 
   getCartCount() {
-    return this.globalData.cart.reduce((sum, item) => sum + item.quantity, 0);
+    // This could optionally fetch from backend or be removed
+    return 0;
   },
 
   addToCart(product) {
-    const cart = this.globalData.cart;
-    const index = cart.findIndex((item) => item.id === product.id);
-    if (index > -1) {
-      cart[index].quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1,
-        checked: true
-      });
-    }
-    this.globalData.cart = cart;
-    wx.setStorageSync("cart", cart);
+    // Legacy local cache method - removed in favor of backend API
+    console.log("addToCart deprecated, use cartApi.add directly");
   },
 
   updateCart(cart) {
-    this.globalData.cart = cart;
-    wx.setStorageSync("cart", cart);
+    // Legacy local cache method - removed in favor of backend API
+    console.log("updateCart deprecated, use cartApi.update directly");
   }
 });
-
