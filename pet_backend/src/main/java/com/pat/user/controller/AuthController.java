@@ -3,11 +3,11 @@ package com.pat.user.controller;
 import lombok.extern.slf4j.Slf4j;
 
 import com.pat.common.constant.RedisConstants;
-import com.pat.common.utils.MailUtils;
+import com.pat.user.utils.MailUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
-import com.pat.common.utils.JwtUtil;
+import com.pat.user.utils.JwtUtil;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.dto.LoginVO;
 import com.pat.user.domain.entity.User;

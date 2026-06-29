@@ -1,6 +1,7 @@
-package com.pat.common.utils;
+package com.pat.user.utils;
 
-public class UserHolder {
+public class
+UserHolder {
     private static final ThreadLocal<java.util.Map<String, Object>> TL = new ThreadLocal<>();
 
     public static void save(String key, Object value) {

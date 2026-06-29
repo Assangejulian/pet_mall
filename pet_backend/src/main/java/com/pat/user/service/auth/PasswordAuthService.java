@@ -4,7 +4,7 @@ import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.pat.common.utils.PasswordEncoder;
+import com.pat.user.utils.PasswordEncoder;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;

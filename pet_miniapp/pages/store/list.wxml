@@ -1,7 +1,80 @@
-<view class="page">
-  <view class="map-place"><view class="map-inner"><text style="font-size:64rpx">◉</text><text class="serif" style="font-size:30rpx;font-weight:700;margin:12rpx 0 6rpx">附近门店</text><text style="color:#8f7366;font-size:24rpx">接入地图后可查看附近门店位置</text></view></view>
-  <view class="card" wx:for="{{stores}}" wx:key="id">
-    <view class="sr"><image class="si" src="{{item.image}}" mode="aspectFill" /><view class="sc"><text class="sn serif">{{item.storeName}}</text><view class="sm"><text>✦ {{item.rating}}</text><text>{{item.distance}}</text></view><text class="sa">{{item.address}}</text><view class="st"><text class="tg" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="t">{{t}}</text></view></view></view>
+﻿<view class="page">
+  <!-- 地图区域 -->
+  <view class="map-wrap" wx:if="{{showMap}}">
+    <map
+      id="storeMap"
+      class="map"
+      latitude="{{mapCenter.latitude}}"
+      longitude="{{mapCenter.longitude}}"
+      scale="14"
+      markers="{{storeMarkers}}"
+      bindmarkertap="onMarkerTap"
+      show-location
+    ></map>
   </view>
-  <view class="empty-tip" wx:if="{{!stores.length}}"><text>暂无门店</text></view>
+
+  <!-- 半径选择器 -->
+  <view class="radius-bar">
+    <text class="radius-label">\u641c\u7d22\u8303\u56f4</text>
+    <slider min="1" max="20" step="1" value="{{radius}}" show-value bindchange="changeRadius" />
+    <text class="radius-val">{{radius}}km</text>
+  </view>
+
+  <!-- 视图切换 -->
+  <view class="view-toggle">
+    <text bindtap="toggleView">{{showMap ? '\u5207\u6362\u5217\u8868' : '\u5207\u6362\u5730\u56fe'}}</text>
+    <text class="store-count">\u5176 {{stores.length}} \u5bb6\u95e8\u5e97</text>
+  </view>
+
+  <!-- 门店列表 -->
+  <scroll-view class="store-list" scroll-y wx:if="{{!showMap || stores.length}}">
+    <view class="card" wx:for="{{stores}}" wx:key="id" bindtap="onStoreTap" data-id="{{item.id}}">
+      <view class="sr">
+        <image class="si" src="{{item.image}}" mode="aspectFill" />
+        <view class="sc">
+          <text class="sn serif">{{item.storeName}}</text>
+          <view class="sm">
+            <text>\u2b50 {{item.rating}}</text>
+            <text wx:if="{{item.distance}}">{{item.distance}}</text>
+          </view>
+          <text class="sa">{{item.address}}</text>
+          <view class="st">
+            <text class="tg" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="t">{{t}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 门店详情浮层 -->
+  <view class="detail-mask" wx:if="{{detailVisible}}" bindtap="closeDetail"></view>
+  <view class="detail-sheet" wx:if="{{detailVisible}}">
+    <view class="ds-header">
+      <text class="ds-name serif">{{selectedStore.storeName}}</text>
+      <text class="ds-close" bindtap="closeDetail">\u2716</text>
+    </view>
+    <view class="ds-body">
+      <view class="ds-row">
+        <text class="ds-label">\u5730\u5740</text>
+        <text class="ds-value">{{selectedStore.address}}</text>
+      </view>
+      <view class="ds-row" wx:if="{{selectedStore.storePhone}}">
+        <text class="ds-label">\u7535\u8bdd</text>
+        <text class="ds-value">{{selectedStore.storePhone}}</text>
+      </view>
+      <view class="ds-row" wx:if="{{selectedStore.distance}}">
+        <text class="ds-label">\u8ddd\u79bb</text>
+        <text class="ds-value">{{selectedStore.distance}}</text>
+      </view>
+    </view>
+    <view class="ds-actions">
+      <button class="ds-btn primary" bindtap="navigateToStore">\u5bfc\u822a\u5230\u6b64</button>
+      <button class="ds-btn" bindtap="goStoreDetail">\u67e5\u770b\u95e8\u5e97\u8be6\u60c5</button>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-tip" wx:if="{{!loading && !stores.length}}">
+    <text>\u6682\u65e0\u9644\u8fd1\u95e8\u5e97</text>
+  </view>
 </view>
