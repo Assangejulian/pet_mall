@@ -9,6 +9,10 @@ module.exports = {
   updateAddress: function(id, data) {
     return request.put("/api/user/address/" + id, data);
   },
+  defaultAddress: function() {
+    return request.get("/api/user/address/default");
+  },
+
   delAddress: function(id) {
     return request.del("/api/user/address/" + id);
   }
