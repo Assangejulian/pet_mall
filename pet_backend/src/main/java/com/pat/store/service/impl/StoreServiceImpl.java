@@ -1,15 +1,20 @@
-﻿package com.pat.store.service.impl;
+package com.pat.store.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.product.domain.entity.Product;
+import com.pat.store.domain.dto.NearbyQuery;
 import com.pat.store.domain.entity.Store;
+import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.mapper.StoreMapper;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -45,15 +50,42 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     @Override
-    public List<Store> searchNearby(BigDecimal lat, BigDecimal lng, Double radius) {
-        if (lat == null || lng == null) return List.of();
-        if (radius == null || radius <= 0) radius = 5.0;
-        return baseMapper.searchNearby(lat, lng, radius);
+    public IPage<NearbyStoreRow> searchNearby(NearbyQuery query) {
+        if (query == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "附近门店查询参数不能为空");
+        }
+        query.validateRequiredCoordinates();
+        BigDecimal radiusKm = query.resolvedRadiusKm();
+        long current = query.resolvedCurrent();
+        long size = query.resolvedSize();
+        Long totalValue = baseMapper.countNearby(query.getLongitude(), query.getLatitude(), radiusKm,
+                query.getKeyword(), query.getCity());
+        long total = totalValue == null ? 0L : totalValue;
+        Page<NearbyStoreRow> result = new Page<>(current, size, total);
+        long offset = calculateOffset(current, size, total);
+        if (offset < 0 || total == 0) {
+            result.setRecords(Collections.emptyList());
+            return result;
+        }
+        result.setRecords(baseMapper.selectNearby(query.getLongitude(), query.getLatitude(), radiusKm,
+                query.getKeyword(), query.getCity(), size, offset));
+        return result;
     }
 
     @Override
     public List<Product> getStoreProducts(Long storeId) {
         if (storeId == null) return List.of();
         return baseMapper.selectStoreProducts(storeId);
+    }
+
+    private long calculateOffset(long current, long size, long total) {
+        if (current <= 1) {
+            return 0L;
+        }
+        long pageIndex = current - 1;
+        if (size <= 0 || pageIndex > total / size) {
+            return -1L;
+        }
+        return pageIndex * size;
     }
 }

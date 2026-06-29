@@ -16,6 +16,7 @@
         "order/list",
         "order/detail",
         "address/list",
+        "store/detail",
         "login/login",
         "login/face_capture"
       ]
@@ -40,6 +41,14 @@
       { "pagePath": "pages/user/user", "text": "我的" }
     ]
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于展示附近营业门店和导航到店"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

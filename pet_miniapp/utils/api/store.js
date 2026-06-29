@@ -8,7 +8,7 @@ module.exports = {
   },
   /** 附近门店搜索 */
   nearby: function(params) {
-    return request.get("/api/store/nearby", params || { longitude: 0, latitude: 0, radius: 5 });
+    return request.get("/api/store/nearby", params || { current: 1, size: 20, radiusKm: 10 });
   },
   /** 门店商品列表 */
   products: function(storeId) {

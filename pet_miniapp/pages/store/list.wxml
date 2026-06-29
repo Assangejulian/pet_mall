@@ -26,6 +26,10 @@
     <text class="store-count">\u5176 {{stores.length}} \u5bb6\u95e8\u5e97</text>
   </view>
 
+  <view class="error-tip" wx:if="{{errorText}}">
+    <text>{{errorText}}</text>
+  </view>
+
   <!-- 门店列表 -->
   <scroll-view class="store-list" scroll-y wx:if="{{!showMap || stores.length}}">
     <view class="card" wx:for="{{stores}}" wx:key="id" bindtap="onStoreTap" data-id="{{item.id}}">
