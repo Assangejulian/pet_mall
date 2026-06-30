@@ -33,6 +33,8 @@ ai:
     pro-model-name: ${DEEPSEEK_PRO_MODEL:deepseek-reasoner}
     temperature: ${DEEPSEEK_TEMPERATURE:0.3}
     timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
+    memory-turns: ${DEEPSEEK_MEMORY_TURNS:10}
+    max-tokens: ${DEEPSEEK_MAX_TOKENS:2048}
 
 amap:
   api-key: ${AMAP_API_KEY:}

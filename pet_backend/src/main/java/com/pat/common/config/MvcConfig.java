@@ -14,11 +14,11 @@ public class MvcConfig implements WebMvcConfigurer {
     private AdminAuthInterceptor adminAuthInterceptor;
 
     @Autowired
-    private com.pat.common.interceptor.UserAuthInterceptor userAuthInterceptor;
+    private UserAuthInterceptor userAuthInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new UserAuthInterceptor()).addPathPatterns("/api/order/**", "/api/cart/**", "/api/user/address/**").order(1);
+        registry.addInterceptor(userAuthInterceptor).addPathPatterns("/api/order/**", "/api/cart/**", "/api/user/address/**").order(1);
 
         registry.addInterceptor(adminAuthInterceptor)
                 .addPathPatterns("/api/admin/**")

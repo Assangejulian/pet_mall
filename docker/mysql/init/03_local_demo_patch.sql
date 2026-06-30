@@ -37,6 +37,22 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+SET @has_face_id := (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'user'
+      AND column_name = 'face_id'
+);
+SET @sql := IF(
+    @has_face_id = 0,
+    'ALTER TABLE user ADD COLUMN face_id VARCHAR(100) COMMENT ''face auth id'' AFTER openid',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 UPDATE user
 SET real_name = CASE id
         WHEN 910000000000000101 THEN '暖窝小鱼'

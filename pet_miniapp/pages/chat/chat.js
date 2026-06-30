@@ -18,6 +18,13 @@ const commands = [
   { id: "session-new", trigger: "/new", type: "session", value: "new", label: "/new", desc: "开启一段新对话" }
 ];
 
+const toolShortcuts = [
+  { id: "products", icon: "商", title: "商品搜索", desc: "查商品和库存", prompt: "请调用商品搜索工具，推荐几件适合新手养宠准备的商品，并给出理由。" },
+  { id: "stores", icon: "店", title: "店铺搜索", desc: "查营业门店", prompt: "请调用店铺搜索工具，帮我查可营业的宠物店，并说明适合咨询什么问题。" },
+  { id: "videos", icon: "视", title: "视频Feed", desc: "查养宠视频", prompt: "请调用视频 feed 工具，找几条适合新手养宠参考的视频。" },
+  { id: "cart", icon: "车", title: "购物车", desc: "查看购物车", prompt: "请调用购物车查询工具，帮我查看当前购物车，并总结还缺哪些常用用品。" }
+];
+
 const HISTORY_KEY = "aiCustomerChatSessions";
 
 function buildWelcome(context) {
@@ -51,6 +58,134 @@ function markdownToText(text) {
     .replace(/^\s*[-*]\s+/gm, "• ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderInlineMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, "<code style=\"padding:2rpx 8rpx;border-radius:8rpx;background:#f2e8dd;color:#0b4a3d;font-size:26rpx;\">$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong style=\"font-weight:900;color:#241912;\">$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em style=\"font-style:normal;color:#0b4a3d;\">$1</em>");
+}
+
+function isMarkdownTableSeparator(line) {
+  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test((line || "").trim());
+}
+
+function isMarkdownTableRow(line) {
+  const trimmed = (line || "").trim();
+  return trimmed.indexOf("|") !== -1 && /^\|?.+\|.+\|?$/.test(trimmed) && !isMarkdownTableSeparator(trimmed);
+}
+
+function splitMarkdownTableRow(line) {
+  return (line || "")
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function renderMarkdownTable(header, rows) {
+  const safeHeader = header || [];
+  const safeRows = rows || [];
+  const renderedRows = safeRows.map((row) => {
+    const cells = row.map((cell, index) => {
+      const width = index === 0 ? "34%" : "66%";
+      const weight = index === 0 ? "900" : "500";
+      return "<span style=\"display:inline-block;vertical-align:top;width:" + width + ";box-sizing:border-box;padding:12rpx 14rpx;font-weight:" + weight + ";line-height:1.45;\">" + renderInlineMarkdown(cell) + "</span>";
+    }).join("");
+    return "<div style=\"border-top:1rpx solid #eadfd3;\">" + cells + "</div>";
+  }).join("");
+
+  const renderedHeader = safeHeader.length
+    ? "<div style=\"background:#f6eee5;color:#241912;\">" + safeHeader.map((cell, index) => {
+        const width = index === 0 ? "34%" : "66%";
+        return "<span style=\"display:inline-block;vertical-align:top;width:" + width + ";box-sizing:border-box;padding:12rpx 14rpx;font-weight:900;line-height:1.35;\">" + renderInlineMarkdown(cell) + "</span>";
+      }).join("") + "</div>"
+    : "";
+
+  return "<div style=\"margin:12rpx 0;border:1rpx solid #eadfd3;border-radius:16rpx;overflow:hidden;background:#fffaf4;font-size:25rpx;\">" + renderedHeader + renderedRows + "</div>";
+}
+
+function markdownToHtml(text) {
+  const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+  const parts = [];
+  let listType = "";
+
+  function closeList() {
+    if (listType) {
+      parts.push("</" + listType + ">");
+      listType = "";
+    }
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index];
+    const line = raw.trim();
+    if (!line) {
+      closeList();
+      parts.push("<div style=\"height:12rpx;\"></div>");
+      continue;
+    }
+
+    if (isMarkdownTableRow(line) && isMarkdownTableSeparator(lines[index + 1])) {
+      closeList();
+      const header = splitMarkdownTableRow(line);
+      const rows = [];
+      index += 2;
+      while (index < lines.length && isMarkdownTableRow(lines[index])) {
+        rows.push(splitMarkdownTableRow(lines[index]));
+        index += 1;
+      }
+      index -= 1;
+      parts.push(renderMarkdownTable(header, rows));
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      closeList();
+      parts.push("<div style=\"margin:10rpx 0 8rpx;font-size:30rpx;font-weight:900;color:#241912;\">" + renderInlineMarkdown(heading[2]) + "</div>");
+      continue;
+    }
+
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+    if (unordered) {
+      if (listType !== "ul") {
+        closeList();
+        listType = "ul";
+        parts.push("<ul style=\"margin:8rpx 0 8rpx 34rpx;padding:0;\">");
+      }
+      parts.push("<li style=\"margin:6rpx 0;line-height:1.55;\">" + renderInlineMarkdown(unordered[1]) + "</li>");
+      continue;
+    }
+
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (ordered) {
+      if (listType !== "ol") {
+        closeList();
+        listType = "ol";
+        parts.push("<ol style=\"margin:8rpx 0 8rpx 34rpx;padding:0;\">");
+      }
+      parts.push("<li style=\"margin:6rpx 0;line-height:1.55;\">" + renderInlineMarkdown(ordered[1]) + "</li>");
+      continue;
+    }
+
+    closeList();
+    parts.push("<div style=\"margin:6rpx 0;line-height:1.55;\">" + renderInlineMarkdown(line) + "</div>");
+  }
+
+  closeList();
+  return parts.join("").trim();
 }
 
 function decodeChunk(buffer) {
@@ -119,6 +254,16 @@ function sortSessions(list) {
   });
 }
 
+function normalizeMessages(messages) {
+  return (messages || []).map((item) => {
+    if (item.from !== "ai" || !item.text) return item;
+    return Object.assign({}, item, {
+      html: markdownToHtml(item.text),
+      rich: true
+    });
+  });
+}
+
 Page({
   data: {
     title: "暖窝智能客服",
@@ -132,10 +277,12 @@ Page({
     quickPrompts,
     modelOptions,
     commands,
+    toolShortcuts,
     visibleCommands: commands,
     modelMode: "flash",
     modelLabel: "Flash",
     showCommands: false,
+    showToolPanel: false,
     contextLabel: "",
     streamingStarted: false,
     historyOpen: false,
@@ -152,7 +299,7 @@ Page({
     this.setData({
       sessionId: currentSession ? currentSession.sessionId || "" : sessionId,
       contextLabel: context,
-      messages: currentSession && currentSession.messages && currentSession.messages.length ? currentSession.messages : buildWelcome(context),
+      messages: currentSession && currentSession.messages && currentSession.messages.length ? normalizeMessages(currentSession.messages) : buildWelcome(context),
       modelMode: currentSession ? currentSession.modelMode || "flash" : "flash",
       modelLabel: currentSession && currentSession.modelMode === "pro" ? "Pro" : "Flash",
       chatSessions,
@@ -166,9 +313,29 @@ Page({
     const keyword = value.trim();
     this.setData({
       input: value,
+      showToolPanel: false,
       showCommands: keyword.indexOf("/") === 0,
       visibleCommands: commands.filter((command) => command.trigger.indexOf(keyword) === 0 || keyword === "/")
     });
+  },
+
+  toggleToolPanel() {
+    this.setData({
+      showToolPanel: !this.data.showToolPanel,
+      showCommands: false
+    });
+  },
+
+  useToolShortcut(event) {
+    const id = event.currentTarget.dataset.id;
+    const tool = toolShortcuts.find((item) => item.id === id);
+    if (!tool || this.data.loading) return;
+    this.setData({
+      input: tool.prompt,
+      showToolPanel: false,
+      showCommands: false
+    });
+    this.send();
   },
 
   switchModel(event) {
@@ -181,6 +348,7 @@ Page({
       modelMode: nextMode,
       modelLabel: nextMode === "pro" ? "Pro" : "Flash",
       showCommands: false,
+      showToolPanel: false,
       input: this.data.input.trim().indexOf("/") === 0 ? "" : this.data.input
     });
   },
@@ -200,7 +368,7 @@ Page({
     }
     if (command.type === "session" && command.value === "new") {
       this.clearChat();
-      this.setData({ input: "", showCommands: false });
+      this.setData({ input: "", showCommands: false, showToolPanel: false });
     }
   },
 
@@ -226,6 +394,7 @@ Page({
       messages: this.data.messages.concat(userMsg, aiMsg),
       input: "",
       showCommands: false,
+      showToolPanel: false,
       loading: true,
       streamingStarted: false,
       lastId: "msg-" + aiMsg.id
@@ -286,13 +455,13 @@ Page({
         }
         if (event.type === "delta" && data.content) {
           reply += data.content;
-          this.updateAiMessage(aiId, markdownToText(reply));
+          this.updateAiMessage(aiId, reply);
         }
         if (event.type === "done") {
           completed = true;
           const finalReply = data.reply ? data.reply : reply;
           if (finalReply) {
-            this.updateAiMessage(aiId, markdownToText(finalReply));
+            this.updateAiMessage(aiId, finalReply);
           }
           if (data.sessionId) {
             this.saveSession(data.sessionId);
@@ -317,7 +486,7 @@ Page({
         if (data.sessionId) {
           this.saveSession(data.sessionId);
         }
-        this.updateAiMessage(aiId, markdownToText(reply));
+        this.updateAiMessage(aiId, reply);
       },
       fail: () => {
         wx.showToast({ title: "后端连接失败，已使用兜底回复", icon: "none" });
@@ -357,7 +526,11 @@ Page({
   updateAiMessage(id, text) {
     const messages = this.data.messages.map((item) => {
       if (item.id !== id) return item;
-      return Object.assign({}, item, { text });
+      return Object.assign({}, item, {
+        text,
+        html: markdownToHtml(text),
+        rich: item.from === "ai"
+      });
     });
     this.setData({
       messages,
@@ -442,7 +615,7 @@ Page({
     this.setData({
       currentSessionKey: id,
       sessionId: session.sessionId || "",
-      messages: session.messages && session.messages.length ? session.messages : buildWelcome(session.contextLabel || this.data.contextLabel),
+      messages: session.messages && session.messages.length ? normalizeMessages(session.messages) : buildWelcome(session.contextLabel || this.data.contextLabel),
       modelMode: session.modelMode || "flash",
       modelLabel: session.modelMode === "pro" ? "Pro" : "Flash",
       contextLabel: session.contextLabel || this.data.contextLabel,

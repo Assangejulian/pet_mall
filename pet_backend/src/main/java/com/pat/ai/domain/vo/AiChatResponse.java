@@ -12,6 +12,7 @@ public class AiChatResponse {
     private String reply;
     private List<String> suggestions;
     private List<Recommendation> recommendations;
+    private List<PendingAction> pendingActions;
 
     @Data
     @NoArgsConstructor
@@ -20,5 +21,16 @@ public class AiChatResponse {
         private String title;
         private String reason;
         private String tag;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PendingAction {
+        private String id;
+        private String type;
+        private String label;
+        private String summary;
+        private Object payload;
     }
 }
