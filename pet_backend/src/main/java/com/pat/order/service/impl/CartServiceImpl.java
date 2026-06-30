@@ -30,7 +30,30 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     @Override
     public void addToCart(Cart cart) {
-        cart.setUserId(requireUserId());
+        Long userId = requireUserId();
+        if (cart.getProductId() == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "productId不能为空");
+        }
+
+        int quantity = cart.getQuantity() == null || cart.getQuantity() < 1 ? 1 : cart.getQuantity();
+        Cart exist = lambdaQuery()
+                .eq(Cart::getUserId, userId)
+                .eq(Cart::getProductId, cart.getProductId())
+                .one();
+        if (exist != null) {
+            exist.setQuantity((exist.getQuantity() == null ? 0 : exist.getQuantity()) + quantity);
+            if (cart.getChecked() != null) {
+                exist.setChecked(cart.getChecked());
+            }
+            updateById(exist);
+            return;
+        }
+
+        cart.setUserId(userId);
+        cart.setQuantity(quantity);
+        if (cart.getChecked() == null) {
+            cart.setChecked(1);
+        }
         save(cart);
     }
 
