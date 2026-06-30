@@ -66,7 +66,10 @@
       <view wx:if="{{item.from === 'me' || item.text}}" id="msg-{{item.id}}" class="msg {{item.from === 'me' ? 'right' : 'left'}}">
         <view class="avatar {{item.from === 'me' ? 'me' : 'ai'}}">{{item.from === 'me' ? '我' : 'AI'}}</view>
         <view class="bubble-wrap">
-          <view class="bubble">{{item.text}}</view>
+          <view class="bubble">
+            <rich-text wx:if="{{item.rich}}" nodes="{{item.html}}"></rich-text>
+            <block wx:else>{{item.text}}</block>
+          </view>
           <text class="time">{{item.time}}</text>
         </view>
       </view>
@@ -78,6 +81,21 @@
   </scroll-view>
 
   <view class="input-wrap">
+    <view class="tool-panel" wx:if="{{showToolPanel}}">
+      <view
+        wx:for="{{toolShortcuts}}"
+        wx:key="id"
+        class="tool-item"
+        bindtap="useToolShortcut"
+        data-id="{{item.id}}"
+      >
+        <view class="tool-icon">{{item.icon}}</view>
+        <view class="tool-copy">
+          <text class="tool-title">{{item.title}}</text>
+          <text class="tool-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
     <view class="command-panel" wx:if="{{showCommands}}">
       <view wx:for="{{visibleCommands}}" wx:key="id" class="command-item" bindtap="useCommand" data-id="{{item.id}}">
         <text class="command-label">{{item.label}}</text>
@@ -85,6 +103,7 @@
       </view>
     </view>
     <view class="input-bar">
+      <view class="tool-toggle {{showToolPanel ? 'active' : ''}}" bindtap="toggleToolPanel">+</view>
       <input placeholder="问商品、订单、售后或照护问题，输入 / 可选指令..." value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="send" />
       <view class="send {{input ? 'active' : ''}}" bindtap="send">发送</view>
     </view>

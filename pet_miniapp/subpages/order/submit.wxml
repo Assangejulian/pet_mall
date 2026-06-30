@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="section address-sec" wx:if="{{address}}">
+    <view class="addr-info">
+      <view class="user">{{address.receiverName}} <text class="phone">{{address.phone}}</text></view>
+      <view class="detail">{{address.province}} {{address.city}} {{address.district}} {{address.detail}}</view>
+    </view>
+    <view class="arrow">></view>
+  </view>
+  <view class="section address-sec empty" wx:else bindtap="goAddAddress">
+    <view>请前往"我的地址"添加收货地址（点此前往）</view>
+    <view class="arrow">></view>
+  </view>
+
+  <view class="section items-sec">
+    <view class="title">商品明细</view>
+    <view class="item" wx:for="{{items}}" wx:key="id">
+      <image class="img" src="{{item.productInfo.mainImage || item.productInfo.image || item.image}}" mode="aspectFill" />
+      <view class="info">
+        <view class="name">{{item.productInfo.productName || item.productInfo.name || item.name}}</view>
+        <view class="bottom">
+          <text class="price">¥{{item.productInfo.price || item.price}}</text>
+          <text class="qty">x{{item.quantity}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="b-bar">
+    <view class="sum">实付款：<text class="price">¥{{totalAmount}}</text></view>
+    <view class="btn-submit" bindtap="submitOrder">提交订单</view>
+  </view>
+</view>

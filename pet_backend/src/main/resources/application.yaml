@@ -8,6 +8,11 @@ spring:
     url: jdbc:mysql://127.0.0.1:${DB_PORT:3306}/pet_store?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:doc/pet_store.sql,classpath:doc/seed.sql
+      continue-on-error: true
   servlet:
     multipart:
       max-file-size: 20MB
@@ -41,6 +46,8 @@ ai:
     pro-model-name: ${DEEPSEEK_PRO_MODEL:deepseek-reasoner}
     temperature: ${DEEPSEEK_TEMPERATURE:0.3}
     timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
+    memory-turns: ${DEEPSEEK_MEMORY_TURNS:10}
+    max-tokens: ${DEEPSEEK_MAX_TOKENS:2048}
 
 mybatis-plus:
   configuration:

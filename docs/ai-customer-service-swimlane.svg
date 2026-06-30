@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="920" viewBox="0 0 1180 920">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+    <style>
+      text { font-family: "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #222; font-size: 16px; }
+      .title { font-size: 24px; font-weight: 700; }
+      .lane-title { font-size: 18px; font-weight: 700; }
+      .box { fill: #d8e8ff; stroke: #4a86e8; stroke-width: 2; rx: 4; }
+      .start { fill: #dff8e8; stroke: #18b66a; stroke-width: 2; rx: 24; }
+      .warn { fill: #ffdede; stroke: #d9534f; stroke-width: 2; rx: 4; }
+      .system { fill: #fff3c4; stroke: #c79a19; stroke-width: 2; rx: 4; }
+      .model { fill: #e8ddff; stroke: #7e57c2; stroke-width: 2; rx: 4; }
+      .lane { fill: none; stroke: #bbb; stroke-width: 1.2; }
+      .header-user { fill: #ffd3d3; stroke: #999; stroke-width: 1.2; }
+      .header-mini { fill: #f6c8e2; stroke: #999; stroke-width: 1.2; }
+      .header-service { fill: #cdf5dd; stroke: #999; stroke-width: 1.2; }
+      .header-system { fill: #fff0b8; stroke: #999; stroke-width: 1.2; }
+      .header-model { fill: #d8d0ff; stroke: #999; stroke-width: 1.2; }
+      .line { stroke: #333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .label { font-size: 14px; fill: #333; }
+    </style>
+  </defs>
+
+  <text x="590" y="36" text-anchor="middle" class="title">AI 智能客服对话泳道图</text>
+
+  <!-- vertical swimlane frame -->
+  <rect x="50" y="70" width="1080" height="800" fill="#fff" stroke="#999" stroke-width="1.5"/>
+
+  <!-- lane headers -->
+  <rect x="50" y="70" width="216" height="50" class="header-user"/>
+  <rect x="266" y="70" width="216" height="50" class="header-mini"/>
+  <rect x="482" y="70" width="216" height="50" class="header-service"/>
+  <rect x="698" y="70" width="216" height="50" class="header-system"/>
+  <rect x="914" y="70" width="216" height="50" class="header-model"/>
+  <text x="158" y="102" text-anchor="middle" class="lane-title">用户</text>
+  <text x="374" y="102" text-anchor="middle" class="lane-title">小程序</text>
+  <text x="590" y="102" text-anchor="middle" class="lane-title">智能客服</text>
+  <text x="806" y="102" text-anchor="middle" class="lane-title">系统</text>
+  <text x="1022" y="102" text-anchor="middle" class="lane-title">AI模型</text>
+
+  <!-- lane borders -->
+  <line x1="266" y1="70" x2="266" y2="870" class="lane"/>
+  <line x1="482" y1="70" x2="482" y2="870" class="lane"/>
+  <line x1="698" y1="70" x2="698" y2="870" class="lane"/>
+  <line x1="914" y1="70" x2="914" y2="870" class="lane"/>
+  <line x1="50" y1="120" x2="1130" y2="120" class="lane"/>
+
+  <!-- user lane -->
+  <rect x="95" y="155" width="126" height="48" class="start"/>
+  <text x="158" y="185" text-anchor="middle">提出问题</text>
+  <rect x="95" y="780" width="126" height="48" class="start"/>
+  <text x="158" y="810" text-anchor="middle">查看回复</text>
+
+  <!-- miniapp lane -->
+  <rect x="311" y="250" width="126" height="48" class="box"/>
+  <text x="374" y="280" text-anchor="middle">发送请求</text>
+  <rect x="311" y="690" width="126" height="48" class="box"/>
+  <text x="374" y="720" text-anchor="middle">渲染消息</text>
+
+  <!-- service lane -->
+  <rect x="527" y="340" width="126" height="48" class="box"/>
+  <text x="590" y="370" text-anchor="middle">检查密钥</text>
+  <rect x="527" y="440" width="126" height="48" class="box"/>
+  <text x="590" y="470" text-anchor="middle">生成会话ID</text>
+  <rect x="527" y="565" width="126" height="48" class="box"/>
+  <text x="590" y="595" text-anchor="middle">组装上下文</text>
+  <rect x="527" y="690" width="126" height="48" class="box"/>
+  <text x="590" y="720" text-anchor="middle">封装结果</text>
+  <rect x="527" y="250" width="126" height="48" class="warn"/>
+  <text x="590" y="280" text-anchor="middle">功能不可用</text>
+
+  <!-- system lane combines prompt + records -->
+  <rect x="743" y="440" width="126" height="48" class="system"/>
+  <text x="806" y="470" text-anchor="middle">查询历史</text>
+  <rect x="743" y="515" width="126" height="48" class="system"/>
+  <text x="806" y="545" text-anchor="middle">读取提示词</text>
+  <rect x="743" y="610" width="126" height="48" class="system"/>
+  <text x="806" y="640" text-anchor="middle">保存用户消息</text>
+  <rect x="743" y="690" width="126" height="48" class="system"/>
+  <text x="806" y="720" text-anchor="middle">保存AI回复</text>
+
+  <!-- model lane -->
+  <rect x="959" y="610" width="126" height="48" class="model"/>
+  <text x="1022" y="640" text-anchor="middle">生成回答</text>
+
+  <!-- arrows -->
+  <path d="M158 203 L158 225 L374 225 L374 250" class="line"/>
+  <path d="M437 274 L482 274 L482 364 L527 364" class="line"/>
+  <path d="M590 340 L590 298" class="line"/>
+  <text x="602" y="324" class="label">无Key</text>
+  <path d="M590 388 L590 440" class="line"/>
+  <text x="604" y="418" class="label">有Key</text>
+
+  <path d="M653 464 L743 464" class="line"/>
+  <path d="M806 488 L806 515" class="line"/>
+  <path d="M743 539 L653 565" class="line"/>
+  <path d="M590 488 L590 565" class="line"/>
+  <path d="M653 589 L743 634" class="line"/>
+  <path d="M869 634 L959 634" class="line"/>
+  <path d="M959 658 L869 714" class="line"/>
+  <path d="M743 714 L653 714" class="line"/>
+  <path d="M527 714 L437 714" class="line"/>
+  <path d="M374 690 L374 650 L158 650 L158 780" class="line"/>
+
+  <!-- unavailable return path -->
+  <path d="M527 274 L437 274" class="line"/>
+  <path d="M374 298 L374 330 L158 330 L158 780" class="line"/>
+</svg>
