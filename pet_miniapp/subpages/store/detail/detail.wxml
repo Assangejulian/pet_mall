@@ -1,0 +1,58 @@
+<view class="page">
+  <view class="store-hero" wx:if="{{store}}">
+    <view class="hero-overlay"></view>
+    <image class="hero-bg" src="{{store.storeLogo || ''}}" mode="aspectFill" wx:if="{{store.storeLogo}}" />
+    <view class="hero-content">
+      <text class="hero-name serif">{{store.storeName}}</text>
+      <text class="hero-status">{{store.statusText || "营业中"}}</text>
+    </view>
+  </view>
+
+  <view class="info-card" wx:if="{{store}}">
+    <view class="info-row" bindtap="navigateToStore">
+      <text class="info-icon">📍</text>
+      <view class="info-text">
+        <text class="info-label">地址</text>
+        <text class="info-value">{{store.address || "暂无"}}</text>
+      </view>
+      <text class="info-arrow">›</text>
+    </view>
+    <view class="info-row" wx:if="{{store.storePhone}}" bindtap="callPhone">
+      <text class="info-icon">📞</text>
+      <view class="info-text">
+        <text class="info-label">联系电话</text>
+        <text class="info-value">{{store.storePhone}}</text>
+      </view>
+      <text class="info-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="desc-card" wx:if="{{store && store.storeDesc}}">
+    <text class="sec-title serif">门店介绍</text>
+    <text class="desc-text">{{store.storeDesc}}</text>
+  </view>
+
+  <view class="products-section" wx:if="{{products.length}}">
+    <text class="sec-title serif">商品列表 ({{products.length}})</text>
+    <view class="product-grid">
+      <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="goProduct" data-id="{{item.id}}">
+        <image class="p-img" src="{{item.image}}" mode="aspectFill" />
+        <view class="p-body">
+          <text class="p-tag">{{item.productType == 1 ? "宠物" : "周边"}}</text>
+          <text class="p-name">{{item.name}}</text>
+          <text class="p-price">￥{{item.price}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{store}}">
+    <button class="nav-btn" bindtap="navigateToStore">
+      <text>📍 导航到此</text>
+    </button>
+  </view>
+
+  <view class="empty-tip" wx:if="{{!loading && !store}}">
+    <text>门店信息不存在</text>
+  </view>
+</view>
