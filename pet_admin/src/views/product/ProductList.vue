@@ -101,7 +101,7 @@ function productTypeLabel(t: number | undefined) {
 }
 
 function resolveStatusCode(item: Product): number {
-  return item.statusCode ?? item.status ?? 0
+  return item.statusCode ?? Number(item.status ?? 0)
 }
 
 function statusBadge(item: Product) {

@@ -98,8 +98,9 @@
 import { ref, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { useAdminStore } from "../stores/admin"
-import http from "../api/index"
+import { publicHttp } from "../api/index"
 import { unwrap } from "../api/helper"
+import type { LoginResult } from "../types/user"
 
 const router = useRouter()
 const admin = useAdminStore()
@@ -107,19 +108,13 @@ const loading = ref(false)
 const error = ref("")
 const focusField = ref("")
 const showPwd = ref(false)
-const remember = ref(localStorage.getItem("admin_remember") === "true")
+const rememberedUsername = localStorage.getItem("admin_remember_username") || ""
+const remember = ref(Boolean(rememberedUsername))
 
 const form = reactive({
-  username: localStorage.getItem("admin_remember") || "",
+  username: rememberedUsername,
   password: ""
 })
-
-interface LoginResult {
-  token: string
-  userId: string
-  username: string
-  role: string
-}
 
 onMounted(() => {
   if (form.username) form.password = "" // 仅回填账号
@@ -132,24 +127,24 @@ async function handleLogin() {
 
   try {
     const data = await unwrap<LoginResult>(
-      http.post("/login", {
+      publicHttp.post("/admin/login", {
         username: form.username,
         password: form.password,
         authType: "password"
       })
     )
-    admin.setToken(data.token)
-    admin.setInfo({ id: data.userId, username: data.username, avatar: "", role: data.role })
+    admin.setSession({ ...data, avatar: data.avatar || "" })
 
     if (remember.value) {
-      localStorage.setItem("admin_remember", form.username)
+      localStorage.setItem("admin_remember_username", form.username)
     } else {
-      localStorage.removeItem("admin_remember")
+      localStorage.removeItem("admin_remember_username")
     }
 
-    router.push("/")
-  } catch (e: any) {
-    error.value = e?.message || "登录失败，请检查账号密码"
+    await router.replace(admin.homePath)
+  } catch (cause: unknown) {
+    admin.logout()
+    error.value = cause instanceof Error ? cause.message : "登录失败，请检查账号密码"
   } finally {
     loading.value = false
   }
