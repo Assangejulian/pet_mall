@@ -158,6 +158,6 @@ public class StorePublicController {
         if (productType == null) {
             return null;
         }
-        return productType == 1 ? "宠物" : "周边";
+        return productType == 1 ? "活体宠物" : "宠物用品/周边";
     }
 }

@@ -188,7 +188,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 公开列表只展示已上架商品，支持用户端和管理端兼容查询参数。
         long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        String keyword = resolveKeyword(query);
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -209,7 +209,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
         long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        String keyword = resolveKeyword(query);
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -250,7 +250,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        String keyword = resolveKeyword(query);
         Integer productType = resolveProductType(query);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND user_id = " + merchantUserId)
@@ -438,7 +438,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         if (productType == TYPE_PET && stock > 1) {
             // 宠物是活体，一件商品只表示一只宠物，所以库存只能是0或1。
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "宠物商品库存只能是0或1");
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "活体宠物每条商品代表一只，库存只能是0或1");
         }
         if (status == STATUS_ONLINE && stock == 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存为0的商品不能上架");
@@ -561,7 +561,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (productType == null) {
             return null;
         }
-        return productType == TYPE_PET ? "宠物" : "周边";
+        return productType == TYPE_PET ? "活体宠物" : "宠物用品/周边";
     }
 
     private Integer resolveProductType(ProductQueryDTO query) {
@@ -572,10 +572,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return null;
         }
         return switch (query.getType().trim()) {
-            case "1", "宠物" -> TYPE_PET;
-            case "2", "周边", "宠物周边" -> TYPE_GOODS;
-            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、宠物、周边或宠物周边");
+            case "1", "宠物", "活体宠物" -> TYPE_PET;
+            case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> TYPE_GOODS;
+            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、活体宠物或宠物用品/周边");
         };
+    }
+
+    private String resolveKeyword(ProductQueryDTO query) {
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        return StringUtils.hasText(keyword) ? keyword.trim() : null;
     }
 
 

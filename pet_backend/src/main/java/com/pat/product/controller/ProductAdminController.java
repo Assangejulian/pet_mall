@@ -70,7 +70,7 @@ public class ProductAdminController extends BaseController<Product, ProductParam
         if (param == null) {
             return wrapper.orderByDesc("create_time");
         }
-        String keyword = hasText(param.getKeyword()) ? param.getKeyword() : param.getProductName();
+        String keyword = hasText(param.getKeyword()) ? param.getKeyword().trim() : trimToNull(param.getProductName());
         Integer productType = resolveProductType(param);
         Integer status = resolveQueryStatus(param);
         wrapper.like(hasText(keyword), "product_name", keyword)
@@ -202,8 +202,8 @@ public class ProductAdminController extends BaseController<Product, ProductParam
             return null;
         }
         return switch (param.getType().trim()) {
-            case "1", "宠物" -> 1;
-            case "2", "周边", "宠物周边" -> 2;
+            case "1", "宠物", "活体宠物" -> 1;
+            case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> 2;
             default -> null;
         };
     }
@@ -225,5 +225,9 @@ public class ProductAdminController extends BaseController<Product, ProductParam
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String trimToNull(String value) {
+        return hasText(value) ? value.trim() : null;
     }
 }

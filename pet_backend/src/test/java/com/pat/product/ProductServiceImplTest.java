@@ -56,6 +56,27 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void createProductRejectsLivePetStockGreaterThanOne() {
+        ProductCreateDTO dto = createDto("1", 2);
+        dto.setProductType(1);
+        when(storeLookupMapper.existsOperatingStore(1L)).thenReturn(1);
+
+        assertThatThrownBy(() -> productService.createProduct(dto))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getDescription()).contains("活体宠物"));
+    }
+
+    @Test
+    void createProductAllowsSupplyStockGreaterThanOne() {
+        ProductCreateDTO dto = createDto("1", 10);
+        dto.setProductType(2);
+        when(storeLookupMapper.existsOperatingStore(1L)).thenReturn(1);
+        when(productMapper.insert(any(Product.class))).thenReturn(1);
+
+        assertThat(productService.createProduct(dto).getStatus()).isEqualTo("上架");
+    }
+
+    @Test
     void createProductRejectsPendingOrClosedStore() {
         ProductCreateDTO dto = createDto("1", 1);
         when(storeLookupMapper.existsOperatingStore(1L)).thenReturn(0);

@@ -50,8 +50,8 @@ var comments = [
 ];
 
 var products = [
-  { id: 1, productName: "金毛幼犬", productDesc: "纯种金毛，温顺可爱，已打疫苗，健康活泼。", price: "1888.00", stock: 3, mainImage: images.golden, category: "dog", status: 1, storeId: 1, videoId: 1 },
-  { id: 2, productName: "英短蓝猫", productDesc: "包子脸，性格温顺粘人，品相极佳。", price: "2580.00", stock: 2, mainImage: images.blueCat, category: "cat", status: 1, storeId: 1, videoId: 2 },
+  { id: 1, productName: "金毛幼犬", productDesc: "纯种金毛，温顺可爱，已打疫苗，健康活泼。", price: "1888.00", stock: 1, mainImage: images.golden, category: "dog", status: 1, storeId: 1, videoId: 1 },
+  { id: 2, productName: "英短蓝猫", productDesc: "包子脸，性格温顺粘人，品相极佳。", price: "2580.00", stock: 1, mainImage: images.blueCat, category: "cat", status: 1, storeId: 1, videoId: 2 },
   { id: 3, productName: "柯基犬", productDesc: "小短腿，活泼可爱，智商高。", price: "3200.00", stock: 1, mainImage: images.corgi, category: "dog", status: 1, storeId: 2, videoId: 3 },
   { id: 4, productName: "布偶猫", productDesc: "仙女猫本仙，颜值担当。", price: "4500.00", stock: 1, mainImage: images.ragdoll, category: "cat", status: 1, storeId: 2, videoId: 4 },
   { id: 5, productName: "低敏主粮", productDesc: "适合肠胃敏感宠物的日常主粮。", price: "168.00", stock: 20, mainImage: images.catCover, category: "food", status: 1, storeId: 1, videoId: 5 }

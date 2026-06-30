@@ -86,8 +86,8 @@ ON DUPLICATE KEY UPDATE
 
 INSERT INTO product(id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, status, video_id, deleted)
 VALUES
-    (1, 10, '金毛幼犬', 1, 'dog', '性格温顺，适合家庭陪伴，已完成基础免疫', 1888.00, 5, '/images/mock/golden.jpg', 1, 910000000000001001, 0),
-    (2, 11, '英短蓝猫', 1, 'cat', '圆脸亲人，适合新手饲养', 2580.00, 3, '/images/mock/blue-cat.jpg', 1, 910000000000001002, 0),
+    (1, 10, '金毛幼犬', 1, 'dog', '性格温顺，适合家庭陪伴，已完成基础免疫', 1888.00, 1, '/images/mock/golden.jpg', 1, 910000000000001001, 0),
+    (2, 11, '英短蓝猫', 1, 'cat', '圆脸亲人，适合新手饲养', 2580.00, 1, '/images/mock/blue-cat.jpg', 1, 910000000000001002, 0),
     (3, 10, '低敏主粮', 2, 'food', '适合肠胃敏感宠物的日常主粮', 168.00, 30, '/images/mock/cat-cover.jpg', 1, NULL, 0),
     (4, 11, '观察记录卡', 2, 'care', '记录饮食、排便和精神状态，便于复盘护理', 29.90, 50, '/images/mock/ragdoll.jpg', 1, NULL, 0)
 ON DUPLICATE KEY UPDATE

@@ -42,7 +42,22 @@ Page({
       wx.navigateBack();
       return;
     }
+    this._storeId = id;
+    this._loadedOnce = false;
     this.loadStore(id);
+  },
+
+  onShow: function() {
+    this._unloaded = false;
+    if (this._loadedOnce && this._storeId) {
+      this.loadStore(this._storeId);
+    }
+  },
+
+  onPullDownRefresh: function() {
+    this.loadStore(this._storeId, function() {
+      wx.stopPullDownRefresh();
+    });
   },
 
   onUnload: function() {
@@ -50,7 +65,11 @@ Page({
     this._requestSeq = (this._requestSeq || 0) + 1;
   },
 
-  loadStore: function(id) {
+  loadStore: function(id, done) {
+    if (!id) {
+      if (done) done();
+      return;
+    }
     var that = this;
     var seq = (that._requestSeq || 0) + 1;
     that._requestSeq = seq;
@@ -68,10 +87,14 @@ Page({
         products: products,
         loading: false
       });
+      that._loadedOnce = true;
+      if (done) done();
     }).catch(function() {
       if (that._unloaded || seq !== that._requestSeq) return;
       that.setData({ loading: false });
+      that._loadedOnce = true;
       wx.showToast({ title: "\u52a0\u8f7d\u5931\u8d25", icon: "none" });
+      if (done) done();
     });
   },
 

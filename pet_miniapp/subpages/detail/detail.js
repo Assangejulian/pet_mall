@@ -25,16 +25,28 @@ Page({
   },
 
   onLoad: function (options) {
-    this.loadProduct(options && options.id);
+    this._productId = options && options.id;
+    this._loadedOnce = false;
+    this.loadProduct(this._productId);
   },
 
   onShow: function () {
+    if (this._loadedOnce && this._productId) {
+      this.loadProduct(this._productId);
+    }
   },
 
-  loadProduct: function (id) {
+  onPullDownRefresh: function () {
+    this.loadProduct(this._productId, function () {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  loadProduct: function (id, done) {
     if (!id) {
       wx.showToast({ title: "商品ID缺失", icon: "none" });
       this.setData({ loading: false });
+      if (done) done();
       return;
     }
     var that = this;
@@ -48,9 +60,13 @@ Page({
           categoryName: categoryNames[product.category] || product.category || "",
           loading: false
         });
+        that._loadedOnce = true;
+        if (done) done();
       })
       .catch(function () {
         that.setData({ loading: false });
+        that._loadedOnce = true;
+        if (done) done();
       });
   },
 
