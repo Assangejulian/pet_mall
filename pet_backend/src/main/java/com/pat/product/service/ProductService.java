@@ -1,11 +1,11 @@
 package com.pat.product.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.pat.product.dto.ProductCreateDTO;
-import com.pat.product.dto.ProductQueryDTO;
-import com.pat.product.dto.ProductUpdateDTO;
-import com.pat.product.vo.ProductPageVO;
-import com.pat.product.vo.ProductVO;
+import com.pat.product.domain.dto.ProductCreateDTO;
+import com.pat.product.domain.dto.ProductQueryDTO;
+import com.pat.product.domain.dto.ProductUpdateDTO;
+import com.pat.product.domain.vo.ProductPageVO;
+import com.pat.product.domain.vo.ProductVO;
 
 public interface ProductService extends IProductService {
 

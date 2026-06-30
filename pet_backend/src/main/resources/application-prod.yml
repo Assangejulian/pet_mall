@@ -33,3 +33,6 @@ ai:
     pro-model-name: ${DEEPSEEK_PRO_MODEL:deepseek-reasoner}
     temperature: ${DEEPSEEK_TEMPERATURE:0.3}
     timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:60}
+
+amap:
+  api-key: ${AMAP_API_KEY:}

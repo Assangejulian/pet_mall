@@ -17,7 +17,7 @@
     <view class="tab-body" wx:if="{{curTab===0}}">
       <view class="input-group">
         <view class="input-row">
-          <input class="input-field" type="number" placeholder="手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+          <input class="input-field" type="text" placeholder="用户名" value="{{username}}" bindinput="onUsernameInput" maxlength="20" />
         </view>
         <view class="input-row">
           <input class="input-field" type="{{showPassword?'text':'password'}}" placeholder="密码" value="{{password}}" bindinput="onPasswordInput" />
@@ -66,8 +66,35 @@
       <button class="login-btn" bindtap="onEmailLogin">登录</button>
     </view>
 
-    <!-- 微信登录 -->
-    <view class="tab-body tab-center" wx:if="{{curTab===2}}">
+    
+    <!-- 短信登录 -->
+    <view class="tab-body" wx:if="{{curTab===2}}">
+      <view class="input-group">
+        <view class="input-row">
+          <input class="input-field" type="text" placeholder="手机号" value="{{smsPhone}}" bindinput="onSmsPhoneInput" maxlength="11" />
+        </view>
+        <view class="input-row">
+          <input class="input-field" type="text" placeholder="验证码" value="{{smsCode}}" bindinput="onSmsCodeInput" maxlength="6" />
+          <view class="code-btn {{canSendSmsCode?'':'disabled'}}" bindtap="onSendSmsCode">
+            <text wx:if="{{smsCountdown===0}}">获取验证码</text>
+            <text wx:else>{{smsCountdown}}s</text>
+          </view>
+        </view>
+      </view>
+      <view class="agreement">
+        <view class="agree-check {{agreed?'checked':''}}" bindtap="toggleAgreed">
+          <text wx:if="{{agreed}}" class="agree-check-icon"></text>
+        </view>
+        <text class="agree-text">登录即代表同意</text>
+        <text class="agree-link">《用户协议》</text>
+        <text class="agree-text">和</text>
+        <text class="agree-link">《隐私政策》</text>
+      </view>
+      <button class="login-btn login-btn--sms" bindtap="onSmsLogin">登录</button>
+    </view>
+
+<!-- 微信登录 -->
+    <view class="tab-body tab-center" wx:if="{{curTab===3}}">
       <view class="social-icon wechat-icon"></view>
       <text class="social-desc">使用微信账号快速登录</text>
       <view class="agreement">
@@ -83,7 +110,7 @@
     </view>
 
     <!-- 人脸登录 -->
-    <view class="tab-body tab-center" wx:if="{{curTab===3}}">
+    <view class="tab-body tab-center" wx:if="{{curTab===4}}">
       <view class="social-icon face-icon"></view>
       <text class="social-desc">人脸识别 安全便捷</text>
       <view class="agreement">

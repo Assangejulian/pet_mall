@@ -1,3 +1,4 @@
+var orderApi = require("../../utils/api/order");
 Page({
   data: {
     orders: [],
@@ -35,27 +36,14 @@ Page({
   },
 
   onShow() {
-    const mock = [
-      {
-        id: "1",
-        orderNo: "PO20260624001",
-        name: "金毛幼犬",
-        price: "1888.00",
-        status: "0",
-        image: "/images/mock/golden.jpg"
-      },
-      {
-        id: "2",
-        orderNo: "PO20260623002",
-        name: "英短蓝猫",
-        price: "2580.00",
-        status: "1",
-        image: "/images/mock/blue-cat.jpg"
-      }
-    ];
-    const active = this.data.active;
-    const orders = active ? mock.filter((item) => item.status === active) : mock;
-    this.setData({ orders });
+    var that = this;
+    var active = this.data.active;
+    orderApi.listByStatus(active).then(function(res) {
+      var list = Array.isArray(res) ? res : (res.records || []);
+      that.setData({ orders: list });
+    }).catch(function() {
+      that.setData({ orders: [] });
+    });
   },
 
   switchTab(event) {
@@ -67,3 +55,4 @@ Page({
     wx.navigateTo({ url: "/subpages/order/detail?id=" + event.currentTarget.dataset.id });
   }
 });
+

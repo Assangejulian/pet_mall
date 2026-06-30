@@ -1,0 +1,10 @@
+<camera device-position="front" class="camera" flash="off" binderror="onError" style="width:100%;height:100%;">
+  <cover-view class="tips">
+    <cover-view class="tips-text">请将脸部对准摄像头</cover-view>
+    <cover-view class="tips-sub">自动识别中...</cover-view>
+  </cover-view>
+  <cover-view class="progress-ring">
+    <cover-view class="progress-text">{{countdown}}</cover-view>
+  </cover-view>
+  <cover-view class="btn-close" bindtap="onClose">取消</cover-view>
+</camera>

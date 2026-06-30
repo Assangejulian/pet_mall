@@ -4,9 +4,8 @@
   </scroll-view>
   <view wx:if="{{orders.length>0}}">
     <view wx:for="{{orders}}" wx:key="id" class="card" bindtap="goDetail" data-id="{{item.id}}">
-      <view class="oh"><text class="ono">{{item.orderNo}}</text><text class="os" style="color:{{sc[item.status]}}">{{sl[item.status]}}</text></view>
-      <view class="oit"><image class="oimg" src="{{item.image}}" mode="aspectFill" /><view class="oinfo"><text class="oinm">{{item.name}}</text><text class="oiq">x1</text></view><text class="oip">¥{{item.price}}</text></view>
-      <view class="of">合计 <text style="font-weight:700">¥{{item.price}}</text></view>
+      <view class="oh"><text class="ono">{{item.orderNo}}</text><text class="os" style="color:{{sc[item.orderStatus]}}">{{sl[item.orderStatus]}}</text></view>
+      <view class="of">合计 <text style="font-weight:700">¥{{item.payAmount || item.totalAmount}}</text></view>
     </view>
   </view>
   <view class="empty-tip" wx:else><text>暂无订单</text></view>

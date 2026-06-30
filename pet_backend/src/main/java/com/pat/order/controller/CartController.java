@@ -1,33 +1,49 @@
 package com.pat.order.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import com.pat.common.controller.BaseController;
-import com.pat.order.entity.Cart;
+import com.pat.common.domain.Result;
+import com.pat.order.domain.entity.Cart;
 import com.pat.order.service.ICartService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@Tag(name = "购物车", description = "购物车 CRUD")
 @RequestMapping("/api/cart")
-public class CartController extends BaseController<Cart, Cart, Cart> {
+@Tag(name = "购物车", description = "当前用户的购物车")
+public class CartController {
 
-    public CartController(ICartService service) {
-        super(service);
+    private final ICartService cartService;
+
+    public CartController(ICartService cartService) {
+        this.cartService = cartService;
     }
 
-    @Override
-    protected Cart toVO(Cart entity) {
-        return entity;
+    @Operation(summary = "当前用户购物车列表")
+    @GetMapping("/search")
+    public Result<List<Cart>> list() {
+        return Result.success(cartService.getCurrentUserCart());
     }
 
-    @Override
-    protected Cart toDO(Cart param) {
-        return param;
+    @Operation(summary = "添加到购物车")
+    @PostMapping
+    public Result<Void> add(@RequestBody Cart cart) {
+        cartService.addToCart(cart);
+        return Result.success();
     }
 
-    @Override
-    protected QueryWrapper<Cart> buildQueryWrapper(Cart param) {
-        return new QueryWrapper<>();
+    @Operation(summary = "修改购物车")
+    @PutMapping("/{id}")
+    public Result<Void> update(@PathVariable Long id, @RequestBody Cart cart) {
+        cartService.updateCartItem(id, cart);
+        return Result.success();
+    }
+
+    @Operation(summary = "删除购物车")
+    @DeleteMapping("/{id}")
+    public Result<Void> remove(@PathVariable Long id) {
+        cartService.removeCartItem(id);
+        return Result.success();
     }
 }

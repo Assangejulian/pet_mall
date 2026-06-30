@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-page">
     <div class="page-header"><h2>门店管理</h2><p>管理合作宠物门店</p></div>
     <div class="search-bar">
@@ -8,6 +8,7 @@
       </select>
       <button class="btn btn-primary" @click="handleSearch">搜索</button>
       <button class="btn btn-outline" @click="resetSearch">重置</button>
+      <button class="btn btn-primary" @click="openCreate" style="margin-left:auto">+ 新增门店</button>
     </div>
     <div class="table-wrap">
       <table class="data-table">
@@ -21,7 +22,8 @@
             <td><span class="badge" :class="statusBadge(item.status)">{{ statusLabel(item.status) }}</span></td>
             <td>{{ item.createTime }}</td>
             <td class="actions">
-              <button class="btn btn-outline btn-sm" @click="openEdit(item)">审核</button>
+              <button class="btn btn-outline btn-sm" @click="openEdit(item)">编辑</button>
+              <button class="btn btn-outline btn-sm" @click="openAudit(item)">审核</button>
             </td>
           </tr>
           <tr v-if="!store.list.length"><td colspan="7" style="text-align:center;padding:32px;color:var(--text2)">暂无数据</td></tr>
@@ -34,21 +36,50 @@
       </div>
     </div>
 
-    <!-- Audit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-      <div class="modal-card">
-        <div class="modal-header"><h3>门店审核</h3><button class="modal-close" @click="showModal = false">✕</button></div>
+    <!-- Edit / Create Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal-card" style="max-width:560px">
+        <div class="modal-header"><h3>{{ isCreate ? '新增门店' : '编辑门店' }}</h3><button class="modal-close" @click="showEditModal = false">✕</button></div>
         <div class="modal-body">
-          <div class="form-group"><label>门店名称</label><p>{{ editForm.storeName }}</p></div>
-          <div class="form-group"><label>描述</label><p>{{ editForm.storeDesc }}</p></div>
-          <div class="form-group"><label>电话</label><p>{{ editForm.storePhone }}</p></div>
-          <div class="form-group"><label>地址</label><p>{{ editForm.province }}{{ editForm.city }}{{ editForm.district }}{{ editForm.address }}</p></div>
+          <div class="form-group"><label>门店名称 <span class="red">*</span></label><input v-model="editForm.storeName" class="form-input" /></div>
+          <div class="form-group"><label>店主用户ID <span class="red">*</span></label><input v-model.number="editForm.userId" class="form-input" type="number" /></div>
+          <div class="form-group"><label>门店Logo URL</label><input v-model="editForm.storeLogo" class="form-input" placeholder="https://..." /></div>
+          <div class="form-group"><label>联系电话</label><input v-model="editForm.storePhone" class="form-input" /></div>
+          <div class="form-group"><label>描述</label><textarea v-model="editForm.storeDesc" class="form-input" rows="3"></textarea></div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>省份</label><input v-model="editForm.province" class="form-input" placeholder="福建省" /></div>
+            <div class="form-group" style="flex:1"><label>城市</label><input v-model="editForm.city" class="form-input" placeholder="厦门市" /></div>
+            <div class="form-group" style="flex:1"><label>区县</label><input v-model="editForm.district" class="form-input" placeholder="思明区" /></div>
+          </div>
+          <div class="form-group"><label>详细地址 <span class="red">*</span></label><input v-model="editForm.address" class="form-input" placeholder="填写地址后自动解析坐标" /></div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>经度（选填）</label><input v-model.number="editForm.longitude" class="form-input" type="number" step="0.0001" /></div>
+            <div class="form-group" style="flex:1"><label>纬度（选填）</label><input v-model.number="editForm.latitude" class="form-input" type="number" step="0.0001" /></div>
+          </div>
+          <p class="hint">不填经纬度时，系统将通过高德地图自动从地址解析坐标</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" @click="showEditModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveEdit" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Modal -->
+    <div v-if="showAuditModal" class="modal-overlay" @click.self="showAuditModal = false">
+      <div class="modal-card">
+        <div class="modal-header"><h3>门店审核</h3><button class="modal-close" @click="showAuditModal = false">✕</button></div>
+        <div class="modal-body">
+          <div class="form-group"><label>门店名称</label><p>{{ auditForm.storeName }}</p></div>
+          <div class="form-group"><label>描述</label><p>{{ auditForm.storeDesc }}</p></div>
+          <div class="form-group"><label>电话</label><p>{{ auditForm.storePhone }}</p></div>
+          <div class="form-group"><label>地址</label><p>{{ auditForm.province }}{{ auditForm.city }}{{ auditForm.district }}{{ auditForm.address }}</p></div>
           <div class="form-group"><label>审核状态</label>
-            <select v-model.number="editForm.status"><option :value="0">待审核</option><option :value="1">通过（营业中）</option><option :value="2">拒绝（已关闭）</option></select>
+            <select v-model.number="auditForm.status"><option :value="0">待审核</option><option :value="1">通过（营业中）</option><option :value="2">拒绝（已关闭）</option></select>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline" @click="showModal = false">取消</button>
+          <button class="btn btn-outline" @click="showAuditModal = false">取消</button>
           <button class="btn btn-primary" @click="saveAudit">提交审核</button>
         </div>
       </div>
@@ -60,6 +91,8 @@
 import { ref, onMounted, computed } from "vue"
 import { useStoreStore } from "../../stores/store"
 import { updateStore } from "../../api/store"
+import http from "../../api/index"
+import { unwrap } from "../../api/helper"
 import type { Store } from "../../types/store"
 
 const store = useStoreStore()
@@ -67,8 +100,19 @@ const keyword = ref("")
 const statusFilter = ref(-1)
 const currentPage = ref(1)
 const pageSize = 10
-const showModal = ref(false)
-const editForm = ref<Partial<Store>>({})
+
+const showEditModal = ref(false)
+const showAuditModal = ref(false)
+const isCreate = ref(false)
+const saving = ref(false)
+
+const defaultForm = () => ({
+  storeName: "", userId: undefined, storeLogo: "", storePhone: "", storeDesc: "",
+  province: "", city: "", district: "", address: "",
+  longitude: undefined, latitude: undefined, status: 0
+})
+const editForm = ref<any>(defaultForm())
+const auditForm = ref<any>({})
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize))
 
@@ -80,8 +124,59 @@ function handleSearch() { currentPage.value = 1; fetchData() }
 function resetSearch() { keyword.value = ""; statusFilter.value = -1; currentPage.value = 1; fetchData() }
 function goPage(p: number) { currentPage.value = p; fetchData() }
 
-function openEdit(item: Store) { editForm.value = { ...item }; showModal.value = true }
-async function saveAudit() { if (editForm.value.id) { await updateStore(editForm.value.id, { status: editForm.value.status }); showModal.value = false; fetchData() } }
+function openCreate() {
+  isCreate.value = true
+  editForm.value = defaultForm()
+  showEditModal.value = true
+}
+
+function openEdit(item: Store) {
+  isCreate.value = false
+  editForm.value = { ...item }
+  showEditModal.value = true
+}
+
+function openAudit(item: Store) {
+  auditForm.value = { ...item }
+  showAuditModal.value = true
+}
+
+async function saveEdit() {
+  if (!editForm.value.storeName) return
+  saving.value = true
+  try {
+    const data: any = {
+      storeName: editForm.value.storeName,
+      storeLogo: editForm.value.storeLogo,
+      storePhone: editForm.value.storePhone,
+      storeDesc: editForm.value.storeDesc,
+      province: editForm.value.province,
+      city: editForm.value.city,
+      district: editForm.value.district,
+      address: editForm.value.address,
+      longitude: editForm.value.longitude || undefined,
+      latitude: editForm.value.latitude || undefined
+    }
+    if (isCreate.value) {
+      data.userId = editForm.value.userId
+      await unwrap(http.post("/store", data))
+    } else {
+      await updateStore(editForm.value.id, data)
+    }
+    showEditModal.value = false
+    fetchData()
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveAudit() {
+  if (auditForm.value.id) {
+    await updateStore(auditForm.value.id, { status: auditForm.value.status })
+    showAuditModal.value = false
+    fetchData()
+  }
+}
 
 onMounted(fetchData)
 </script>

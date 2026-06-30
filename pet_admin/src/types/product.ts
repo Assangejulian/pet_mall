@@ -1,1 +1,19 @@
-export interface Product { id: string; productName?: string; productType?: number; category?: string; name: string; type: string; detail: string; price: number; stock: number; status: string; statusCode?: number; image: string; mainImage?: string; storeId: string; createTime: string }
+﻿export interface Product {
+  id: string;
+  productName?: string;
+  productType?: number;
+  category?: string;
+  productDesc?: string;
+  detail?: string;
+  price: number;
+  stock: number;
+  status?: number;
+  statusCode?: number;
+  mainImage?: string;
+  image?: string;
+  images?: string;
+  storeId: string;
+  name?: string;  // alias for productName
+  videoId?: number;
+  createTime: string;
+}

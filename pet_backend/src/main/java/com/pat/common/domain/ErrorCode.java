@@ -9,11 +9,27 @@ import lombok.Getter;
  */
 @Getter
 public enum ErrorCode {
-    FARAMS_ERROR (408,"请求参数错误",""),
-    FARAMS_NULL_ERROR (409,"请求参数为空",""),
-    Not_AUTH(401,"无权限",""),
-    SYSTEM_ERROR(500,"系统内部错误",""),
+    FARAMS_ERROR(408, "参数格式错误", ""),
+    FARAMS_NULL_ERROR(409, "参数不能为空", ""),
+    NOT_AUTH(401, "未授权", ""),
+    SYSTEM_ERROR(500, "系统内部错误", ""),
     NOT_FOUND(404, "资源未找到", ""),
+    // ── 用户认证 ──
+    USER_NOT_FOUND(404, "用户不存在", ""),
+    USER_DISABLED(403, "账号已禁用", ""),
+    PASSWORD_WRONG(401, "密码错误", ""),
+    USERNAME_PHONE_EMPTY(400, "用户名或手机号不能为空", ""),
+    // ── 验证码 ──
+    CODE_EMPTY(400, "验证码不能为空", ""),
+    CODE_WRONG(401, "验证码错误或已过期", ""),
+    // ── 微信 ──
+    WX_CODE_EMPTY(400, "微信授权code不能为空", ""),
+    WX_API_FAILED(502, "微信接口调用失败", ""),
+    // ── 人脸 ──
+    FACE_IMAGE_EMPTY(400, "人脸识别失败，未收到图片", ""),
+    FACE_DETECT_FAILED(501, "未检测到人脸", ""),
+    // ── 路由 ──
+    AUTH_TYPE_UNSUPPORTED(400, "不支持的认证方式", ""),
     SAVE_FAILED(500, "保存失败", ""),
     UPDATE_FAILED(500, "更新失败", ""),
     DELETE_FAILED(500, "删除失败", "");

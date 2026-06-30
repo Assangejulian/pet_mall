@@ -1,15 +1,22 @@
 var request = require("../request");
-var mock = require("../data/mock");
 module.exports = {
   listByStatus: function(status) {
-    return request.get("/api/order/search", { orderStatus: status || "" })
-      .catch(function() {
-        if (!status) return mock.orders;
-        return mock.orders.filter(function(o) { return o.orderStatus === status; });
-      });
+    return request.get("/api/order/search", { orderStatus: status || "" });
   },
   detail: function(id) {
-    return request.get("/api/order/" + id)
-      .catch(function() { return mock.orders.find(function(o) { return o.id == id; }) || mock.orders[0]; });
+    return request.get("/api/order/" + id);
+  },
+  /** 创建订单 */
+  create: function(data) {
+    return request.post("/api/order/create", data);
+  },
+  /** 支付订单 */
+  pay: function(orderNo) {
+    return request.post("/api/order/pay", { orderNo: orderNo });
+  },
+
+  /** 获取订单明细 */
+  items: function(orderId) {
+    return request.get("/api/order/item/search", { orderId: orderId });
   }
 };

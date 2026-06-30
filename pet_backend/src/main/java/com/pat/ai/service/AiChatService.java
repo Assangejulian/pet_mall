@@ -1,7 +1,7 @@
 package com.pat.ai.service;
 
-import com.pat.ai.dto.AiChatRequest;
-import com.pat.ai.vo.AiChatResponse;
+import com.pat.ai.domain.dto.AiChatRequest;
+import com.pat.ai.domain.vo.AiChatResponse;
 
 public interface AiChatService {
     AiChatResponse chat(AiChatRequest request);

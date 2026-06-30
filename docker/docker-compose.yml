@@ -1,4 +1,4 @@
-services:
+﻿services:
   mysql:
     image: mysql:8.0
     container_name: pat-mysql
@@ -31,6 +31,18 @@ services:
       - ./redis/conf/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - pat
+
+  natapp:
+    image: natapp/natapp
+    container_name: tunnelname
+    network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: 1M
+        max-file: 2
+    environment:
+      - authtoken=af31c13aa7a3c23f
 
 networks:
   pat:

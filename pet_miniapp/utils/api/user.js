@@ -1,20 +1,19 @@
 var request = require("../request");
-var mock = require("../data/mock");
 module.exports = {
   addressList: function() {
-    return request.get("/api/user/address/list")
-      .catch(function() { return mock.addresses; });
+    return request.get("/api/user/address/list");
   },
   addAddress: function(data) {
-    return request.post("/api/user/address", data)
-      .catch(function() { return null; });
+    return request.post("/api/user/address", data);
   },
   updateAddress: function(id, data) {
-    return request.put("/api/user/address/" + id, data)
-      .catch(function() { return null; });
+    return request.put("/api/user/address/" + id, data);
   },
+  defaultAddress: function() {
+    return request.get("/api/user/address/default");
+  },
+
   delAddress: function(id) {
-    return request.del("/api/user/address/" + id)
-      .catch(function() { return null; });
+    return request.del("/api/user/address/" + id);
   }
 };

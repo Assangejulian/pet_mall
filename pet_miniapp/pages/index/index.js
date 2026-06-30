@@ -1,4 +1,5 @@
 const app = getApp();
+var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [
   {
@@ -97,43 +98,38 @@ Page({
     ]
   },
 
-  onLoad() {
+  onLoad: function() {
     this.load();
   },
 
-  onPullDownRefresh() {
+  onPullDownRefresh: function() {
     this.load(() => wx.stopPullDownRefresh());
   },
 
-  load(done) {
-    this.setData({ loading: true });
-    wx.request({
-      url: app.globalData.baseUrl + "/api/video/feed",
-      method: "GET",
-      data: { page: 1, size: 20 },
-      success: (res) => {
-        const rows = extractRows(res.data);
-        if (rows.length) {
-          this.setVideos(rows.map(normalizeVideo), false);
-        } else {
-          this.useFallback("后端暂无视频，临时展示本地演示数据");
-        }
-      },
-      fail: () => this.useFallback("无法连接后端，临时展示本地演示数据"),
-      complete: () => {
-        if (done) done();
+  load: function(done) {
+    var that = this;
+    that.setData({ loading: true });
+    videoApi.list(1, 20).then(function(res) {
+      var rows = extractRows(res);
+      if (rows.length) {
+        that.setVideos(rows.map(normalizeVideo), false);
+      } else {
+        that.useFallback("后端暂无视频");
       }
+    }).catch(function() {
+      that.useFallback("无法连接后端，展示本地演示数据");
+      if (done) done();
     });
   },
 
-  useFallback(message) {
+  useFallback: function(message) {
     this.setVideos(fallbackVideos, true);
     if (message) {
       wx.showToast({ title: message, icon: "none" });
     }
   },
 
-  setVideos(videos, useMock) {
+  setVideos: function(videos, useMock) {
     const leftVideos = [];
     const rightVideos = [];
     videos.forEach((item, index) => {
@@ -152,12 +148,12 @@ Page({
     });
   },
 
-  swTab(event) {
+  swTab: function(event) {
     this.setData({ curTab: event.currentTarget.dataset.id });
     this.load();
   },
 
-  goDetail(event) {
+  goDetail: function(event) {
     const id = event.currentTarget.dataset.id;
     if (!id) {
       wx.showToast({ title: "视频数据缺少 ID", icon: "none" });
@@ -171,7 +167,8 @@ Page({
     });
   },
 
-  goAi() {
+  goAi: function() {
     wx.switchTab({ url: "/pages/chat/chat" });
   }
 });
+

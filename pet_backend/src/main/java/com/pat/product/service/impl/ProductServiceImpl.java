@@ -10,17 +10,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
-import com.pat.product.dto.ProductCreateDTO;
-import com.pat.product.dto.ProductQueryDTO;
-import com.pat.product.dto.ProductUpdateDTO;
-import com.pat.product.entity.Product;
+import com.pat.product.domain.dto.ProductCreateDTO;
+import com.pat.product.domain.dto.ProductQueryDTO;
+import com.pat.product.domain.dto.ProductUpdateDTO;
+import com.pat.product.domain.entity.Product;
 import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.ProductService;
-import com.pat.product.vo.ProductPageVO;
-import com.pat.product.vo.ProductStoreVO;
-import com.pat.product.vo.ProductVO;
-import com.pat.store.entity.Store;
+import com.pat.product.domain.vo.ProductPageVO;
+import com.pat.product.domain.vo.ProductStoreVO;
+import com.pat.product.domain.vo.ProductVO;
+import com.pat.store.domain.entity.Store;
 import com.pat.store.mapper.StoreMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +53,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         this.productStoreLookupMapper = productStoreLookupMapper;
         this.storeMapper = storeMapper;
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public Product getForUpdate(Long id) {
+        return baseMapper.selectForUpdateById(id);
     }
 
     @Override
@@ -91,21 +96,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 普通编辑支持部分字段更新。
         // 如果商品已经售出，身份字段和售出状态会被保留。
         Product oldProduct = getActiveProduct(id);
-        boolean soldProduct = isSoldProduct(oldProduct);
-        boolean soldPet = isSoldPet(oldProduct);
-        Long storeId = resolveStoreIdForUpdate(oldProduct, dto, soldProduct);
+        boolean soldProduct = oldProduct != null && oldProduct.getStatus() == STATUS_SOLD;
+        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
+        Long storeId = soldProduct ? oldProduct.getStoreId() : (dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId());
 
-        Integer productType = resolveProductTypeForUpdate(oldProduct, dto, soldPet);
-        Integer stock = resolveStockForUpdate(oldProduct, dto, soldPet);
-        BigDecimal price = resolvePriceForUpdate(oldProduct, dto);
-        Integer status = resolveStatusForUpdate(oldProduct, dto, soldProduct);
+        Integer productType = (soldPet || dto.getProductType() == null) ? oldProduct.getProductType() : dto.getProductType();
+        Integer stock = soldPet ? 0 : (dto.getStock() == null ? oldProduct.getStock() : dto.getStock());
+        BigDecimal price = dto.getPrice() == null ? oldProduct.getPrice() : dto.getPrice();
+        Integer status = soldProduct ? STATUS_SOLD : parseEditableStatus(dto.getStatus(), oldProduct.getStatus());
         String images = dto.getImages() == null ? oldProduct.getImages() : normalizeImages(dto.getImages());
         validateBusinessRules(productType, stock, price, status, soldProduct);
 
         Product product = new Product();
         product.setId(id);
         product.setStoreId(storeId);
-        product.setProductName(resolveProductNameForUpdate(oldProduct, dto));
+        product.setProductName(StringUtils.hasText(dto.getProductName()) ? dto.getProductName() : oldProduct.getProductName());
         product.setProductType(productType);
         product.setCategory(dto.getCategory() == null ? oldProduct.getCategory() : dto.getCategory());
         product.setProductDesc(dto.getProductDesc() == null ? oldProduct.getProductDesc() : dto.getProductDesc());
@@ -163,7 +168,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO offlineProduct(Long id) {
         // 已售出商品不能再手动切回下架，售出状态由订单流程控制。
         Product product = getActiveProduct(id);
-        if (isSoldProduct(product)) {
+        if (product != null && product.getStatus() == STATUS_SOLD) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出的商品不能改为下架");
         }
         Product update = new Product();
@@ -178,9 +183,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public IPage<ProductVO> pagePublicProducts(ProductQueryDTO query) {
         // 公开列表只展示已上架商品，支持用户端和管理端兼容查询参数。
-        long pageNum = resolvePageNum(query);
+        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = resolveKeyword(query);
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -199,9 +204,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public ProductPageVO pageAdminProducts(ProductQueryDTO query) {
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
-        long pageNum = resolvePageNum(query);
+        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = resolveKeyword(query);
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -278,43 +283,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
-    private Long resolveStoreIdForUpdate(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        if (soldProduct || dto.getStoreId() == null || dto.getStoreId().equals(oldProduct.getStoreId())) {
-            return oldProduct.getStoreId();
-        }
-        checkOperatingStore(dto.getStoreId());
-        return dto.getStoreId();
-    }
-
-    private Integer resolveProductTypeForUpdate(Product oldProduct, ProductUpdateDTO dto, boolean soldPet) {
-        if (soldPet || dto.getProductType() == null) {
-            return oldProduct.getProductType();
-        }
-        return dto.getProductType();
-    }
-
-    private Integer resolveStockForUpdate(Product oldProduct, ProductUpdateDTO dto, boolean soldPet) {
-        if (soldPet) {
-            return 0;
-        }
-        return dto.getStock() == null ? oldProduct.getStock() : dto.getStock();
-    }
-
-    private BigDecimal resolvePriceForUpdate(Product oldProduct, ProductUpdateDTO dto) {
-        return dto.getPrice() == null ? oldProduct.getPrice() : dto.getPrice();
-    }
-
-    private Integer resolveStatusForUpdate(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        if (soldProduct) {
-            return STATUS_SOLD;
-        }
-        return parseEditableStatus(dto.getStatus(), oldProduct.getStatus());
-    }
-
-    private String resolveProductNameForUpdate(Product oldProduct, ProductUpdateDTO dto) {
-        return StringUtils.hasText(dto.getProductName()) ? dto.getProductName() : oldProduct.getProductName();
-    }
-
     private String normalizeImages(String images) {
         if (!StringUtils.hasText(images)) {
             return null;
@@ -334,14 +302,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         } catch (JsonProcessingException e) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品图片格式错误");
         }
-    }
-
-    private boolean isSoldPet(Product product) {
-        return isSoldProduct(product) && product.getProductType() == TYPE_PET;
-    }
-
-    private boolean isSoldProduct(Product product) {
-        return product != null && product.getStatus() == STATUS_SOLD;
     }
 
     private void throwOnlineFailure(Long id) {
@@ -516,16 +476,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         };
     }
 
-    private String resolveKeyword(ProductQueryDTO query) {
-        return StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
-    }
 
-    private long resolvePageNum(ProductQueryDTO query) {
-        if (query.getPage() != null) {
-            return query.getPage();
-        }
-        return query.getPageNum() == null ? 1L : query.getPageNum();
-    }
 
     private long resolvePageSize(ProductQueryDTO query) {
         Long size = query.getSize() != null ? query.getSize() : query.getPageSize();

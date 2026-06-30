@@ -1,5 +1,7 @@
 package com.pat.user.service.auth;
 
+import com.pat.common.domain.ErrorCode;
+import com.pat.common.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +19,13 @@ public class AuthServiceRouter {
 
     public AuthService getService(String authType) {
         AuthService svc = serviceMap.get(authType + "AuthService");
+        // fallback: 处理带后缀的认证类型 (wechat_pc → wechatAuthService)
+        if (svc == null && authType.contains("_")) {
+            String base = authType.substring(0, authType.indexOf("_"));
+            svc = serviceMap.get(base + "AuthService");
+        }
         if (svc == null) {
-            throw new RuntimeException("不支持的认证方式: " + authType);
+            throw new BusinessException(ErrorCode.AUTH_TYPE_UNSUPPORTED);
         }
         return svc;
     }

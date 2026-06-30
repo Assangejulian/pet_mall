@@ -1,14 +1,17 @@
 package com.pat.user.controller;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.pat.common.constant.RedisConstants;
-import com.pat.common.utils.MailUtils;
+import com.pat.user.utils.MailUtils;
+import com.pat.user.utils.SmsHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.common.domain.Result;
-import com.pat.common.utils.JwtUtil;
-import com.pat.user.dto.LoginDTO;
-import com.pat.user.dto.LoginVO;
-import com.pat.user.entity.User;
+import com.pat.user.utils.JwtUtil;
+import com.pat.user.domain.dto.LoginDTO;
+import com.pat.user.domain.dto.LoginVO;
+import com.pat.user.domain.entity.User;
 import com.pat.user.service.auth.AuthServiceRouter;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @RestController
 @Tag(name = "用户认证", description = "登录接口：密码/邮箱验证码/微信/人脸")
 public class AuthController {
@@ -32,6 +36,9 @@ public class AuthController {
     @Autowired
     private MailUtils mailUtils;
 
+    @Autowired
+    private SmsHelper smsHelper;
+
     @Operation(summary = "用户登录（多策略）")
     @PostMapping("/api/user/login")
     public Result<LoginVO> userLogin(@Valid @RequestBody LoginDTO dto) {
@@ -40,7 +47,7 @@ public class AuthController {
         dto.setAuthType(authType);
         User user = authServiceRouter.getService(authType).authenticate(dto);
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.USER_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "管理员登录（强制密码）")
@@ -50,7 +57,7 @@ public class AuthController {
         User user = authServiceRouter.getService("password").authenticate(dto);
         if (!"admin".equals(user.getRole())) return Result.error("无管理员权限");
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.ADMIN_EXPIRE);
-        return Result.success(new LoginVO(token, user.getId(), user.getUsername()));
+        return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
     @Operation(summary = "发送邮箱验证码")
@@ -68,4 +75,19 @@ public class AuthController {
                 true);
         return Result.success();
     }
+
+    @Operation(summary = "发送短信验证码")
+    @PostMapping("/api/user/send-sms-code")
+    public Result<Void> sendSmsCode(@RequestBody LoginDTO dto) {
+        String phone = dto.getPhone();
+        if (phone == null || phone.isBlank() || phone.length() < 11) {
+            return Result.error("请输入正确的手机号");
+        }
+        String code = MailUtils.generateCode(6);
+        String key = RedisConstants.SMS_CODE_KEY + phone;
+        redisTemplate.opsForValue().set(key, code, RedisConstants.SMS_CODE_TTL, TimeUnit.MINUTES);
+        log.info("[SMS] verification code {} sent to {} (TODO: integrate SMS gateway)", code, phone);
+        return Result.success();
+    }
+
 }

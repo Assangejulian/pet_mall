@@ -1,1 +1,36 @@
-Page({data:{list:[]},onShow:function(){this.setData({list:[{id:'1',receiverName:'张三',phone:'13800138000',province:'福建省',city:'厦门市',district:'集美区',detail:'理工路600号',defaulted:true},{id:'2',receiverName:'张三',phone:'13900139000',province:'福建省',city:'厦门市',district:'思明区',detail:'中山路100号',defaulted:false}]})}});
+var userApi = require("../../utils/api/user");
+
+Page({
+  data: { list: [], loading: true, selecting: false },
+
+  onLoad: function(options) {
+    if (options && options.select === "1") {
+      this.setData({ selecting: true });
+    }
+  },
+
+  onShow: function() {
+    var that = this;
+    that.setData({ loading: true });
+    userApi.addressList().then(function(res) {
+      var list = Array.isArray(res) ? res : [];
+      that.setData({ list: list, loading: false });
+    }).catch(function() {
+      that.setData({ loading: false });
+    });
+  },
+
+  selectAddress: function(e) {
+    if (!this.data.selecting) return;
+    var idx = e.currentTarget.dataset.index;
+    var addr = this.data.list[idx];
+    if (!addr) return;
+    var pages = getCurrentPages();
+    var prev = pages[pages.length - 2];
+    if (prev && prev.onAddressSelected) {
+      prev.onAddressSelected(addr);
+    }
+    wx.navigateBack();
+  }
+});
+
