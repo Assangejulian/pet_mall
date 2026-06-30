@@ -21,8 +21,7 @@
         "address/list",
         "login/login",
         "login/face_capture",
-        "store/detail/detail",
-        "order/confirm"
+        "store/detail/detail"
       ]
     }
   ],

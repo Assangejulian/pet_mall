@@ -6,6 +6,7 @@ import com.pat.common.exception.BusinessException;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.entity.User;
 import com.pat.user.helper.WechatHelper;
+import com.pat.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,9 @@ public class WechatPcAuthService implements AuthService {
 
     @Autowired
     private WechatHelper wechatHelper;
+
+    @Autowired
+    private UserService userService;
 
     @Value("${wx.pc.appid}")
     private String appid;
@@ -53,7 +57,7 @@ public class WechatPcAuthService implements AuthService {
         String openid = wechatHelper.getRequiredResponse(tokenResp, "openid", "access_token");
 
         JSONObject userInfo = getUserInfo(accessToken, openid);
-        User user = wechatHelper.findOrCreateUser(openid, userInfo.getStr("unionid"));
+        User user = userService.findOrCreateByWechat(openid, userInfo.getStr("unionid"));
         syncWechatUserInfo(user, userInfo);
         return user;
     }
@@ -79,7 +83,7 @@ public class WechatPcAuthService implements AuthService {
         if (user.getAvatar() == null || user.getAvatar().isBlank()) {
             user.setAvatar(userInfo.getStr("headimgurl"));
             user.setRealName(userInfo.getStr("nickname"));
-            wechatHelper.updateUserById(user);
+            userService.updateById(user);
         }
     }
 }
