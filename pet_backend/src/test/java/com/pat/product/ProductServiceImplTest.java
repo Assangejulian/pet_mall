@@ -94,6 +94,20 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void productCannotBeMovedToNonOperatingStore() {
+        Product product = product(1L, 1L, 0, 1);
+        ProductUpdateDTO dto = new ProductUpdateDTO();
+        dto.setStoreId(2L);
+        when(productMapper.selectById(1L)).thenReturn(product);
+        when(storeLookupMapper.existsOperatingStore(2L)).thenReturn(0);
+        when(storeLookupMapper.existsUndeletedStore(2L)).thenReturn(1);
+
+        assertThatThrownBy(() -> productService.updateProduct(1L, dto))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getDescription()).contains("未营业"));
+    }
+
+    @Test
     void soldProductCannotBePutOnlineOrOffline() {
         Product product = product(1L, 1L, 2, 1);
         when(productMapper.selectById(1L)).thenReturn(product);

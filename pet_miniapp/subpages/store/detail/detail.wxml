@@ -1,5 +1,5 @@
 <view class="page">
-  <view class="store-head">
+  <view class="store-head" wx:if="{{store}}">
     <image class="store-logo" src="{{store.image}}" mode="aspectFill" wx:if="{{store.image}}" />
     <view class="store-logo placeholder" wx:else><text>店</text></view>
     <view class="store-main">
@@ -8,9 +8,9 @@
     </view>
   </view>
 
-  <view class="actions">
+  <view class="actions" wx:if="{{store}}">
     <button class="action primary" bindtap="navigateToStore">导航到店</button>
-    <button class="action" bindtap="callStore">联系门店</button>
+    <button class="action" bindtap="callPhone">联系门店</button>
   </view>
 
   <view class="card" wx:if="{{store.storeDesc}}">
@@ -31,8 +31,6 @@
       </view>
       <text class="price">¥{{item.price}}</text>
     </view>
-    <view class="empty" wx:if="{{!loading && !products.length}}">
-      <text>暂无在售商品</text>
-    </view>
+    <view class="empty" wx:if="{{!loading && !products.length}}"><text>暂无在售商品</text></view>
   </view>
 </view>

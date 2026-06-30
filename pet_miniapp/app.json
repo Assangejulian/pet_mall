@@ -16,9 +16,10 @@
         "order/list",
         "order/detail",
         "address/list",
-        "store/detail",
         "login/login",
-        "login/face_capture"
+        "login/face_capture",
+        "store/detail/detail",
+        "order/confirm"
       ]
     }
   ],
@@ -34,11 +35,28 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/index/index", "text": "首页" },
-      { "pagePath": "pages/store/list", "text": "门店" },
-      { "pagePath": "pages/chat/chat", "iconPath": "images/tab-chart.png", "selectedIconPath": "images/tab-chart-active.png", "text": "消息" },
-      { "pagePath": "pages/cart/cart", "text": "购物车" },
-      { "pagePath": "pages/user/user", "text": "我的" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/store/list",
+        "text": "门店"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "iconPath": "images/tab-chart.png",
+        "selectedIconPath": "images/tab-chart-active.png",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/cart/cart",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的"
+      }
     ]
   },
   "permission": {

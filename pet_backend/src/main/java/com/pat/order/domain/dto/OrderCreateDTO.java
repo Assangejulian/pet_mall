@@ -17,6 +17,8 @@ public class OrderCreateDTO {
     @Valid
     private List<OrderItemDTO> items;
 
+    private String remark;
+
     @Data
     public static class OrderItemDTO {
         @NotNull(message = "商品ID不能为空")

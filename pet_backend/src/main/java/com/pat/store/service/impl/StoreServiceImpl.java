@@ -54,7 +54,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (query == null) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "附近门店查询参数不能为空");
         }
-        query.validateRequiredCoordinates();
+        query.validate();
         BigDecimal radiusKm = query.resolvedRadiusKm();
         long current = query.resolvedCurrent();
         long size = query.resolvedSize();

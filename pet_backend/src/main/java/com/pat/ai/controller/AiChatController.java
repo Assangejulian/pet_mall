@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.Map;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @RestController
 @Tag(name = "AI 智能客服", description = "AI 聊天同步/流式对话")
@@ -26,10 +27,12 @@ import java.util.Map;
 public class AiChatController {
 
     private final AiChatService aiChatService;
+    private final ThreadPoolTaskExecutor executor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AiChatController(AiChatService aiChatService) {
+    public AiChatController(AiChatService aiChatService, ThreadPoolTaskExecutor executor) {
         this.aiChatService = aiChatService;
+        this.executor = executor;
     }
 
         @Operation(summary = "AI 对话（同步）")
@@ -42,7 +45,7 @@ public class AiChatController {
 @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L);
-        new Thread(() -> {
+        executor.submit(() -> {
             try {
                 aiChatService.chatStream(request, new AiChatService.StreamListener() {
                     @Override

@@ -77,14 +77,26 @@ public class NearbyQuery {
     }
 
     public long resolvedCurrent() {
-        return current == null || current <= 0 ? DEFAULT_CURRENT : current;
+        if (current == null) {
+            return DEFAULT_CURRENT;
+        }
+        if (current <= 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "页码不能小于1");
+        }
+        return current;
     }
 
     public long resolvedSize() {
-        if (size == null || size <= 0) {
+        if (size == null) {
             return DEFAULT_SIZE;
         }
-        return Math.min(size, MAX_SIZE);
+        if (size <= 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "每页数量不能小于1");
+        }
+        if (size > MAX_SIZE) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "每页数量不能超过100");
+        }
+        return size;
     }
 
     public void validateRequiredCoordinates() {
@@ -98,6 +110,19 @@ public class NearbyQuery {
         if (latitude.compareTo(BigDecimal.valueOf(-90)) < 0
                 || latitude.compareTo(BigDecimal.valueOf(90)) > 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "纬度范围必须在-90到90之间");
+        }
+    }
+
+    public void validate() {
+        validateRequiredCoordinates();
+        resolvedRadiusKm();
+        resolvedCurrent();
+        resolvedSize();
+        if (keyword != null && keyword.length() > 100) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "关键词长度不能超过100");
+        }
+        if (city != null && city.length() > 50) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "城市长度不能超过50");
         }
     }
 }

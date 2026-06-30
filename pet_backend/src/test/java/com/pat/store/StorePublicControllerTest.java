@@ -2,6 +2,7 @@ package com.pat.store;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.pat.common.domain.Result;
+import com.pat.common.exception.GlobalExceptionHandler;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.store.controller.StorePublicController;
@@ -11,6 +12,8 @@ import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.domain.vo.StoreVO;
 import com.pat.store.service.IStoreService;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +24,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class StorePublicControllerTest {
 
@@ -81,6 +88,22 @@ class StorePublicControllerTest {
         assertThat(response.getData().get(0).getId()).isEqualTo(10L);
         assertThat(response.getData().get(0).getStatus()).isEqualTo("上架");
         assertThat(response.getData().get(0).getName()).isEqualTo("WangVerify-product");
+    }
+
+    @Test
+    void invalidNearbyParametersReturnUnifiedResult() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+
+        mockMvc.perform(get("/api/store/nearby")
+                        .param("longitude", "181")
+                        .param("latitude", "24.48")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(408))
+                .andExpect(jsonPath("$.message").value("参数格式错误"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     private NearbyQuery nearbyQuery() {
