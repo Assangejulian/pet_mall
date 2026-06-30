@@ -1,0 +1,172 @@
+package com.pat.common.config;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pat.common.domain.Result;
+import com.pat.user.interceptor.AdminAuthInterceptor;
+import com.pat.user.interceptor.AuditorAuthInterceptor;
+import com.pat.user.interceptor.MerchantAuthInterceptor;
+import com.pat.user.interceptor.UserAuthInterceptor;
+import com.pat.user.utils.JwtUtil;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(SpringExtension.class)
+@WebAppConfiguration
+@ContextConfiguration(classes = MvcConfigAuthPathTest.TestConfig.class)
+class MvcConfigAuthPathTest {
+
+    @Resource
+    private WebApplicationContext webApplicationContext;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    }
+
+    @Test
+    void publicStoreEndpointsDoNotRequireToken() throws Exception {
+        assertOkWithoutToken("/api/store/search");
+        assertOkWithoutToken("/api/store/list");
+        assertOkWithoutToken("/api/store/nearby?longitude=118.08&latitude=24.48&radiusKm=10");
+        assertOkWithoutToken("/api/store/10");
+        assertOkWithoutToken("/api/store/10/products");
+    }
+
+    @Test
+    void publicProductAndCategoryEndpointsDoNotRequireToken() throws Exception {
+        assertOkWithoutToken("/api/product/list");
+        assertOkWithoutToken("/api/product/10");
+        assertOkWithoutToken("/api/category/list");
+    }
+
+    @Test
+    void publicVideoReadEndpointsDoNotRequireToken() throws Exception {
+        assertOkWithoutToken("/api/video/feed");
+        assertOkWithoutToken("/api/video/10");
+        assertOkWithoutToken("/api/video/play/10");
+        assertOkWithoutToken("/api/video/10/comments");
+    }
+
+    @Test
+    void privateUserEndpointsRequireToken() throws Exception {
+        assertUnauthorizedWithoutToken("/api/order/search");
+        assertUnauthorizedWithoutToken("/api/cart/list");
+        assertUnauthorizedWithoutToken("/api/user/address/list");
+        assertUnauthorizedWithoutToken("/api/ai/record/session/test-session");
+        mockMvc.perform(post("/api/video/10/like")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void managementRoleInterceptorsStillEnforceTheirScopes() throws Exception {
+        assertOkWithRole("/api/merchant/store/search", "merchant");
+        assertForbiddenWithRole("/api/auditor/store/search", "merchant");
+        assertForbiddenWithRole("/api/admin/store/list", "merchant");
+
+        assertOkWithRole("/api/auditor/store/search", "auditor");
+        assertForbiddenWithRole("/api/admin/store/list", "auditor");
+
+        assertOkWithRole("/api/admin/store/list", "admin");
+        assertOkWithRole("/api/auditor/store/search", "admin");
+    }
+
+    private void assertOkWithoutToken(String path) throws Exception {
+        mockMvc.perform(get(path)).andExpect(status().isOk());
+    }
+
+    private void assertUnauthorizedWithoutToken(String path) throws Exception {
+        mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
+    }
+
+    private void assertOkWithRole(String path, String role) throws Exception {
+        mockMvc.perform(get(path).header("Authorization", bearer(role))).andExpect(status().isOk());
+    }
+
+    private void assertForbiddenWithRole(String path, String role) throws Exception {
+        mockMvc.perform(get(path).header("Authorization", bearer(role))).andExpect(status().isForbidden());
+    }
+
+    private String bearer(String role) {
+        return "Bearer " + JwtUtil.generateToken(1L, "tester", role, 60_000);
+    }
+
+    @RestController
+    static class TestEndpoints {
+
+        @GetMapping({
+                "/api/store/search",
+                "/api/store/list",
+                "/api/store/nearby",
+                "/api/store/{id}",
+                "/api/store/{id}/products",
+                "/api/product/list",
+                "/api/product/{id}",
+                "/api/category/list",
+                "/api/video/feed",
+                "/api/video/{id}",
+                "/api/video/play/{id}",
+                "/api/video/{id}/comments",
+                "/api/order/search",
+                "/api/cart/list",
+                "/api/user/address/list",
+                "/api/ai/record/session/{sessionId}",
+                "/api/merchant/store/search",
+                "/api/auditor/store/search",
+                "/api/admin/store/list"
+        })
+        Result<String> ok() {
+            return Result.success("ok");
+        }
+
+        @PostMapping("/api/video/{id}/like")
+        Result<String> like(@PathVariable Long id) {
+            return Result.success("liked-" + id);
+        }
+    }
+
+    @Configuration
+    @EnableWebMvc
+    @Import({
+            MvcConfig.class,
+            UserAuthInterceptor.class,
+            AdminAuthInterceptor.class,
+            MerchantAuthInterceptor.class,
+            AuditorAuthInterceptor.class
+    })
+    static class TestConfig {
+
+        @Bean
+        ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+
+        @Bean
+        TestEndpoints testEndpoints() {
+            return new TestEndpoints();
+        }
+    }
+}
