@@ -1,6 +1,5 @@
 var app = getApp();
 var productApi = require("../../utils/api/product");
-var cartApi = require("../../utils/api/cart");
 
 function normalizeProduct(source) {
   source = source || {};
@@ -29,7 +28,8 @@ Page({
   },
 
   onShow: function () {
-    // Optionally fetch cart count from backend here
+    var cart = wx.getStorageSync("cart") || [];
+    this.setData({ cartCount: cart.reduce(function(s, i) { return s + i.quantity; }, 0) });
   },
 
   loadProduct: function (id) {
@@ -56,49 +56,30 @@ Page({
   },
 
   addCart: function () {
-    if (!app.requireAuth()) return;
-    if (!this.data.product || !this.data.product.id) {
+    var product = this.data.product;
+    if (!product || !product.id) {
       wx.showToast({ title: "商品不可加入购物车", icon: "none" });
       return;
     }
-    if (!this.data.product.stock) {
+    if (!product.stock) {
       wx.showToast({ title: "商品暂无库存", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "添加中..." });
-    cartApi.add({
-      productId: this.data.product.id,
-      quantity: 1,
-      checked: 1
-    }).then(() => {
-      wx.hideLoading();
-      wx.showToast({ title: "已加入购物车", icon: "success" });
-    }).catch(() => {
-      wx.hideLoading();
-      wx.showToast({ title: "添加失败", icon: "none" });
-    });
+    app.addToCart(product);
+    wx.showToast({ title: "已加入购物车", icon: "success" });
+    this.onShow();
   },
 
-  /** 立即购买（需登录） */
   buyNow: function () {
     if (!app.requireAuth()) return;
-    if (!this.data.product || !this.data.product.id) return;
-    if (!this.data.product.stock) {
+    var product = this.data.product;
+    if (!product || !product.id) return;
+    if (!product.stock) {
       wx.showToast({ title: "商品暂无库存", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "处理中..." });
-    cartApi.add({
-      productId: this.data.product.id,
-      quantity: 1,
-      checked: 1
-    }).then(() => {
-      wx.hideLoading();
-      wx.switchTab({ url: "/pages/cart/cart" });
-    }).catch(() => {
-      wx.hideLoading();
-      wx.showToast({ title: "系统繁忙", icon: "none" });
-    });
+    app.addToCart(product);
+    wx.switchTab({ url: "/pages/cart/cart" });
   },
 
   goCart: function () {

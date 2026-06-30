@@ -1,6 +1,6 @@
 var orderApi = require("../../utils/api/order");
-var cartApi = require("../../utils/api/cart");
 var userApi = require("../../utils/api/user");
+var app = getApp();
 
 Page({
   data: {
@@ -27,21 +27,13 @@ Page({
   },
 
   loadItems: function() {
-    var t = this;
-    cartApi.list().then(function(res) {
-      var checkedItems = (res || []).filter(function(i) {
-        return i.checked === 1 || i.checked === true;
-      });
-      var total = 0;
-      checkedItems.forEach(function(i) {
-        var product = i.productInfo || {};
-        var price = parseFloat(product.price || i.price || 0);
-        total += price * i.quantity;
-      });
-      t.setData({ items: checkedItems, totalAmount: total.toFixed(2) });
-    }).catch(function(err) {
-      console.error("加载购物车失败", err);
+    var cart = app.globalData.cart || wx.getStorageSync("cart") || [];
+    var checkedItems = cart.filter(function(i) { return i.checked; });
+    var total = 0;
+    checkedItems.forEach(function(i) {
+      total += parseFloat(i.price || 0) * i.quantity;
     });
+    this.setData({ items: checkedItems, totalAmount: total.toFixed(2) });
   },
 
   goAddAddress: function() {
@@ -69,16 +61,20 @@ Page({
     var dto = {
       addressId: this.data.address.id,
       items: this.data.items.map(function(i) {
-        return {
-          productId: i.productId || (i.productInfo && i.productInfo.id) || i.id,
-          quantity: i.quantity
-        };
+        return { productId: i.id, quantity: i.quantity };
       }),
       remark: this.data.remark
     };
     orderApi.create(dto).then(function(res) {
       wx.hideLoading();
       wx.showToast({ title: "下单成功", icon: "success" });
+      // 清空已结算的购物车
+      var cart = wx.getStorageSync("cart") || [];
+      var checkedIds = {};
+      (app.globalData.cart || []).forEach(function(i) { if (i.checked) checkedIds[i.id] = true; });
+      cart = cart.filter(function(i) { return !checkedIds[i.id]; });
+      wx.setStorageSync("cart", cart);
+      app.globalData.cart = cart;
       setTimeout(function() {
         wx.redirectTo({ url: "/subpages/order/detail/detail?id=" + (res && res.id ? res.id : res) });
       }, 1000);
