@@ -1,1 +1,19 @@
-.page{padding:20rpx 28rpx 40rpx}.at{display:flex;align-items:center;gap:14rpx;margin-bottom:10rpx}.an{font-size:30rpx;font-weight:600}.ap{font-size:26rpx;color:#8f7366}.adef{font-size:20rpx;background:#e8927c;color:#fff;padding:2rpx 12rpx;border-radius:6rpx}.aa{font-size:26rpx;color:#8f7366;line-height:1.5}
+.page { padding: 24rpx; }
+.section-title { font-size: 32rpx; font-weight: 700; color: #3d2a1e; margin-bottom: 20rpx; }
+.card { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 20rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,.06); }
+.at { display: flex; align-items: center; gap: 16rpx; margin-bottom: 8rpx; }
+.an { font-size: 30rpx; font-weight: 600; color: #3d2a1e; }
+.ap { font-size: 26rpx; color: #888; }
+.adef { font-size: 22rpx; color: #e8927c; border: 1rpx solid #e8927c; border-radius: 6rpx; padding: 2rpx 8rpx; }
+.aa { font-size: 26rpx; color: #555; line-height: 1.6; }
+.a-actions { display: flex; gap: 24rpx; margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx solid #f0ebe3; }
+.a-btn { font-size: 26rpx; color: #e8927c; }
+.a-btn.del { color: #c0392b; }
+.empty-tip { text-align: center; padding: 40rpx; color: #aaa; font-size: 28rpx; }
+.form-card { background: #fff; border-radius: 16rpx; padding: 28rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,.06); }
+.form-title { font-size: 30rpx; font-weight: 600; color: #3d2a1e; margin-bottom: 20rpx; }
+.form-row { display: flex; align-items: center; padding: 18rpx 0; border-bottom: 1rpx solid #f5f0eb; }
+.default-row { border-bottom: none; }
+.label { width: 140rpx; font-size: 28rpx; color: #666; flex-shrink: 0; }
+.input { flex: 1; font-size: 28rpx; color: #3d2a1e; }
+.btn-add { margin-top: 28rpx; background: #e8927c; color: #fff; font-size: 30rpx; font-weight: 600; border-radius: 50rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; }

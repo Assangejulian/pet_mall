@@ -102,7 +102,7 @@ class StorePublicControllerTest {
                         .param("radiusKm", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(408))
-                .andExpect(jsonPath("$.message").value("参数格式错误"))
+                .andExpect(jsonPath("$.message").value("经度范围必须在-180到180之间"))
                 .andExpect(jsonPath("$.data").value(nullValue()));
     }
 

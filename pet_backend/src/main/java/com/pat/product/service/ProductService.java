@@ -45,4 +45,6 @@ public interface ProductService extends IProductService {
     ProductVO offlineMerchantProduct(Long id, Long merchantUserId);
 
     ProductVO forceOfflineProduct(Long id);
+
+    boolean deductStock(Long productId, Integer quantity);
 }
