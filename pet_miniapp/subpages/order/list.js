@@ -52,7 +52,7 @@ Page({
   },
 
   goDetail(event) {
-    wx.navigateTo({ url: "/subpages/order/detail?id=" + event.currentTarget.dataset.id });
+    wx.navigateTo({ url: "/subpages/order/detail/detail?id=" + event.currentTarget.dataset.id });
   }
 });
 

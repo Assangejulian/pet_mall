@@ -14,7 +14,7 @@
         "video/list",
         "video/detail",
         "order/list",
-        "order/detail",
+        "order/detail/detail",
         "address/list",
         "login/login",
         "login/face_capture",
