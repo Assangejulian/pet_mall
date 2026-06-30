@@ -121,7 +121,6 @@ Page({
       wx.showToast({ title: "请选择要结算的商品", icon: "none" });
       return;
     }
-    app.globalData.cart = this.data.cart;
     wx.navigateTo({ url: "/subpages/order/submit" });
   },
 
