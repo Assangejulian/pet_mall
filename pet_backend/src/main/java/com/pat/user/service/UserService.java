@@ -11,4 +11,7 @@ public interface UserService extends IService<User> {
      * 检查用户状态，用户不存在或已禁用时抛 BusinessException
      */
     void checkUserActive(User user);
+
+    /** 按 unionid/openid 查用户，不存在则自动创建 */
+    User findOrCreateByWechat(String openid, String unionid);
 }

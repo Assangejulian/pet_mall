@@ -6,6 +6,8 @@ import { useUserStore } from "../../stores/user"
 const cart = useCartStore()
 const user = useUserStore()
 
+const ADMIN_URL = "http://localhost:5178"
+
 const pages = [
   { id: "home", path: "/", label: "\u4f5c\u54c1" },
   { id: "market", path: "/market", label: "\u5e02\u96c6" },
@@ -27,9 +29,10 @@ function doLogout() {
     </router-link>
 
     <nav class="tabs" aria-label="\u9875\u9762\u5bfc\u822a">
-      <router-link v-for="p in pages" :key="p.id" :to="p.path" :class="{ active: .name === p.id }">
+      <router-link v-for="p in pages" :key="p.id" :to="p.path" :class="{ active: $route.name === p.id }">
         {{ p.label }}
       </router-link>
+      <a :href="ADMIN_URL" class="nav-admin" target="_blank" rel="noopener">\u7ba1\u7406\u540e\u53f0</a>
     </nav>
 
     <div class="nav-actions">
@@ -75,5 +78,19 @@ function doLogout() {
 }
 .btn-login:hover {
   background: #d47a64;
+}
+.nav-admin {
+  padding: 8px 14px;
+  color: rgba(255,255,255,.7);
+  text-decoration: none;
+  font-size: 13px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px;
+  transition: all .2s;
+}
+.nav-admin:hover {
+  background: rgba(232,146,124,.2);
+  color: #e8927c;
+  border-color: rgba(232,146,124,.4);
 }
 </style>

@@ -6,6 +6,7 @@ import com.pat.common.exception.BusinessException;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.entity.User;
 import com.pat.user.helper.WechatHelper;
+import com.pat.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,9 @@ public class WechatMiniAuthService implements AuthService {
 
     @Autowired
     private WechatHelper wechatHelper;
+
+    @Autowired
+    private UserService userService;
 
     @Value("${wx.miniapp.appid}")
     private String appid;
@@ -51,7 +55,7 @@ public class WechatMiniAuthService implements AuthService {
         JSONObject session = code2session(code);
         String openid = wechatHelper.getRequiredResponse(session, "openid", "code2session");
         String unionid = session.getStr("unionid");
-        return wechatHelper.findOrCreateUser(openid, unionid);
+        return userService.findOrCreateByWechat(openid, unionid);
     }
 
     /** 调用微信 code2session 接口，换取 openid + session_key */

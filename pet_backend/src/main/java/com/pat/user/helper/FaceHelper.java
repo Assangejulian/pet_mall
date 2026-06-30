@@ -99,6 +99,27 @@ public class FaceHelper {
         }
     }
 
+    /** 从百度脸库删除用户人脸 */
+    public void deleteFace(String accessToken, String userId) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("group_id", FACE_GROUP);
+            body.put("user_id", userId);
+
+            JSONObject json = JSONUtil.parseObj(restTemplate.postForObject(
+                    "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/delete?access_token=" + accessToken,
+                    body, String.class));
+
+            if (json.getInt("error_code") != 0) {
+                log.warn("百度人脸删除失败(可能数据已擦除): {}", json);
+            } else {
+                log.info("百度人脸删除成功，userId: {}", userId);
+            }
+        } catch (Exception e) {
+            log.error("百度人脸删除异常", e);
+        }
+    }
+
     /** 注册人脸到百度库 */
     public void registerFace(String accessToken, String userId, String imageBase64) {
         try {
