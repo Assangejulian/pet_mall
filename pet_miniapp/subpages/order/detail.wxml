@@ -1,27 +1,27 @@
 <view class="page">
   <view class="sb" style="background:{{sbg[order.orderStatus]||'#faf7ef'}}">
-    <text class="si">{{sic[order.orderStatus]||'鈼?}}</text>
+    <text class="si">{{sic[order.orderStatus]||'閳?'}}</text>
     <view><text class="st">{{sl[order.orderStatus]}}</text></view>
   </view>
   <view class="card">
-    <text class="ct">璁㈠崟缂栧彿</text>
+    <text class="ct">订单编号</text>
     <text class="ad">{{order.orderNo}}</text>
   </view>
   <view class="card">
-    <text class="ct">鍟嗗搧淇℃伅</text>
+    <text class="ct">商品信息</text>
     <view class="oit" wx:for="{{order.items}}" wx:key="id">
       <image class="oimg" src="{{item.productImage}}" mode="aspectFill" />
       <view class="oinfo">
         <text class="oinm">{{item.productName}}</text>
         <text class="oiq">x{{item.quantity}}</text>
       </view>
-      <text class="oip">楼{{item.price}}</text>
+      <text class="oip">¥{{item.price}}</text>
     </view>
   </view>
   <view class="card">
     <view class="pr">
-      <text>瀹炰粯</text>
-      <text style="color:#e8927c;font-weight:700">楼{{order.payAmount}}</text>
+      <text>实付</text>
+      <text style="color:#e8927c;font-weight:700">¥{{order.payAmount}}</text>
     </view>
   </view>
 </view>
