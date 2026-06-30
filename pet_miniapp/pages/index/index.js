@@ -114,10 +114,14 @@ Page({
       if (rows.length) {
         that.setVideos(rows.map(normalizeVideo), false);
       } else {
-        that.useFallback("后端暂无视频");
+        that.setVideos([], false);
       }
-    }).catch(function() {
-      that.useFallback("无法连接后端，展示本地演示数据");
+      if (done) done();
+    }).catch(function(err) {
+      var message = err && err.isBusinessError
+        ? ((err.message || "视频接口返回异常") + "，展示本地演示数据")
+        : "无法连接后端，展示本地演示数据";
+      that.useFallback(message);
       if (done) done();
     });
   },

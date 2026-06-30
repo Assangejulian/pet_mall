@@ -79,6 +79,9 @@ class MvcConfigAuthPathTest {
         mockMvc.perform(post("/api/video/10/like")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/video/10/comment")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -145,6 +148,11 @@ class MvcConfigAuthPathTest {
         @PostMapping("/api/video/{id}/like")
         Result<String> like(@PathVariable Long id) {
             return Result.success("liked-" + id);
+        }
+
+        @PostMapping("/api/video/{id}/comment")
+        Result<String> comment(@PathVariable Long id) {
+            return Result.success("commented-" + id);
         }
     }
 

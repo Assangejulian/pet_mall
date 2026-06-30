@@ -104,13 +104,21 @@ public class VideoController extends BaseController<Video, Video, Video> {
     @GetMapping("/{id}")
     @Override
     public Result<Video> getById(@PathVariable Long id) {
+        Video video = videoService.getById(id);
+        if (video == null) {
+            return Result.error(404, "视频不存在");
+        }
         videoService.incrementPlayCount(id);
-        return super.getById(id);
+        return Result.success(videoService.getById(id));
     }
 
         @Operation(summary = "视频播放（播放量+1）")
 @GetMapping("/play/{id}")
     public Result<Video> play(@PathVariable Long id) {
+        Video video = videoService.getById(id);
+        if (video == null) {
+            return Result.error(404, "视频不存在");
+        }
         videoService.incrementPlayCount(id);
         return Result.success(videoService.getById(id));
     }
