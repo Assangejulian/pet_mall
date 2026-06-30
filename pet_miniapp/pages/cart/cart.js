@@ -19,7 +19,6 @@ Page({
     var that = this;
     if (!this.data.isLogin) return;
     cartApi.list().then(function(res) {
-      // res is a list of CartVO objects
       var cartItems = (res || []).map(function(item) {
         return {
           id: item.id,
@@ -77,13 +76,13 @@ Page({
     var item = this.data.cart.find(function(i) { return i.id === id; });
     if (!item) return;
     var that = this;
-    wx.showLoading({ title: '加载中', mask: true });
+    wx.showLoading({ title: "加载中", mask: true });
     cartApi.update(id, { quantity: item.quantity + 1 }).then(function() {
       wx.hideLoading();
       that.load();
     }).catch(function(err) {
       wx.hideLoading();
-      wx.showToast({ title: (err && err.message) || '更新失败', icon: 'none' });
+      wx.showToast({ title: (err && err.message) || "更新失败", icon: "none" });
     });
   },
 
@@ -92,17 +91,17 @@ Page({
     var item = this.data.cart.find(function(i) { return i.id === id; });
     if (!item) return;
     if (item.quantity <= 1) {
-      wx.showToast({ title: '数量不能少于1', icon: 'none' });
+      wx.showToast({ title: "数量不能少于1", icon: "none" });
       return;
     }
     var that = this;
-    wx.showLoading({ title: '加载中', mask: true });
+    wx.showLoading({ title: "加载中", mask: true });
     cartApi.update(id, { quantity: item.quantity - 1 }).then(function() {
       wx.hideLoading();
       that.load();
     }).catch(function(err) {
       wx.hideLoading();
-      wx.showToast({ title: (err && err.message) || '更新失败', icon: 'none' });
+      wx.showToast({ title: (err && err.message) || "更新失败", icon: "none" });
     });
   },
 

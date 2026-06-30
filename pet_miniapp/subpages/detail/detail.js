@@ -29,7 +29,6 @@ Page({
   },
 
   onShow: function () {
-    // Optionally fetch cart count from backend here
   },
 
   loadProduct: function (id) {
@@ -70,16 +69,15 @@ Page({
       productId: this.data.product.id,
       quantity: 1,
       checked: 1
-    }).then(() => {
+    }).then(function() {
       wx.hideLoading();
       wx.showToast({ title: "已加入购物车", icon: "success" });
-    }).catch(() => {
+    }).catch(function() {
       wx.hideLoading();
       wx.showToast({ title: "添加失败", icon: "none" });
     });
   },
 
-  /** 立即购买（需登录） */
   buyNow: function () {
     if (!app.requireAuth()) return;
     if (!this.data.product || !this.data.product.id) return;
@@ -92,10 +90,10 @@ Page({
       productId: this.data.product.id,
       quantity: 1,
       checked: 1
-    }).then(() => {
+    }).then(function() {
       wx.hideLoading();
       wx.switchTab({ url: "/pages/cart/cart" });
-    }).catch(() => {
+    }).catch(function() {
       wx.hideLoading();
       wx.showToast({ title: "系统繁忙", icon: "none" });
     });
