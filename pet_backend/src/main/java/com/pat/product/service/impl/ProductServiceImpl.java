@@ -243,6 +243,105 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return toVO(getActiveProduct(id));
     }
 
+    @Override
+    public IPage<ProductVO> pageMerchantProducts(ProductQueryDTO query, Long merchantUserId) {
+        if (merchantUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前商家");
+        }
+        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
+        long pageSize = resolvePageSize(query);
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        Integer productType = resolveProductType(query);
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND user_id = " + merchantUserId)
+                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
+                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
+                .eq(productType != null, Product::getProductType, productType)
+                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
+                .eq(query.getStatus() != null, Product::getStatus, query.getStatus())
+                .orderByDesc(Product::getCreateTime);
+        return convertPage(page(new Page<>(pageNum, pageSize), wrapper));
+    }
+
+    @Override
+    public Product requireOwnedProduct(Long productId, Long merchantUserId) {
+        Product product = getActiveProduct(productId);
+        Store store = storeMapper.selectById(product.getStoreId());
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商品所属商店不存在");
+        }
+        if (merchantUserId == null || !merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商品");
+        }
+        return product;
+    }
+
+    @Override
+    public ProductVO getMerchantDetail(Long id, Long merchantUserId) {
+        return toVO(requireOwnedProduct(id, merchantUserId));
+    }
+
+    @Override
+    public ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId) {
+        requireOwnedStore(dto == null ? null : dto.getStoreId(), merchantUserId);
+        return createProduct(dto);
+    }
+
+    @Override
+    public ProductVO updateMerchantProduct(Long id, ProductUpdateDTO dto, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        if (dto != null && dto.getStoreId() != null) {
+            requireOwnedStore(dto.getStoreId(), merchantUserId);
+        }
+        return updateProduct(id, dto);
+    }
+
+    @Override
+    public Boolean deleteMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return deleteProduct(id);
+    }
+
+    @Override
+    public ProductVO onlineMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return onlineProduct(id);
+    }
+
+    @Override
+    public ProductVO offlineMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return offlineProduct(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProductVO forceOfflineProduct(Long id) {
+        Product product = getActiveProduct(id);
+        Product update = new Product();
+        update.setId(id);
+        update.setStatus(STATUS_OFFLINE);
+        if (!updateById(update)) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品强制下架失败");
+        }
+        product.setStatus(STATUS_OFFLINE);
+        return toVO(product);
+    }
+
+    private Store requireOwnedStore(Long storeId, Long merchantUserId) {
+        if (storeId == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID不能为空");
+        }
+        Store store = storeMapper.selectById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        if (merchantUserId == null || !merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用该商店");
+        }
+        return store;
+    }
+
     private Product getActiveProduct(Long id) {
         if (id == null) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品ID不能为空");

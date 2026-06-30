@@ -78,6 +78,47 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         return baseMapper.selectStoreProducts(storeId);
     }
 
+    @Override
+    public Store requireOwnedStore(Long storeId, Long merchantUserId) {
+        if (storeId == null || merchantUserId == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID和商家用户ID不能为空");
+        }
+        Store store = getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        if (!merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商店");
+        }
+        return store;
+    }
+
+    @Override
+    public boolean isOwnedStore(Long storeId, Long merchantUserId) {
+        if (storeId == null || merchantUserId == null) {
+            return false;
+        }
+        Store store = getById(storeId);
+        return store != null && merchantUserId.equals(store.getUserId());
+    }
+
+    @Override
+    public Store updateAuditStatus(Long storeId, Integer status) {
+        validateStatus(status);
+        Store store = getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        Store update = new Store();
+        update.setId(storeId);
+        update.setStatus(status);
+        if (!updateById(update)) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店审核状态更新失败");
+        }
+        store.setStatus(status);
+        return store;
+    }
+
     private long calculateOffset(long current, long size, long total) {
         if (current <= 1) {
             return 0L;

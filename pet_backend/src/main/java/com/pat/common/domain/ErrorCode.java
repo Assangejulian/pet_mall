@@ -12,6 +12,7 @@ public enum ErrorCode {
     FARAMS_ERROR(408, "参数格式错误", ""),
     FARAMS_NULL_ERROR(409, "参数不能为空", ""),
     NOT_AUTH(401, "未授权", ""),
+    FORBIDDEN(403, "无权限", ""),
     SYSTEM_ERROR(500, "系统内部错误", ""),
     NOT_FOUND(404, "资源未找到", ""),
     // ── 用户认证 ──

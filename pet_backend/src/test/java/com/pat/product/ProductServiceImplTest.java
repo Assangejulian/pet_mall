@@ -1,7 +1,9 @@
 package com.pat.product;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.exception.BusinessException;
 import com.pat.product.domain.dto.ProductCreateDTO;
@@ -11,9 +13,12 @@ import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.impl.ProductServiceImpl;
 import com.pat.store.mapper.StoreMapper;
+import com.pat.store.domain.entity.Store;
+import com.pat.product.domain.dto.ProductQueryDTO;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -23,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 class ProductServiceImplTest {
 
@@ -139,6 +145,72 @@ class ProductServiceImplTest {
                         ex -> assertThat(ex.getDescription()).contains("订单流程"));
     }
 
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void merchantProductSearchIsLimitedThroughOwnedStores() {
+        when(productMapper.selectPage(any(Page.class), any(Wrapper.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        productService.pageMerchantProducts(new ProductQueryDTO(), 11L);
+        ArgumentCaptor<Wrapper<Product>> captor = ArgumentCaptor.forClass(Wrapper.class);
+        verify(productMapper).selectPage(any(Page.class), captor.capture());
+        assertThat(captor.getValue().getSqlSegment()).contains("user_id = 11");
+    }
+
+    @Test
+    void merchantCannotViewAnotherMerchantsProduct() {
+        mockProductOwner(22L);
+        assertForbidden(() -> productService.getMerchantDetail(1L, 11L));
+    }
+
+    @Test
+    void merchantCannotModifyAnotherMerchantsProduct() {
+        mockProductOwner(22L);
+        assertForbidden(() -> productService.updateMerchantProduct(1L, new ProductUpdateDTO(), 11L));
+    }
+
+    @Test
+    void merchantCannotDeleteAnotherMerchantsProduct() {
+        mockProductOwner(22L);
+        assertForbidden(() -> productService.deleteMerchantProduct(1L, 11L));
+    }
+
+    @Test
+    void merchantCannotPutAnotherMerchantsProductOnline() {
+        mockProductOwner(22L);
+        assertForbidden(() -> productService.onlineMerchantProduct(1L, 11L));
+    }
+
+    @Test
+    void merchantCannotPutAnotherMerchantsProductOffline() {
+        mockProductOwner(22L);
+        assertForbidden(() -> productService.offlineMerchantProduct(1L, 11L));
+    }
+
+    @Test
+    void merchantCannotCreateProductInAnotherMerchantsStore() {
+        when(storeMapper.selectById(2L)).thenReturn(store(2L, 22L));
+        ProductCreateDTO dto = createDto("1", 1);
+        dto.setStoreId(2L);
+        assertForbidden(() -> productService.createMerchantProduct(dto, 11L));
+    }
+
+    @Test
+    void merchantCannotTransferProductToAnotherMerchantsStore() {
+        mockProductOwner(11L);
+        when(storeMapper.selectById(2L)).thenReturn(store(2L, 22L));
+        ProductUpdateDTO dto = new ProductUpdateDTO();
+        dto.setStoreId(2L);
+        assertForbidden(() -> productService.updateMerchantProduct(1L, dto, 11L));
+    }
+
+    @Test
+    void merchantCanCreateProductInOwnOperatingStore() {
+        when(storeMapper.selectById(1L)).thenReturn(store(1L, 11L));
+        when(storeLookupMapper.existsOperatingStore(1L)).thenReturn(1);
+        when(productMapper.insert(any(Product.class))).thenReturn(1);
+        assertThat(productService.createMerchantProduct(createDto("1", 1), 11L).getStatus()).isEqualTo("上架");
+    }
+
     private ProductCreateDTO createDto(String status, int stock) {
         ProductCreateDTO dto = new ProductCreateDTO();
         dto.setStoreId(1L);
@@ -161,5 +233,25 @@ class ProductServiceImplTest {
         product.setStatus(status);
         product.setDeleted(0);
         return product;
+    }
+
+    private void mockProductOwner(Long ownerId) {
+        when(productMapper.selectById(1L)).thenReturn(product(1L, 1L, 0, 1));
+        when(storeMapper.selectById(1L)).thenReturn(store(1L, ownerId));
+    }
+
+    private Store store(Long id, Long userId) {
+        Store store = new Store();
+        store.setId(id);
+        store.setUserId(userId);
+        store.setStatus(1);
+        store.setDeleted(0);
+        return store;
+    }
+
+    private void assertForbidden(org.assertj.core.api.ThrowableAssert.ThrowingCallable callable) {
+        assertThatThrownBy(callable)
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getCode()).isEqualTo(403));
     }
 }
