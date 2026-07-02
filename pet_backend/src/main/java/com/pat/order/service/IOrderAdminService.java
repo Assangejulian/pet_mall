@@ -1,4 +1,4 @@
-﻿package com.pat.order.service;
+package com.pat.order.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;

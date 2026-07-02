@@ -1,4 +1,4 @@
-﻿package com.pat.order.service.payment;
+package com.pat.order.service.payment;
 
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;

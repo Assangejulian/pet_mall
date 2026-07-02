@@ -1,4 +1,4 @@
-﻿package com.pat.order.helper;
+package com.pat.order.helper;
 
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;

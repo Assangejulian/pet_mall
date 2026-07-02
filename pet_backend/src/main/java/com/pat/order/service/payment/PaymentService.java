@@ -1,4 +1,4 @@
-﻿package com.pat.order.service.payment;
+package com.pat.order.service.payment;
 
 import com.pat.order.domain.dto.PayNotifyDTO;
 import com.pat.order.domain.vo.OrderPaymentVO;

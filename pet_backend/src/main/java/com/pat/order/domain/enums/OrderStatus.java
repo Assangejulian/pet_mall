@@ -1,4 +1,4 @@
-﻿package com.pat.order.domain.enums;
+package com.pat.order.domain.enums;
 
 import lombok.Getter;
 

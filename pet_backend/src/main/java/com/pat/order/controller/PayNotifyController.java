@@ -1,4 +1,4 @@
-﻿package com.pat.order.controller;
+package com.pat.order.controller;
 
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.PayNotifyDTO;

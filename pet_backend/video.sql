@@ -1,15 +1,23 @@
-CREATE TABLE IF NOT EXISTS `video` (
-  `id` bigint NOT NULL COMMENT '主键 (雪花算法)',
-  `title` varchar(200) NOT NULL COMMENT '视频标题',
-  `video_url` varchar(500) NOT NULL COMMENT '视频播放地址',
-  `cover_url` varchar(500) DEFAULT NULL COMMENT '视频封面地址',
-  `product_id` bigint DEFAULT NULL COMMENT '关联商品ID',
-  `play_count` int DEFAULT '0' COMMENT '播放次数',
-  `duration` int DEFAULT '0' COMMENT '视频时长(秒)',
-  `status` tinyint DEFAULT '1' COMMENT '状态 0-下架 1-上架',
-  `deleted` tinyint(1) DEFAULT '0' COMMENT '逻辑删除 0-正常 1-已删除',
-  `create_time` datetime(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `update_time` datetime(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_product_id` (`product_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='视频表';
+﻿-- ============================================
+-- video 表定义
+-- 字段已与完整 schema 对齐（url/cover 而非 video_url/cover_url）
+-- ============================================
+CREATE TABLE IF NOT EXISTS video (
+    id            BIGINT       NOT NULL PRIMARY KEY COMMENT '雪花ID',
+    user_id       BIGINT       NOT NULL COMMENT '发布者',
+    title         VARCHAR(200) NOT NULL COMMENT '标题',
+    description   VARCHAR(500) COMMENT '简介',
+    url           VARCHAR(500) NOT NULL COMMENT '视频地址',
+    cover         VARCHAR(500) COMMENT '封面图',
+    product_id    BIGINT       COMMENT '关联商品',
+    play_count    INT          NOT NULL DEFAULT 0 COMMENT '播放次数',
+    likes         INT          NOT NULL DEFAULT 0 COMMENT '点赞数',
+    comment_count INT          NOT NULL DEFAULT 0 COMMENT '评论数',
+    duration      INT          NOT NULL DEFAULT 0 COMMENT '时长(秒)',
+    status        TINYINT      NOT NULL DEFAULT 1 COMMENT '0下架 1上架',
+    deleted       TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+    create_time   DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    update_time   DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    INDEX idx_user_id (user_id),
+    INDEX idx_product_id (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频';
