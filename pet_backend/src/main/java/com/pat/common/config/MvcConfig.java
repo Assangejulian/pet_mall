@@ -40,14 +40,18 @@ public class MvcConfig implements WebMvcConfigurer {
                 .order(0);
 
         registry.addInterceptor(userAuthInterceptor)
-                .addPathPatterns(
-                    "/api/order/**",
-                    "/api/cart/**",
-                    "/api/user/address/**",
-                    "/api/ai/**",
-                    "/api/comment/**",
-                    "/api/upload/**",
-                    "/api/video/**"
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                    "/api/user/login",
+                    "/api/user/send-email-code",
+                    "/api/user/send-sms-code",
+                    "/api/admin/**",
+                    "/api/merchant/**",
+                    "/api/auditor/**",
+                    "/api/product/**",
+                    "/api/category/**",
+                    "/api/store/**",
+                    "/api/notify/**"
                 )
                 .order(1);
     }
