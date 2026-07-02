@@ -1,6 +1,4 @@
-spring:
-  config:
-    import: optional:file:.env[.properties]
+﻿spring:
   application:
     name: pet-store
   datasource:
@@ -88,3 +86,4 @@ wx:
   pc:
     appid: ${WECHAT_PC_APPID:}
     secret: ${WECHAT_PC_SECRET:}
+

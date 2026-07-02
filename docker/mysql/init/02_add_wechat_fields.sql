@@ -1,10 +1,5 @@
 ﻿-- ============================================
--- 微信登录支持 - 新增字段
+-- 此文件已废弃 — 微信登录字段已直接写入 01_pet_store.sql
+-- 保留仅为兼容旧 Docker 卷，不再执行任何操作
 -- ============================================
-
-ALTER TABLE user
-    ADD COLUMN openid  VARCHAR(64)  COMMENT '微信openid' AFTER email,
-    ADD COLUMN unionid VARCHAR(64)  COMMENT '微信unionid' AFTER openid;
-
-ALTER TABLE user
-    ADD UNIQUE INDEX idx_openid (openid);
+SELECT 1 AS ok;
