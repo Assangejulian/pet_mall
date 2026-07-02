@@ -10,7 +10,7 @@ import com.pat.product.domain.dto.ProductUpdateDTO;
 import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.impl.ProductServiceImpl;
-import com.pat.store.mapper.StoreMapper;
+import com.pat.store.service.IStoreService;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,8 +32,8 @@ class ProductRegulationWorkflowTest {
 
     private final ProductMapper mapper = mock(ProductMapper.class);
     private final ProductStoreLookupMapper lookupMapper = mock(ProductStoreLookupMapper.class);
-    private final StoreMapper storeMapper = mock(StoreMapper.class);
-    private final ProductServiceImpl service = new ProductServiceImpl(lookupMapper, storeMapper, new ObjectMapper());
+    private final IStoreService storeService = mock(IStoreService.class);
+    private final ProductServiceImpl service = new ProductServiceImpl(lookupMapper, storeService, new ObjectMapper());
 
     @BeforeEach
     void setUp() {

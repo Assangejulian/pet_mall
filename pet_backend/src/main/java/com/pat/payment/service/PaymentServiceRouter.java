@@ -13,6 +13,12 @@ public class PaymentServiceRouter {
     @Autowired
     private Map<String, PaymentService> serviceMap;
 
+    /**
+     * 根据支付方式获取对应的支付策略实现。
+     *
+     * @param payMethod 支付方式（mock/alipay/wechat）
+     * @return 支付策略实现
+     */
     public PaymentService getService(String payMethod) {
         if (payMethod == null || payMethod.isBlank()) {
             payMethod = "mock";

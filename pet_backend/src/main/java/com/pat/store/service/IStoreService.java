@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.pat.product.domain.entity.Product;
 import com.pat.store.domain.dto.NearbyQuery;
 import com.pat.store.domain.entity.Store;
+import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.vo.NearbyStoreRow;
 
 import java.util.List;
@@ -12,6 +13,10 @@ import java.util.List;
 public interface IStoreService extends IService<Store> {
 
     void validateStatus(Integer status);
+
+    boolean createStore(StoreDTO param, Long merchantUserId);
+
+    boolean updateStore(Long id, StoreDTO param, Long merchantUserId);
 
     void ensureCanCloseOrDelete(Long storeId);
 

@@ -75,19 +75,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String images = normalizeImages(dto.getImages());
         validateBusinessRules(dto.getProductType(), dto.getStock(), dto.getPrice(), status, false);
 
-        Product product = new Product();
-        product.setStoreId(dto.getStoreId());
-        product.setProductName(dto.getProductName());
-        product.setProductType(dto.getProductType());
-        product.setCategory(dto.getCategory());
-        product.setProductDesc(dto.getProductDesc());
-        product.setPrice(dto.getPrice());
-        product.setStock(dto.getStock());
-        product.setMainImage(dto.getMainImage());
-        product.setImages(images);
-        product.setStatus(status);
-        product.setDeleted(0);
-
+        Product product = Product.createFrom(dto, status, images);
         if (!save(product)) {
             throw new BusinessException(ErrorCode.SAVE_FAILED, "商品新增失败");
         }
@@ -103,36 +91,18 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (dto != null && requestsOnline(dto.getStatus())) {
             ensureNotPlatformRestricted(oldProduct);
         }
-        boolean soldProduct = oldProduct != null && oldProduct.getStatus() == STATUS_SOLD;
-        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
-        Long storeId = soldProduct ? oldProduct.getStoreId() : (dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId());
-        if (!soldProduct && !storeId.equals(oldProduct.getStoreId())) {
-            checkOperatingStore(storeId);
-        }
 
-        Integer productType = (soldPet || dto.getProductType() == null) ? oldProduct.getProductType() : dto.getProductType();
-        Integer stock = soldPet ? 0 : (dto.getStock() == null ? oldProduct.getStock() : dto.getStock());
-        BigDecimal price = dto.getPrice() == null ? oldProduct.getPrice() : dto.getPrice();
-        Integer status = soldProduct ? STATUS_SOLD : parseEditableStatus(dto.getStatus(), oldProduct.getStatus());
-        String images = dto.getImages() == null ? oldProduct.getImages() : normalizeImages(dto.getImages());
+        boolean soldProduct = oldProduct.getStatus() == STATUS_SOLD;
+
+        Long storeId = resolveUpdateStoreId(oldProduct, dto, soldProduct);
+        Integer productType = resolveUpdateProductType(oldProduct, dto, soldProduct);
+        Integer stock = resolveUpdateStock(oldProduct, dto, soldProduct);
+        BigDecimal price = resolveUpdatePrice(oldProduct, dto);
+        Integer status = resolveUpdateStatus(oldProduct, dto, soldProduct);
+        String images = resolveUpdateImages(oldProduct, dto);
         validateBusinessRules(productType, stock, price, status, soldProduct);
 
-        Product product = new Product();
-        product.setId(id);
-        product.setStoreId(storeId);
-        product.setProductName(StringUtils.hasText(dto.getProductName()) ? dto.getProductName() : oldProduct.getProductName());
-        product.setProductType(productType);
-        product.setCategory(dto.getCategory() == null ? oldProduct.getCategory() : dto.getCategory());
-        product.setProductDesc(dto.getProductDesc() == null ? oldProduct.getProductDesc() : dto.getProductDesc());
-        product.setPrice(price);
-        product.setStock(stock);
-        product.setMainImage(dto.getMainImage() == null ? oldProduct.getMainImage() : dto.getMainImage());
-        product.setImages(images);
-        product.setStatus(status);
-        product.setDeleted(null);
-        product.setCreateTime(null);
-        // videoId 当前由视频模块维护，商品编辑只保留原值。
-        product.setVideoId(oldProduct.getVideoId());
+        Product product = buildUpdateProduct(oldProduct, dto, storeId, productType, stock, price, status, images, soldProduct);
 
         if (!updateById(product)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品修改失败");
@@ -198,46 +168,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public IPage<ProductVO> pagePublicProducts(ProductQueryDTO query) {
         // 公开列表只展示已上架商品，支持用户端和管理端兼容查询参数。
-        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
-        long pageSize = resolvePageSize(query);
-        String keyword = resolveKeyword(query);
-        Integer productType = resolveProductType(query);
-
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+        LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .eq(Product::getStatus, STATUS_ONLINE)
-                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1")
-                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
-                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
-                .eq(productType != null, Product::getProductType, productType)
-                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
-                .orderByDesc(Product::getCreateTime);
-
-        Page<Product> page = page(new Page<>(pageNum, pageSize), wrapper);
-        return convertPage(page);
+                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1");
+        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
     }
-
     @Override
     public ProductPageVO pageAdminProducts(ProductQueryDTO query) {
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
-        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
-        long pageSize = resolvePageSize(query);
-        String keyword = resolveKeyword(query);
-        Integer productType = resolveProductType(query);
-
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
-                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
-                .eq(productType != null, Product::getProductType, productType)
-                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
-                .eq(query.getStatus() != null, Product::getStatus, query.getStatus())
-                .orderByDesc(Product::getCreateTime);
-
-        Page<Product> result = page(new Page<>(pageNum, pageSize), wrapper);
+        LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
+                .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
+        Page<Product> result = page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper);
         Map<Long, Store> storeMap = loadStoreMap(result.getRecords());
         return new ProductPageVO(result.getRecords().stream().map(product -> toVO(product, storeMap)).toList(),
                 result.getTotal(), result.getCurrent(), result.getSize());
     }
-
     @Override
     public ProductVO getPublicDetail(Long id) {
         Product product = getOne(new LambdaQueryWrapper<Product>()
@@ -260,21 +205,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (merchantUserId == null) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前商家");
         }
-        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
-        long pageSize = resolvePageSize(query);
-        String keyword = resolveKeyword(query);
-        Integer productType = resolveProductType(query);
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND user_id = " + merchantUserId)
-                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
-                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
-                .eq(productType != null, Product::getProductType, productType)
-                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
-                .eq(query.getStatus() != null, Product::getStatus, query.getStatus())
-                .orderByDesc(Product::getCreateTime);
-        return convertPage(page(new Page<>(pageNum, pageSize), wrapper));
+        List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
+        if (storeIds.isEmpty()) {
+            return convertPage(new Page<>(resolvePageNum(query), resolvePageSize(query)));
+        }
+        LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
+                .in(Product::getStoreId, storeIds)
+                .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
+        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
     }
-
     @Override
     public Product requireOwnedProduct(Long productId, Long merchantUserId) {
         Product product = getActiveProduct(productId);
@@ -286,11 +225,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商品");
         }
         return product;
-    }
-
-    @Override
-    public ProductVO getMerchantDetail(Long id, Long merchantUserId) {
-        return toVO(requireOwnedProduct(id, merchantUserId));
     }
 
     @Override
@@ -309,24 +243,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             storeService.requireOwnedStore(dto.getStoreId(), merchantUserId);
         }
         return updateProduct(id, dto);
-    }
-
-    @Override
-    public Boolean deleteMerchantProduct(Long id, Long merchantUserId) {
-        requireOwnedProduct(id, merchantUserId);
-        return deleteProduct(id);
-    }
-
-    @Override
-    public ProductVO onlineMerchantProduct(Long id, Long merchantUserId) {
-        requireOwnedProduct(id, merchantUserId);
-        return onlineProduct(id);
-    }
-
-    @Override
-    public ProductVO offlineMerchantProduct(Long id, Long merchantUserId) {
-        requireOwnedProduct(id, merchantUserId);
-        return offlineProduct(id);
     }
 
     @Override
@@ -379,6 +295,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setOfflineTime(null);
         return toVO(product);
     }
+
+
+
 
     private Product getActiveProduct(Long id) {
         if (id == null) {
@@ -493,6 +412,119 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出状态由订单流程控制，不能手工设置");
         }
     }
+
+    /**
+     * 解析更新时的店铺 ID。已售出商品不可换店。
+     *
+     * @param oldProduct 原商品
+     * @param dto        更新参数
+     * @param soldProduct 是否已售出
+     * @return 最终的店铺 ID
+     */
+    private Long resolveUpdateStoreId(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
+        if (soldProduct) return oldProduct.getStoreId();
+        Long storeId = dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId();
+        if (!storeId.equals(oldProduct.getStoreId())) {
+            checkOperatingStore(storeId);
+        }
+        return storeId;
+    }
+
+    /**
+     * 解析更新时的商品类型。已售出宠物的类型不可变更。
+     *
+     * @param oldProduct  原商品
+     * @param dto         更新参数
+     * @param soldProduct 是否已售出
+     * @return 商品类型
+     */
+    private Integer resolveUpdateProductType(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
+        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
+        return (soldPet || dto.getProductType() == null) ? oldProduct.getProductType() : dto.getProductType();
+    }
+
+    /**
+     * 解析更新时的库存。已售出宠物库存强制为 0。
+     *
+     * @param oldProduct  原商品
+     * @param dto         更新参数
+     * @param soldProduct 是否已售出
+     * @return 库存数量
+     */
+    private Integer resolveUpdateStock(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
+        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
+        return soldPet ? 0 : (dto.getStock() == null ? oldProduct.getStock() : dto.getStock());
+    }
+
+    /**
+     * 解析更新时的价格，未传则保留原价。
+     *
+     * @param oldProduct 原商品
+     * @param dto        更新参数
+     * @return 价格
+     */
+    private BigDecimal resolveUpdatePrice(Product oldProduct, ProductUpdateDTO dto) {
+        return dto.getPrice() == null ? oldProduct.getPrice() : dto.getPrice();
+    }
+
+    /**
+     * 解析更新时的状态，已售出商品保持售出状态不变。
+     *
+     * @param oldProduct  原商品
+     * @param dto         更新参数
+     * @param soldProduct 是否已售出
+     * @return 状态码
+     */
+    private Integer resolveUpdateStatus(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
+        return soldProduct ? STATUS_SOLD : parseEditableStatus(dto.getStatus(), oldProduct.getStatus());
+    }
+
+    /**
+     * 解析更新时的图片 JSON，未传则保留原图。
+     *
+     * @param oldProduct 原商品
+     * @param dto        更新参数
+     * @return 图片 JSON 串
+     */
+    private String resolveUpdateImages(Product oldProduct, ProductUpdateDTO dto) {
+        return dto.getImages() == null ? oldProduct.getImages() : normalizeImages(dto.getImages());
+    }
+
+    /**
+     * 构造更新后的商品对象，委托给 {@link Product#mergeFrom}。
+     *
+     * @param oldProduct  原商品
+     * @param dto         更新参数
+     * @param storeId     店铺 ID
+     * @param productType 商品类型
+     * @param stock       库存
+     * @param price       价格
+     * @param status      状态
+     * @param images      图片 JSON
+     * @param soldProduct 是否已售出
+     * @return 待保存的商品实体
+     */
+    private Product buildUpdateProduct(Product oldProduct, ProductUpdateDTO dto, Long storeId, Integer productType, Integer stock, BigDecimal price, Integer status, String images, boolean soldProduct) {
+        return Product.mergeFrom(oldProduct, dto, storeId, productType, stock, price, status, images);
+    }
+    /**
+     * 构建商品分页查询的公共查询条件（模糊搜索、店铺/类型/类目过滤）。
+     * 各分页方法在此基础上追加自身差异化条件（如状态过滤、数据范围）。
+     *
+     * @param query 查询参数
+     * @return 基础查询构造器
+     */
+    private LambdaQueryWrapper<Product> buildBaseWrapper(ProductQueryDTO query) {
+        String keyword = resolveKeyword(query);
+        Integer productType = resolveProductType(query);
+        return new LambdaQueryWrapper<Product>()
+                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
+                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
+                .eq(productType != null, Product::getProductType, productType)
+                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
+                .orderByDesc(Product::getCreateTime);
+    }
+
 
     private IPage<ProductVO> convertPage(Page<Product> page) {
         Map<Long, Store> storeMap = loadStoreMap(page.getRecords());
@@ -612,6 +644,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return productType == TYPE_PET ? "活体宠物" : "宠物用品/周边";
     }
 
+    /**
+     * 解析查询参数中的商品类型，支持数字/中文入参。
+     *
+     * @param query 查询参数
+     * @return 商品类型编码（1活体宠物/2宠物用品），null 表示不限制
+     */
     private Integer resolveProductType(ProductQueryDTO query) {
         if (query.getProductType() != null) {
             return query.getProductType();
@@ -641,6 +679,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
+    /**
+     * 解析查询关键词，兼容 keyword 和 productName 两个字段。
+     *
+     * @param query 查询参数
+     * @return 去掉首尾空白的搜索词，null 表示不搜索
+     */
     private String resolveKeyword(ProductQueryDTO query) {
         String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
         return StringUtils.hasText(keyword) ? keyword.trim() : null;
@@ -648,6 +692,22 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
 
 
+    /**
+     * 解析分页页码，兼容 page 和 pageNum 两个字段。
+     *
+     * @param query 查询参数
+     * @return 页码（默认 1）
+     */
+    private long resolvePageNum(ProductQueryDTO query) {
+        return query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
+    }
+
+    /**
+     * 解析分页大小，兼容 size 和 pageSize 两个字段，上限 100。
+     *
+     * @param query 查询参数
+     * @return 每页条数（默认 10，最大 100）
+     */
     private long resolvePageSize(ProductQueryDTO query) {
         Long size = query.getSize() != null ? query.getSize() : query.getPageSize();
         return size == null ? 10L : Math.min(size, 100L);

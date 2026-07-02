@@ -10,7 +10,6 @@ import com.pat.common.exception.BusinessException;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.StoreVO;
-import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import com.pat.common.util.UserHolder;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,11 +26,9 @@ import java.math.BigDecimal;
 public class MerchantStoreController {
 
     private final IStoreService storeService;
-    private final MapHelper mapHelper;
 
-    public MerchantStoreController(IStoreService storeService, MapHelper mapHelper) {
+    public MerchantStoreController(IStoreService storeService) {
         this.storeService = storeService;
-        this.mapHelper = mapHelper;
     }
 
     @Operation(summary = "商家端门店分页查询")
@@ -57,34 +54,13 @@ public class MerchantStoreController {
     @Operation(summary = "新增门店")
     @PostMapping
     public Result<Boolean> create(@RequestBody @Valid StoreDTO param) {
-        validateCreate(param);
-        fillCoordinates(param);
-        Store store = new Store();
-        copyMerchantFields(param, store);
-        store.setUserId(UserHolder.getUserId());
-        store.setStatus(0);
-        store.setDeleted(0);
-        if (!storeService.save(store)) {
-            throw new BusinessException(ErrorCode.SAVE_FAILED, "商店新增失败");
-        }
-        return Result.success(true);
+        return Result.success(storeService.createStore(param, UserHolder.getUserId()));
     }
 
     @Operation(summary = "修改门店")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid StoreDTO param) {
-        Store original = storeService.requireOwnedStore(id, UserHolder.getUserId());
-        fillCoordinates(param);
-        Store update = new Store();
-        copyMerchantFields(param, update);
-        update.setId(id);
-        update.setUserId(original.getUserId());
-        update.setStatus(0);
-        update.setDeleted(null);
-        if (!storeService.updateById(update)) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店修改失败");
-        }
-        return Result.success(true);
+        return Result.success(storeService.updateStore(id, param, UserHolder.getUserId()));
     }
 
     @Operation(summary = "删除门店")
@@ -98,24 +74,7 @@ public class MerchantStoreController {
         return Result.success(true);
     }
 
-    private void validateCreate(StoreDTO param) {
-        if (param == null || !StringUtils.hasText(param.getStoreName())) {
-            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店名称不能为空");
-        }
-        if (!StringUtils.hasText(param.getAddress()) && (param.getLatitude() == null || param.getLongitude() == null)) {
-            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "地址或经纬度至少提供一个");
-        }
-    }
 
-    private void fillCoordinates(StoreDTO param) {
-        if (param.getLongitude() != null && param.getLatitude() != null) return;
-        if (!StringUtils.hasText(param.getAddress())) return;
-        BigDecimal[] coords = mapHelper.geocode(param.getProvince(), param.getCity(), param.getDistrict(), param.getAddress());
-        if (coords != null) {
-            param.setLongitude(coords[0]);
-            param.setLatitude(coords[1]);
-        }
-    }
 
     private StoreVO toVO(Store store) {
         StoreVO vo = new StoreVO();
@@ -131,16 +90,4 @@ public class MerchantStoreController {
         return vo;
     }
 
-    private void copyMerchantFields(StoreDTO param, Store target) {
-        target.setStoreName(param.getStoreName());
-        target.setStoreLogo(param.getStoreLogo());
-        target.setStorePhone(param.getStorePhone());
-        target.setStoreDesc(param.getStoreDesc());
-        target.setProvince(param.getProvince());
-        target.setCity(param.getCity());
-        target.setDistrict(param.getDistrict());
-        target.setAddress(param.getAddress());
-        target.setLongitude(param.getLongitude());
-        target.setLatitude(param.getLatitude());
-    }
 }

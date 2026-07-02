@@ -12,6 +12,8 @@ import com.pat.store.domain.entity.Store;
 import com.pat.store.helper.StoreStateMachine;
 import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.mapper.StoreMapper;
+import com.pat.store.domain.dto.StoreDTO;
+import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -21,10 +23,78 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
 
 @Service
 public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements IStoreService {
+
+    private record StoreStatusChange(
+            Integer targetStatus,
+            Long auditUserId,
+            String auditRemark,
+            String closeReason,
+            String failMsg,
+            boolean checkDeleted) {
+    }
+
+    private final MapHelper mapHelper;
+
+    public StoreServiceImpl(MapHelper mapHelper) {
+        this.mapHelper = mapHelper;
+    }
+
+
+    @Override
+    /**
+     * 商户/管理员创建门店。merchantUserId 非空表示走商家端流程（userId 用当前登录用户，状态置为待审核）。
+     */
+    public boolean createStore(StoreDTO param, Long merchantUserId) {
+        if (param == null || !StringUtils.hasText(param.getStoreName())) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店名称不能为空");
+        }
+        fillCoordinates(param);
+        Store entity = Store.from(param);
+        if (merchantUserId != null) {
+            entity.setUserId(merchantUserId);
+            entity.setStatus(0);
+        } else {
+            if (param.getUserId() == null) {
+                throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "店主用户ID不能为空");
+            }
+            entity.setUserId(param.getUserId());
+            if (entity.getStatus() == null) entity.setStatus(0);
+        }
+        entity.setDeleted(0);
+        return save(entity);
+    }
+
+    @Override
+    /**
+     * 商户/管理员修改门店。商户端修改后状态重置为待审核。
+     */
+    public boolean updateStore(Long id, StoreDTO param, Long merchantUserId) {
+        fillCoordinates(param);
+        if (merchantUserId != null) {
+            requireOwnedStore(id, merchantUserId);
+        }
+        Store entity = Store.from(param);
+        entity.setId(id);
+        entity.setDeleted(null);
+        return updateById(entity);
+    }
+
+    /**
+     * 地址反查经纬度。如果 DTO 已有经纬度则跳过，避免覆盖手工填写的精确坐标。
+     */
+    private void fillCoordinates(StoreDTO param) {
+        if (param.getLongitude() != null && param.getLatitude() != null) return;
+        if (!StringUtils.hasText(param.getAddress())) return;
+        java.math.BigDecimal[] coords = mapHelper.geocode(
+                param.getProvince(), param.getCity(), param.getDistrict(), param.getAddress());
+        if (coords != null) {
+            param.setLongitude(coords[0]);
+            param.setLatitude(coords[1]);
+        }
+    }
 
     @Override
     public void validateStatus(Integer status) {
@@ -38,42 +108,14 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (auditUserId == null) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前审核人员");
         }
-        Store store = requireStore(storeId);
-        StoreStateMachine.validate(store.getStatus(), 1);
-        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
-                .set(Store::getStatus, 1)
-                .set(Store::getAuditUserId, auditUserId)
-                .set(Store::getAuditTime, LocalDateTime.now())
-                .set(Store::getAuditRemark, (String) null)
-                .set(Store::getCloseReason, (String) null)
-                .eq(Store::getId, storeId)
-                .eq(Store::getStatus, store.getStatus()));
-        if (rows != 1) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "店铺重新开业失败");
-        }
-        store.setStatus(1);
-        store.setAuditUserId(auditUserId);
-        store.setAuditTime(LocalDateTime.now());
-        store.setAuditRemark(null);
-        store.setCloseReason(null);
-        return store;
+        var change = new StoreStatusChange(1, auditUserId, null, null, "店铺重新开业失败", false);
+        return transitionStatus(storeId, change);
     }
 
     @Override
     public Store resubmitStore(Long storeId) {
-        Store store = requireStore(storeId);
-        StoreStateMachine.validate(store.getStatus(), 0);
-        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
-                .set(Store::getStatus, 0)
-                .set(Store::getAuditRemark, (String) null)
-                .eq(Store::getId, storeId)
-                .eq(Store::getStatus, store.getStatus()));
-        if (rows != 1) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "店铺重新提交审核失败");
-        }
-        store.setStatus(0);
-        store.setAuditRemark(null);
-        return store;
+        var change = new StoreStatusChange(0, null, null, null, "店铺重新提交审核失败", false);
+        return transitionStatus(storeId, change);
     }
 
     @Override
@@ -118,8 +160,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             result.setRecords(Collections.emptyList());
             return result;
         }
-        result.setRecords(baseMapper.selectNearby(query.getLongitude(), query.getLatitude(), radiusKm,
-                query.getKeyword(), query.getCity(), size, offset));
+        List<NearbyStoreRow> rows = baseMapper.selectNearby(query.getLongitude(), query.getLatitude(),
+                radiusKm, query.getKeyword(), query.getCity(), offset, size);
+        result.setRecords(rows);
         return result;
     }
 
@@ -172,24 +215,8 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (!Integer.valueOf(0).equals(store.getStatus())) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有待审核门店可以执行审核");
         }
-        StoreStateMachine.validate(store.getStatus(), status);
-        LocalDateTime auditTime = LocalDateTime.now();
-        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
-                .set(Store::getStatus, status)
-                .set(Store::getAuditUserId, auditUserId)
-                .set(Store::getAuditTime, auditTime)
-                .set(Store::getAuditRemark, auditRemark)
-                .eq(Store::getId, storeId)
-                .eq(Store::getStatus, store.getStatus())
-                .eq(Store::getDeleted, 0));
-        if (rows != 1) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有待审核门店可以执行审核");
-        }
-        store.setStatus(status);
-        store.setAuditUserId(auditUserId);
-        store.setAuditTime(auditTime);
-        store.setAuditRemark(auditRemark);
-        return store;
+        var change = new StoreStatusChange(status, auditUserId, auditRemark, null, "只有待审核门店可以执行审核", true);
+        return transitionStatus(store, change);
     }
 
     @Override
@@ -197,32 +224,56 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (!StringUtils.hasText(closeReason)) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "门店关闭原因不能为空");
         }
-        Store store = getById(storeId);
-        if (store == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
-        }
+        Store store = requireStore(storeId);
         if (!Integer.valueOf(1).equals(store.getStatus())) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中门店可以关闭");
         }
-        StoreStateMachine.validate(store.getStatus(), 2);
         Long onlineCount = countOnlineProducts(storeId);
         if (onlineCount != null && onlineCount > 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "门店仍有上架商品，不能关闭");
         }
-        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
-                .set(Store::getStatus, 2)
-                .set(Store::getCloseReason, closeReason)
-                .eq(Store::getId, storeId)
-                .eq(Store::getStatus, store.getStatus())
-                .eq(Store::getDeleted, 0));
-        if (rows != 1) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中门店可以关闭");
-        }
-        store.setStatus(2);
-        store.setCloseReason(closeReason);
-        return store;
+        var change = new StoreStatusChange(2, null, null, closeReason, "只有营业中门店可以关闭", true);
+        return transitionStatus(store, change);
+    }
+    /**
+     * 统一的状态变更方法（按 storeId 查）+ 校验状态机 → 乐观锁更新 → 回写实体
+     */
+    private Store transitionStatus(Long storeId, StoreStatusChange change) {
+        return transitionStatus(requireStore(storeId), change);
     }
 
+    /**
+     * 统一的状态变更方法：校验状态机 → 乐观锁更新 → 回写实体
+     */
+    private Store transitionStatus(Store store, StoreStatusChange change) {
+        StoreStateMachine.validate(store.getStatus(), change.targetStatus());
+        LocalDateTime now = LocalDateTime.now();
+
+        LambdaUpdateWrapper<Store> wrapper = new LambdaUpdateWrapper<Store>()
+                .set(Store::getStatus, change.targetStatus())
+                .set(change.auditUserId() != null, Store::getAuditUserId, change.auditUserId())
+                .set(Store::getAuditTime, now)
+                .set(Store::getAuditRemark, change.auditRemark())
+                .set(Store::getCloseReason, change.closeReason())
+                .eq(Store::getId, store.getId())
+                .eq(Store::getStatus, store.getStatus());
+
+        if (change.checkDeleted()) {
+            wrapper.eq(Store::getDeleted, 0);
+        }
+
+        int rows = baseMapper.update(null, wrapper);
+        if (rows != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, change.failMsg());
+        }
+
+        store.setStatus(change.targetStatus());
+        if (change.auditUserId() != null) store.setAuditUserId(change.auditUserId());
+        store.setAuditTime(now);
+        store.setAuditRemark(change.auditRemark());
+        store.setCloseReason(change.closeReason());
+        return store;
+    }
     private Store requireStore(Long storeId) {
         return requireStore(storeId, ErrorCode.NOT_FOUND, "商店不存在");
     }

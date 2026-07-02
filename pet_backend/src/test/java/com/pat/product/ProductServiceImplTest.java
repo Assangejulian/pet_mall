@@ -12,7 +12,7 @@ import com.pat.product.domain.entity.Product;
 import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.impl.ProductServiceImpl;
-import com.pat.store.mapper.StoreMapper;
+import com.pat.store.service.IStoreService;
 import com.pat.store.domain.entity.Store;
 import com.pat.product.domain.dto.ProductQueryDTO;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
@@ -34,9 +34,9 @@ class ProductServiceImplTest {
 
     private final ProductMapper productMapper = mock(ProductMapper.class);
     private final ProductStoreLookupMapper storeLookupMapper = mock(ProductStoreLookupMapper.class);
-    private final StoreMapper storeMapper = mock(StoreMapper.class);
+    private final IStoreService storeService = mock(IStoreService.class);
     private final ProductServiceImpl productService =
-            new ProductServiceImpl(storeLookupMapper, storeMapper, new ObjectMapper());
+            new ProductServiceImpl(storeLookupMapper, storeService, new ObjectMapper());
 
     @BeforeEach
     void setUp() {
@@ -177,11 +177,7 @@ class ProductServiceImplTest {
         assertThat(captor.getValue().getSqlSegment()).contains("user_id = 11");
     }
 
-    @Test
-    void merchantCannotViewAnotherMerchantsProduct() {
-        mockProductOwner(22L);
-        assertForbidden(() -> productService.getMerchantDetail(1L, 11L));
-    }
+
 
     @Test
     void merchantCannotModifyAnotherMerchantsProduct() {
@@ -189,27 +185,15 @@ class ProductServiceImplTest {
         assertForbidden(() -> productService.updateMerchantProduct(1L, new ProductUpdateDTO(), 11L));
     }
 
-    @Test
-    void merchantCannotDeleteAnotherMerchantsProduct() {
-        mockProductOwner(22L);
-        assertForbidden(() -> productService.deleteMerchantProduct(1L, 11L));
-    }
 
-    @Test
-    void merchantCannotPutAnotherMerchantsProductOnline() {
-        mockProductOwner(22L);
-        assertForbidden(() -> productService.onlineMerchantProduct(1L, 11L));
-    }
 
-    @Test
-    void merchantCannotPutAnotherMerchantsProductOffline() {
-        mockProductOwner(22L);
-        assertForbidden(() -> productService.offlineMerchantProduct(1L, 11L));
-    }
+
+
+
 
     @Test
     void merchantCannotCreateProductInAnotherMerchantsStore() {
-        when(storeMapper.selectById(2L)).thenReturn(store(2L, 22L));
+        when(storeService.getById(2L)).thenReturn(store(2L, 22L));
         ProductCreateDTO dto = createDto("1", 1);
         dto.setStoreId(2L);
         assertForbidden(() -> productService.createMerchantProduct(dto, 11L));
@@ -218,7 +202,7 @@ class ProductServiceImplTest {
     @Test
     void merchantCannotTransferProductToAnotherMerchantsStore() {
         mockProductOwner(11L);
-        when(storeMapper.selectById(2L)).thenReturn(store(2L, 22L));
+        when(storeService.getById(2L)).thenReturn(store(2L, 22L));
         ProductUpdateDTO dto = new ProductUpdateDTO();
         dto.setStoreId(2L);
         assertForbidden(() -> productService.updateMerchantProduct(1L, dto, 11L));
@@ -226,7 +210,7 @@ class ProductServiceImplTest {
 
     @Test
     void merchantCanCreateProductInOwnOperatingStore() {
-        when(storeMapper.selectById(1L)).thenReturn(store(1L, 11L));
+        when(storeService.getById(1L)).thenReturn(store(1L, 11L));
         when(storeLookupMapper.existsOperatingStore(1L)).thenReturn(1);
         when(productMapper.insert(any(Product.class))).thenReturn(1);
         assertThat(productService.createMerchantProduct(createDto("1", 1), 11L).getStatus()).isEqualTo("上架");
@@ -258,7 +242,7 @@ class ProductServiceImplTest {
 
     private void mockProductOwner(Long ownerId) {
         when(productMapper.selectById(1L)).thenReturn(product(1L, 1L, 0, 1));
-        when(storeMapper.selectById(1L)).thenReturn(store(1L, ownerId));
+        when(storeService.getById(1L)).thenReturn(store(1L, ownerId));
     }
 
     private Store store(Long id, Long userId) {

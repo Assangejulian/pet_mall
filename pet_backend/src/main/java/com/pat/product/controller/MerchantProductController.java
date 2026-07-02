@@ -7,6 +7,7 @@ import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.product.service.ProductService;
+import com.pat.store.service.IStoreService;
 import com.pat.common.util.UserHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,9 +20,12 @@ import org.springframework.web.bind.annotation.*;
 public class MerchantProductController {
 
     private final ProductService productService;
+    private final IStoreService storeService;
 
-    public MerchantProductController(ProductService productService) {
+    public MerchantProductController(ProductService productService,
+                                     IStoreService storeService) {
         this.productService = productService;
+        this.storeService = storeService;
     }
 
     @Operation(summary = "商家端商品分页查询")
@@ -33,13 +37,15 @@ public class MerchantProductController {
     @Operation(summary = "商品详情（商家端）")
     @GetMapping("/{id}")
     public Result<ProductVO> detail(@PathVariable Long id) {
-        return Result.success(productService.getMerchantDetail(id, UserHolder.getUserId()));
+        productService.requireOwnedProduct(id, UserHolder.getUserId());
+        return Result.success(productService.getAdminDetail(id));
     }
 
     @Operation(summary = "新增商品")
     @PostMapping
     public Result<ProductVO> create(@RequestBody @Valid ProductCreateDTO dto) {
-        return Result.success(productService.createMerchantProduct(dto, UserHolder.getUserId()));
+        storeService.requireOwnedStore(dto.getStoreId(), UserHolder.getUserId());
+        return Result.success(productService.createProduct(dto));
     }
 
     @Operation(summary = "修改商品")
@@ -51,18 +57,21 @@ public class MerchantProductController {
     @Operation(summary = "删除商品")
     @DeleteMapping("/{id}")
     public Result<Boolean> delete(@PathVariable Long id) {
-        return Result.success(productService.deleteMerchantProduct(id, UserHolder.getUserId()));
+        productService.requireOwnedProduct(id, UserHolder.getUserId());
+        return Result.success(productService.deleteProduct(id));
     }
 
     @Operation(summary = "商品上架")
     @PutMapping("/{id}/online")
     public Result<ProductVO> online(@PathVariable Long id) {
-        return Result.success(productService.onlineMerchantProduct(id, UserHolder.getUserId()));
+        productService.requireOwnedProduct(id, UserHolder.getUserId());
+        return Result.success(productService.onlineProduct(id));
     }
 
     @Operation(summary = "商品下架")
     @PutMapping("/{id}/offline")
     public Result<ProductVO> offline(@PathVariable Long id) {
-        return Result.success(productService.offlineMerchantProduct(id, UserHolder.getUserId()));
+        productService.requireOwnedProduct(id, UserHolder.getUserId());
+        return Result.success(productService.offlineProduct(id));
     }
 }

@@ -33,6 +33,21 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return uid;
     }
 
+    /**
+     * 校验购物车记录归属当前用户，防止越权操作。
+     *
+     * @param id 购物车记录 ID
+     * @return 归属当前用户的购物车记录
+     * @throws BusinessException 记录不存在或无权限
+     */
+    private Cart requireOwnedCart(Long id) {
+        Long userId = requireUserId();
+        Cart cart = getById(id);
+        if (cart == null) throw new BusinessException(ErrorCode.NOT_FOUND, "购物车记录不存在");
+        if (!userId.equals(cart.getUserId())) throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
+        return cart;
+    }
+
     @Override
     public List<CartVO> getCurrentUserCart() {
         List<Cart> carts = lambdaQuery()
@@ -111,11 +126,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     @Override
     public void updateCartItem(Long id, Cart cart) {
         Long userId = requireUserId();
-        Cart exist = getById(id);
-        if (exist == null)
-            throw new BusinessException(ErrorCode.NOT_FOUND, "购物车记录不存在");
-        if (!userId.equals(exist.getUserId()))
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
+        requireOwnedCart(id);
         cart.setId(id);
         cart.setUserId(userId);
         updateById(cart);
@@ -123,12 +134,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     @Override
     public void removeCartItem(Long id) {
-        Long userId = requireUserId();
-        Cart exist = getById(id);
-        if (exist == null)
-            throw new BusinessException(ErrorCode.NOT_FOUND, "购物车记录不存在");
-        if (!userId.equals(exist.getUserId()))
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
+        requireOwnedCart(id);
         removeById(id);
     }
 }

@@ -27,6 +27,12 @@ public final class StoreStateMachine {
 
     private StoreStateMachine() {}
 
+    /**
+     * 校验店铺状态是否允许流转，非法流转抛出异常。
+     *
+     * @param currentCode 当前状态
+     * @param targetCode 目标状态
+     */
     public static void validate(Integer currentCode, Integer targetCode) {
         if (currentCode == null || targetCode == null) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "状态码不能为空");

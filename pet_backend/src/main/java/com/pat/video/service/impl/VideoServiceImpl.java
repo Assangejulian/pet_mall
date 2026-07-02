@@ -10,6 +10,11 @@ import org.springframework.stereotype.Service;
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements IVideoService {
 
     @Override
+    /**
+     * 增加视频播放次数。
+     *
+     * @param id 视频 ID
+     */
     public void incrementPlayCount(Long id) {
         Video video = this.getById(id);
         if (video != null) {
@@ -19,6 +24,11 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     }
 
     @Override
+    /**
+     * 增加视频点赞数。
+     *
+     * @param id 视频 ID
+     */
     public void incrementLikes(Long id) {
         Video video = this.getById(id);
         if (video != null) {

@@ -29,6 +29,13 @@ public final class ProductStateMachine {
 
     private ProductStateMachine() {}
 
+    /**
+     * 校验商品状态是否允许从 currentCode 流转到 targetCode。
+     * 非法流转抛出 BusinessException。
+     *
+     * @param currentCode 当前状态
+     * @param targetCode 目标状态
+     */
     public static void validate(Integer currentCode, Integer targetCode) {
         if (currentCode == null || targetCode == null) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品状态码不能为空");

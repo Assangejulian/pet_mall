@@ -10,7 +10,7 @@ import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
-import com.pat.order.mapper.OrderItemMapper;
+import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.order.service.OrderQueryService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.store.service.IStoreService;
@@ -24,14 +24,14 @@ import java.util.stream.Collectors;
 public class OrderQueryServiceImpl implements OrderQueryService {
 
     private final PurchaseOrderBaseService baseService;
-    private final OrderItemMapper orderItemMapper;
+    private final OrderQueryMapper orderQueryMapper;
     private final IStoreService storeService;
 
     public OrderQueryServiceImpl(PurchaseOrderBaseService baseService,
-                                 OrderItemMapper orderItemMapper,
+                                 OrderQueryMapper orderQueryMapper,
                                  IStoreService storeService) {
         this.baseService = baseService;
-        this.orderItemMapper = orderItemMapper;
+        this.orderQueryMapper = orderQueryMapper;
         this.storeService = storeService;
     }
 
@@ -46,7 +46,7 @@ public class OrderQueryServiceImpl implements OrderQueryService {
                 return new Page<Map<String, Object>>(page.getCurrent(), page.getSize()).setRecords(List.of());
             }
             String idsStr = storeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-            List<Long> orderIds = orderItemMapper.selectOrderIdsByStoreIds(idsStr);
+            List<Long> orderIds = orderQueryMapper.selectOrderIdsByStoreIds(idsStr);
             if (orderIds.isEmpty()) {
                 return new Page<Map<String, Object>>(page.getCurrent(), page.getSize()).setRecords(List.of());
             }
@@ -62,10 +62,16 @@ public class OrderQueryServiceImpl implements OrderQueryService {
 
         IPage<PurchaseOrder> result = baseService.page(new Page<>(page.getCurrent(), page.getSize()), wrapper);
 
+        // 批量查订单项，避免 N+1
+        List<Long> orderIds = result.getRecords().stream().map(PurchaseOrder::getId).collect(Collectors.toList());
+        List<OrderItem> allItems = orderIds.isEmpty() ? List.of()
+                : orderQueryMapper.selectItemsByOrderIds(orderIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+        Map<Long, List<OrderItem>> itemsByOrderId = allItems.stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+
         List<Map<String, Object>> records = result.getRecords().stream().map(order -> {
-            List<OrderItem> items = orderItemMapper.selectList(
-                    new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
-            order.setItems(items);
+            order.setItems(itemsByOrderId.getOrDefault(order.getId(), List.of()));
             Map<String, Object> map = BeanUtil.beanToMap(order);
             enrichAddressAndUser(map, order);
             return map;
@@ -85,15 +91,14 @@ public class OrderQueryServiceImpl implements OrderQueryService {
             List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
             if (!storeIds.isEmpty()) {
                 String idsStr = storeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-                List<Long> orderIds = orderItemMapper.selectOrderIdsByStoreIds(idsStr);
+                List<Long> orderIds = orderQueryMapper.selectOrderIdsByStoreIds(idsStr);
                 if (!orderIds.contains(id)) {
                     throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看该订单");
                 }
             }
         }
 
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", id));
+        List<OrderItem> items = orderQueryMapper.selectItemsByOrderIds(String.valueOf(id));
         Map<String, Object> map = BeanUtil.beanToMap(order);
         map.put("items", items);
         enrichAddressAndUser(map, order);

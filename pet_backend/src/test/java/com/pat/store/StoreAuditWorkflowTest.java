@@ -341,7 +341,7 @@ class StoreAuditWorkflowTest {
         dto.setUserId(22L);
         dto.setStatus(null);
 
-        controller.save(dto);
+        controller.create(dto);
 
         ArgumentCaptor<Store> captor = ArgumentCaptor.forClass(Store.class);
         verify(storeService).save(captor.capture());

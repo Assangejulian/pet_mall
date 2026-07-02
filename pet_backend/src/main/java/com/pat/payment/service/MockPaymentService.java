@@ -24,6 +24,12 @@ public class MockPaymentService implements PaymentService {
     }
 
     @Override
+    /**
+     * 模拟支付（开发/测试用）。校验状态机后置为已支付。
+     *
+     * @param order 待支付订单
+     * @return 支付结果 VO
+     */
     public OrderPaymentVO pay(PurchaseOrder order) {
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
         order.setOrderStatus(OrderStatus.PAID.getCode());
@@ -35,6 +41,11 @@ public class MockPaymentService implements PaymentService {
     }
 
     @Override
+    /**
+     * 模拟支付回调处理。
+     *
+     * @param dto 回调参数
+     */
     public void handleNotify(PayNotifyDTO dto) {
         PurchaseOrder order = baseService.lambdaQuery()
                 .eq(PurchaseOrder::getOrderNo, dto.getOutTradeNo())

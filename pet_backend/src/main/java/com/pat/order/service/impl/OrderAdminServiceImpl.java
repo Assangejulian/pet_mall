@@ -1,7 +1,6 @@
 package com.pat.order.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCancelDTO;
@@ -9,10 +8,8 @@ import com.pat.order.domain.dto.OrderRefundDTO;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
-import com.pat.product.helper.ProductStateMachine;
-import com.pat.product.mapper.ProductMapper;
 import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.mapper.OrderItemMapper;
+import com.pat.order.mapper.OrderAdminMapper;
 import com.pat.order.service.IOrderAdminService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import org.slf4j.Logger;
@@ -23,28 +20,32 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 管理端特有订单操作：取消、退款审核、支付回调
- */
 @Service
 public class OrderAdminServiceImpl implements IOrderAdminService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderAdminServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
-    private final ProductMapper productMapper;
-    private final OrderItemMapper orderItemMapper;
+    private final OrderAdminMapper orderAdminMapper;
 
     public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
-                                 ProductMapper productMapper,
-                                 OrderItemMapper orderItemMapper) {
+                                 OrderAdminMapper orderAdminMapper) {
         this.baseService = baseService;
-        this.productMapper = productMapper;
-        this.orderItemMapper = orderItemMapper;
+        this.orderAdminMapper = orderAdminMapper;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+
+     * 取消订单（管理端）。校验状态机后执行取消，记录取消原因和时间。
+
+     *
+
+     * @param dto 取消参数（订单 ID + 原因）
+
+     */
+
     public void cancelOrder(OrderCancelDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
@@ -58,16 +59,24 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+
+     * 退款审核（通过/驳回）。通过则置为已退款，驳回则恢复已收货状态。
+
+     *
+
+     * @param dto 退款审核参数
+
+     */
+
     public void refundApprove(OrderRefundDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         Integer current = order.getOrderStatus();
 
         if (dto.getApproved()) {
-            // 退款通过：refunding(-2) → refunded(-3)
             OrderStateMachine.validate(current, OrderStatus.REFUNDED.getCode());
             order.setOrderStatus(OrderStatus.REFUNDED.getCode());
         } else {
-            // 驳回：refunding(-2) → received(3)
             OrderStateMachine.validate(current, OrderStatus.RECEIVED.getCode());
             order.setOrderStatus(OrderStatus.RECEIVED.getCode());
             order.setCancelReason(dto.getRejectReason());
@@ -79,6 +88,16 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+
+     * 直接退款（不经过申请流程）。用于管理端主动退款操作。
+
+     *
+
+     * @param dto 退款参数
+
+     */
+
     public void refundDirect(OrderCancelDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
@@ -92,6 +111,16 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+
+     * 支付成功回调。将订单置为已支付状态，并批量标记对应商品为已售出。
+
+     *
+
+     * @param orderNo 订单号
+
+     */
+
     public void paySuccess(String orderNo) {
         PurchaseOrder order = baseService.lambdaQuery()
                 .eq(PurchaseOrder::getOrderNo, orderNo)
@@ -100,25 +129,14 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
             log.warn("paySuccess 订单不存在: {}", orderNo);
             return;
         }
-        // 走状态机校验，而不是直接绕过
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
         order.setOrderStatus(OrderStatus.PAID.getCode());
         order.setPayTime(LocalDateTime.now());
         baseService.updateById(order);
 
-        // 支付成功后，将订单中所有商品标记为已售出
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
-        for (OrderItem item : items) {
-            productMapper.update(null, new LambdaUpdateWrapper<com.pat.product.domain.entity.Product>()
-                    .set(com.pat.product.domain.entity.Product::getStatus, ProductStateMachine.SOLD)
-                    .eq(com.pat.product.domain.entity.Product::getId, item.getProductId())
-                    .eq(com.pat.product.domain.entity.Product::getStatus, ProductStateMachine.ONLINE));
-        }
-        log.info("支付成功 orderNo={}, 已更新{}件商品为已售出", orderNo, items.size());
+        int count = orderAdminMapper.batchMarkProductsAsSold(order.getId());
+        log.info("支付成功 orderNo={}, 已更新{}件商品为已售出", orderNo, count);
     }
-
-    // ========== 私有方法 ==========
 
     private PurchaseOrder getOrderById(Long id) {
         PurchaseOrder order = baseService.getById(id);

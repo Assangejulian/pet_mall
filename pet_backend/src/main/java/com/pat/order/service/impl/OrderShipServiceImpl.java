@@ -6,7 +6,7 @@ import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.mapper.OrderItemMapper;
+import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.order.service.OrderShipService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.store.service.IStoreService;
@@ -25,14 +25,14 @@ public class OrderShipServiceImpl implements OrderShipService {
     private static final Logger log = LoggerFactory.getLogger(OrderShipServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
-    private final OrderItemMapper orderItemMapper;
+    private final OrderQueryMapper orderQueryMapper;
     private final IStoreService storeService;
 
     public OrderShipServiceImpl(PurchaseOrderBaseService baseService,
-                                OrderItemMapper orderItemMapper,
+                                 OrderQueryMapper orderQueryMapper,
                                 IStoreService storeService) {
         this.baseService = baseService;
-        this.orderItemMapper = orderItemMapper;
+        this.orderQueryMapper = orderQueryMapper;
         this.storeService = storeService;
     }
 
@@ -46,7 +46,7 @@ public class OrderShipServiceImpl implements OrderShipService {
             List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
             if (!storeIds.isEmpty()) {
                 String idsStr = storeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-                List<Long> orderIds = orderItemMapper.selectOrderIdsByStoreIds(idsStr);
+                List<Long> orderIds = orderQueryMapper.selectOrderIdsByStoreIds(idsStr);
                 if (!orderIds.contains(dto.getOrderId())) {
                     throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该订单");
                 }

@@ -21,7 +21,7 @@ import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.payment.service.PaymentServiceRouter;
 import com.pat.product.domain.entity.Product;
-import com.pat.product.mapper.ProductMapper;
+import com.pat.product.service.ProductService;
 import com.pat.user.domain.entity.UserAddress;
 import com.pat.user.mapper.UserAddressMapper;
 import com.pat.common.util.UserHolder;
@@ -38,20 +38,20 @@ import java.util.stream.Collectors;
 public class OrderUserServiceImpl implements IOrderUserService {
 
     private final PurchaseOrderBaseService baseService;
-    private final ProductMapper productMapper;
+        private final ProductService productService;
     private final UserAddressMapper addressMapper;
     private final ICartService cartService;
     private final OrderItemMapper orderItemMapper;
     private final PaymentServiceRouter paymentServiceRouter;
 
     public OrderUserServiceImpl(PurchaseOrderBaseService baseService,
-                                ProductMapper productMapper,
+                                                                 ProductService productService,
                                 UserAddressMapper addressMapper,
                                 ICartService cartService,
                                 OrderItemMapper orderItemMapper,
                                 PaymentServiceRouter paymentServiceRouter) {
         this.baseService = baseService;
-        this.productMapper = productMapper;
+                this.productService = productService;
         this.addressMapper = addressMapper;
         this.cartService = cartService;
         this.orderItemMapper = orderItemMapper;
@@ -74,6 +74,12 @@ public class OrderUserServiceImpl implements IOrderUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+     * 创建订单。行级锁扣库存、地址快照、生成订单号、清购物车。
+     *
+     * @param dto 下单参数
+     * @return 新订单 ID
+     */
     public Long createOrder(OrderCreateDTO dto) {
         Long userId = requireUserId();
         List<OrderCreateDTO.OrderItemDTO> items = dto.getItems();
@@ -82,17 +88,11 @@ public class OrderUserServiceImpl implements IOrderUserService {
 
         // 行级锁校验库存 + 扣库存
         for (OrderCreateDTO.OrderItemDTO item : items) {
-            Product product = productMapper.selectForUpdateById(item.getProductId());
-            if (product == null)
-                throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
-            if (product.getStatus() != 1)
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架");
-            if (product.getStock() < item.getQuantity())
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存不足");
+            boolean deducted = productService.deductStock(item.getProductId(), item.getQuantity());
+            if (!deducted)
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品库存不足或已下架");
 
-            product.setStock(product.getStock() - item.getQuantity());
-            productMapper.updateById(product);
-
+            Product product = productService.getById(item.getProductId());
             OrderItem oi = new OrderItem();
             oi.setProductId(product.getId());
             oi.setProductName(product.getProductName());
@@ -143,6 +143,13 @@ public class OrderUserServiceImpl implements IOrderUserService {
     }
 
     @Override
+    /**
+     * 获取当前用户的订单列表（分页），附带商品明细。
+     *
+     * @param orderStatus 状态筛选
+     * @param page 分页参数
+     * @return 分页订单
+     */
     public IPage<PurchaseOrder> getUserOrderList(Integer orderStatus, Page<PurchaseOrder> page) {
         Long userId = requireUserId();
         QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<PurchaseOrder>()
@@ -159,6 +166,12 @@ public class OrderUserServiceImpl implements IOrderUserService {
     }
 
     @Override
+    /**
+     * 获取当前用户某笔订单详情。
+     *
+     * @param id 订单 ID
+     * @return 订单详情
+     */
     public PurchaseOrder getUserOrderDetail(Long id) {
         PurchaseOrder order = getOwnedOrder(id);
         List<OrderItem> items = orderItemMapper.selectList(
@@ -170,6 +183,12 @@ public class OrderUserServiceImpl implements IOrderUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+     * 支付订单。路由到具体支付策略。
+     *
+     * @param dto 支付参数
+     * @return 支付结果 VO
+     */
     public OrderPaymentVO payOrder(OrderPaymentDTO dto) {
         PurchaseOrder order = baseService.lambdaQuery()
                 .eq(PurchaseOrder::getOrderNo, dto.getOrderNo())
@@ -184,6 +203,12 @@ public class OrderUserServiceImpl implements IOrderUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    /**
+     * 确认收货。状态机校验后置为已收货。
+     *
+     * @param id 订单 ID
+     * @return 更新后的订单
+     */
     public PurchaseOrder confirmReceive(Long id) {
         PurchaseOrder order = getOwnedOrder(id);
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.RECEIVED.getCode());
@@ -197,6 +222,12 @@ public class OrderUserServiceImpl implements IOrderUserService {
     }
 
     @Override
+    /**
+     * 获取当前用户某笔订单的商品明细。
+     *
+     * @param orderId 订单 ID
+     * @return 商品明细列表
+     */
     public List<OrderItem> getUserOrderItems(Long orderId) {
         PurchaseOrder order = getOwnedOrder(orderId);
         return orderItemMapper.selectList(
