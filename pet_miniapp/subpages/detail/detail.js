@@ -1,4 +1,4 @@
-var app = getApp();
+﻿var app = getApp();
 var productApi = require("../../utils/api/product");
 var cartApi = require("../../utils/api/cart");
 
@@ -65,7 +65,9 @@ Page({
         that._loadedOnce = true;
         if (done) done();
       })
-      .catch(function () {
+      .catch(function (err) {
+        var msg = (err && err.message) || '加载失败';
+        wx.showToast({ title: msg, icon: 'none' });
         that.setData({ loading: false });
         that._loadedOnce = true;
         if (done) done();
@@ -163,3 +165,4 @@ Page({
     wx.switchTab({ url: "/pages/cart/cart" });
   }
 });
+

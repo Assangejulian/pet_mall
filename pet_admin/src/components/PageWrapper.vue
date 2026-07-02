@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-page">
     <div class="page-header">
       <h2>{{ title }}</h2>

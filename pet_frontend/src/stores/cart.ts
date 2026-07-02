@@ -1,4 +1,4 @@
-﻿import { defineStore } from "pinia"
+import { defineStore } from "pinia"
 import { ref, computed } from "vue"
 
 interface CartItem { id: string; name: string; price: number; quantity: number }

@@ -1,4 +1,4 @@
-﻿import { defineStore } from "pinia"
+import { defineStore } from "pinia"
 import { ref } from "vue"
 import type { Pet, FeaturedPet } from "../types/pet"
 import type { Store, MarketFeedItem } from "../types/store"

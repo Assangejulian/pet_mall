@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-page">
     <div class="page-header"><h2>商品管理</h2><p>管理平台商品信息</p></div>
 

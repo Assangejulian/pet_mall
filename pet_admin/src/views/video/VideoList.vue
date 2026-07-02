@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-page">
     <div class="page-header"><h2>视频管理</h2><p>管理平台视频内容</p></div>
 

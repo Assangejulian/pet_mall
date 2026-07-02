@@ -247,3 +247,16 @@ CREATE TABLE IF NOT EXISTS sys_message (
 INSERT IGNORE INTO user(id, username, password, role, status, real_name) VALUES
 (1, 'admin', 'admin123', 'admin', 1, '系统管理员'),
 (2, 'user',  'user123',  'user',  1, '测试用户');
+
+
+
+ALTER TABLE product
+    ADD COLUMN offline_reason varchar(500) DEFAULT NULL COMMENT '平台下架原因' AFTER video_id,
+    ADD COLUMN offline_user_id bigint DEFAULT NULL COMMENT '下架操作人' AFTER offline_reason,
+    ADD COLUMN offline_time datetime(3) DEFAULT NULL COMMENT '下架时间' AFTER offline_user_id;
+
+ALTER TABLE store
+    ADD COLUMN audit_user_id bigint DEFAULT NULL COMMENT '审核人ID' AFTER status,
+    ADD COLUMN audit_time datetime(3) DEFAULT NULL COMMENT '审核时间' AFTER audit_user_id,
+    ADD COLUMN audit_remark varchar(500) DEFAULT NULL COMMENT '审核备注' AFTER audit_time,
+    ADD COLUMN close_reason varchar(500) DEFAULT NULL COMMENT '关闭原因' AFTER audit_remark;

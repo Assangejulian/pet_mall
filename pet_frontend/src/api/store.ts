@@ -1,4 +1,4 @@
-﻿import http from "./index"
+import http from "./index"
 import type { Store } from "../types/store"
 
 export interface NearbyStore {

@@ -1,4 +1,4 @@
-﻿import http from "./index"
+import http from "./index"
 import { unwrap } from "./helper"
 import type { PageResult } from "../types/api"
 import type { Order, OrderStatus } from "../types/order"

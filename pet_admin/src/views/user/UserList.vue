@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-page">
     <div class="page-header"><h2>用户管理</h2><p>管理系统注册用户</p></div>
     <div class="search-bar">

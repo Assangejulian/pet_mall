@@ -14,9 +14,9 @@ public class Video extends BaseEntity {
     private Long userId;
     private String title;
     private String description;
-    @TableField("video_url")
+    
     private String url;
-    @TableField("cover_url")
+    
     private String cover;
     private Long productId;
     private Integer playCount;

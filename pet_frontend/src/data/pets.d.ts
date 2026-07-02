@@ -1,4 +1,4 @@
-﻿import type { Pet, FeaturedPet } from "../types/pet"
+import type { Pet, FeaturedPet } from "../types/pet"
 import type { Store, MarketFeedItem } from "../types/store"
 
 export declare const heroPets: string[]

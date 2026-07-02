@@ -1,4 +1,4 @@
-﻿import axios from "axios"
+import axios from "axios"
 import router from "../router"
 
 const http = axios.create({ baseURL: "/api", timeout: 10000 })
