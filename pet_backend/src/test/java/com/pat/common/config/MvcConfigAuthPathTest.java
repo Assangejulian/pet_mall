@@ -3,6 +3,7 @@ package com.pat.common.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
 import com.pat.common.interceptor.AuthInterceptor;
+import com.pat.common.interceptor.RoleInterceptor;
 import com.pat.common.util.JwtUtil;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;

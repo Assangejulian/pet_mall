@@ -157,6 +157,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "审核驳回原因不能为空");
         }
         Store store = requireStore(storeId);
+        if (!Integer.valueOf(0).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有待审核门店可以执行审核");
+        }
         StoreStateMachine.validate(store.getStatus(), status);
         LocalDateTime auditTime = LocalDateTime.now();
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
@@ -185,6 +188,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         Store store = getById(storeId);
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        if (!Integer.valueOf(1).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中门店可以关闭");
         }
         StoreStateMachine.validate(store.getStatus(), 2);
         Long onlineCount = countOnlineProducts(storeId);

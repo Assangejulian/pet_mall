@@ -86,4 +86,3 @@ wx:
   pc:
     appid: ${WECHAT_PC_APPID:}
     secret: ${WECHAT_PC_SECRET:}
-

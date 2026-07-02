@@ -8,6 +8,7 @@ import com.pat.user.controller.AuthController;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.dto.LoginVO;
 import com.pat.user.domain.entity.User;
+import com.pat.common.interceptor.RoleInterceptor;
 import com.pat.user.service.auth.AuthService;
 import com.pat.user.service.auth.AuthServiceRouter;
 import com.pat.common.util.JwtUtil;

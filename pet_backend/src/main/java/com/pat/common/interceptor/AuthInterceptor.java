@@ -15,8 +15,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * 认证拦截器 —— 只验证用户是否登录，不校验角色。
  *
  * <p>流程：提取 Authorization 头中的 Bearer token → 解析 JWT → 存入 UserHolder</p>
- * <p>哪些路径需要登录由 MvcConfig 通过 addPathPatterns 控制，
- *    本拦截器不做路径判断。</p>
+ * <p>哪些路径需要登录由 MvcConfig 通过 addPathPatterns 控制。
+ *    视频 Feed、详情、播放和评论列表是公开 GET，在这里做方法级放行。</p>
  *
  * @see com.pat.common.config.MvcConfig
  * @see RoleInterceptor
@@ -33,6 +33,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) throws Exception {
         // OPTIONS 预检请求放行
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) return true;
+        if (isPublicVideoRead(req)) return true;
 
         String auth = req.getHeader("Authorization");
         if (auth == null || !auth.startsWith(BEARER)) {
@@ -64,5 +65,37 @@ public class AuthInterceptor implements HandlerInterceptor {
         res.setStatus(code);
         res.setContentType("application/json;charset=utf-8");
         objectMapper.writeValue(res.getWriter(), Result.error(code, msg));
+    }
+
+    private boolean isPublicVideoRead(HttpServletRequest req) {
+        if (!"GET".equalsIgnoreCase(req.getMethod())) {
+            return false;
+        }
+
+        String path = req.getRequestURI();
+        String contextPath = req.getContextPath();
+        if (contextPath != null && !contextPath.isBlank() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+
+        if (path.equals("/api/video/feed") || path.equals("/api/video/list") || path.equals("/api/video/search")) {
+            return true;
+        }
+        if (path.startsWith("/api/video/play/")) {
+            return hasSinglePathSegment(path.substring("/api/video/play/".length()));
+        }
+        if (!path.startsWith("/api/video/")) {
+            return false;
+        }
+
+        String rest = path.substring("/api/video/".length());
+        if (hasSinglePathSegment(rest)) {
+            return true;
+        }
+        return rest.endsWith("/comments") && hasSinglePathSegment(rest.substring(0, rest.length() - "/comments".length()));
+    }
+
+    private boolean hasSinglePathSegment(String value) {
+        return value != null && !value.isBlank() && !value.contains("/");
     }
 }

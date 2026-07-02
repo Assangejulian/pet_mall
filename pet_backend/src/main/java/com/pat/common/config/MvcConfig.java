@@ -22,9 +22,13 @@ import java.util.Set;
  * /api/admin/**     → RoleInterceptor("admin")          管理员
  * /api/auditor/**   → RoleInterceptor("auditor","admin")  审核员(管理员也可)
  * /api/merchant/**  → RoleInterceptor("merchant")        商家
- * /api/order/**     → AuthInterceptor                   任意登录用户
- * /api/cart/**      → AuthInterceptor
+ * /api/order/**        → AuthInterceptor                   任意登录用户
+ * /api/cart/**         → AuthInterceptor
  * /api/user/address/** → AuthInterceptor
+ * /api/ai/**           → AuthInterceptor
+ * /api/comment/**      → AuthInterceptor
+ * /api/upload/**       → AuthInterceptor
+ * /api/video/**        → AuthInterceptor，GET 读接口由拦截器内部放行
  * 其余 /api/**      → 无拦截器 = 游客可访问
  * </pre>
  */
@@ -78,7 +82,11 @@ public class MvcConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                     "/api/order/**",
                     "/api/cart/**",
-                    "/api/user/address/**"
+                    "/api/user/address/**",
+                    "/api/ai/**",
+                    "/api/comment/**",
+                    "/api/upload/**",
+                    "/api/video/**"
                 )
                 .order(1);
 

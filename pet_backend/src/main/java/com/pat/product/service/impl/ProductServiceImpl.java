@@ -181,9 +181,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO offlineProduct(Long id) {
         // 已售出商品不能再手动切回下架，售出状态由订单流程控制。
         Product product = getActiveProduct(id);
-        if (product != null) {
-            ProductStateMachine.validate(product.getStatus(), STATUS_OFFLINE);
+        if (product != null && product.getStatus() == STATUS_SOLD) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出商品不能手动下架");
         }
+        ProductStateMachine.validate(product.getStatus(), STATUS_OFFLINE);
         Product update = new Product();
         update.setId(id);
         update.setStatus(STATUS_OFFLINE);
