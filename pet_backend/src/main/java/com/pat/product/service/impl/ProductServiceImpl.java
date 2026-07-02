@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.ErrorCode;
+import com.pat.product.helper.ProductStateMachine;
 import com.pat.common.exception.BusinessException;
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
@@ -42,9 +43,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private static final int TYPE_PET = 1;
     private static final int TYPE_GOODS = 2;
-    private static final int STATUS_OFFLINE = 0;
-    private static final int STATUS_ONLINE = 1;
-    private static final int STATUS_SOLD = 2;
+    // 状态常量已迁移至 ProductStateMachine
+    private static final int STATUS_OFFLINE = ProductStateMachine.OFFLINE;
+    private static final int STATUS_ONLINE  = ProductStateMachine.ONLINE;
+    private static final int STATUS_SOLD    = ProductStateMachine.SOLD;
 
     private final ProductStoreLookupMapper productStoreLookupMapper;
     private final StoreMapper storeMapper;
@@ -179,8 +181,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO offlineProduct(Long id) {
         // 已售出商品不能再手动切回下架，售出状态由订单流程控制。
         Product product = getActiveProduct(id);
-        if (product != null && product.getStatus() == STATUS_SOLD) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出的商品不能改为下架");
+        if (product != null) {
+            ProductStateMachine.validate(product.getStatus(), STATUS_OFFLINE);
         }
         Product update = new Product();
         update.setId(id);
@@ -329,9 +331,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public ProductVO forceOfflineProduct(Long id, String reason, Long offlineUserId) {
         Product product = getActiveProduct(id);
-        if (product.getStatus() == STATUS_SOLD) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出商品不能强制下架");
-        }
+        ProductStateMachine.validate(product.getStatus(), STATUS_OFFLINE);
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "强制下架原因不能为空");
         }
@@ -484,7 +484,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (stock == null || stock < 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存不能小于0");
         }
-        if (status == null || status < STATUS_OFFLINE || status > STATUS_SOLD) {
+        if (status == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品状态不能为空");
+        }
+        // 状态值合法范围校验（精确流转由 ProductStateMachine.validate() 在各操作中控制）
+        if (status < ProductStateMachine.OFFLINE || status > ProductStateMachine.SOLD) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品状态只能为0、1或2");
         }
         if (productType == TYPE_PET && stock > 1) {

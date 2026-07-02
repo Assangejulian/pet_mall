@@ -2,10 +2,7 @@ package com.pat.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
-import com.pat.common.interceptor.AdminAuthInterceptor;
-import com.pat.common.interceptor.AuditorAuthInterceptor;
-import com.pat.common.interceptor.MerchantAuthInterceptor;
-import com.pat.common.interceptor.UserAuthInterceptor;
+import com.pat.common.interceptor.AuthInterceptor;
 import com.pat.common.util.JwtUtil;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
@@ -204,10 +201,8 @@ class MvcConfigAuthPathTest {
     @EnableWebMvc
     @Import({
             MvcConfig.class,
-            UserAuthInterceptor.class,
-            AdminAuthInterceptor.class,
-            MerchantAuthInterceptor.class,
-            AuditorAuthInterceptor.class
+            AuthInterceptor.class,
+            RoleInterceptor.class
     })
     static class TestConfig {
 

@@ -63,7 +63,7 @@ public class FaceHelper {
                     body, String.class));
 
             if (json.getInt("error_code") != 0) {
-                log.warn("百度detect返回错误: {}", json.toJSONString(0));
+                log.warn("百度人脸检测返回: {}", json.toJSONString(0));
                 throw new BusinessException(ErrorCode.FACE_DETECT_FAILED);
             }
             return json.getByPath("result.face_list[0].face_token", String.class);
@@ -86,7 +86,7 @@ public class FaceHelper {
                     body, String.class));
 
             if (json.getInt("error_code") != 0 && json.getInt("error_code") != 222207) {
-                log.warn("百度search返回错误: {}", json.toJSONString(0));
+                log.warn("百度人脸搜索返回: {}", json.toJSONString(0));
                 throw new BusinessException(ErrorCode.FACE_DETECT_FAILED);
             }
             if (json.getInt("error_code") == 222207) {
@@ -114,7 +114,7 @@ public class FaceHelper {
                     "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/delete?access_token=" + accessToken,
                     body, String.class));
 
-            log.warn("百度search返回错误: {}", json.toJSONString(0));
+            log.warn("百度人脸删除返回: {}", json.toJSONString(0));
             if (json.getInt("error_code") != 0) {
                 log.warn("百度人脸删除失败(可能数据已擦除): {}", json);
             } else {
@@ -138,7 +138,7 @@ public class FaceHelper {
                     "https://aip.baidubce.com/rest/2.0/face/v3/faceset/user/add?access_token=" + accessToken,
                     body, String.class));
 
-            log.warn("百度search返回错误: {}", json.toJSONString(0));
+            log.warn("百度人脸注册返回: {}", json.toJSONString(0));
             if (json.getInt("error_code") != 0) {
                 log.error("百度人脸注册失败: {}", json);
             } else {

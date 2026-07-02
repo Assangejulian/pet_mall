@@ -32,4 +32,8 @@ public interface IStoreService extends IService<Store> {
     Store auditStore(Long storeId, Integer status, Long auditUserId, String auditRemark);
 
     Store closeStore(Long storeId, String closeReason);
+
+    Store reopenStore(Long storeId, Long auditUserId);
+
+    Store resubmitStore(Long storeId);
 }

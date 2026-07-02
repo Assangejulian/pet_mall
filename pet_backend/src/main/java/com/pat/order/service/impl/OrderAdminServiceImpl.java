@@ -2,6 +2,7 @@ package com.pat.order.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.ErrorCode;
@@ -12,6 +13,8 @@ import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
+import com.pat.product.helper.ProductStateMachine;
+import com.pat.product.mapper.ProductMapper;
 import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.IOrderAdminService;
@@ -34,11 +37,16 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     private static final Logger log = LoggerFactory.getLogger(OrderAdminServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
+
+    private final ProductMapper productMapper;
+
     private final OrderItemMapper orderItemMapper;
 
     public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
+                                 ProductMapper productMapper,
                                  OrderItemMapper orderItemMapper) {
         this.baseService = baseService;
+        this.productMapper = productMapper;
         this.orderItemMapper = orderItemMapper;
     }
 
@@ -129,7 +137,17 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         order.setOrderStatus(OrderStatus.PAID.getCode());
         order.setPayTime(LocalDateTime.now());
         baseService.updateById(order);
-        log.info("支付成功 orderNo={}", orderNo);
+
+        // 支付成功后，将订单中所有商品标记为已售出
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+        for (OrderItem item : items) {
+            productMapper.update(null, new LambdaUpdateWrapper<com.pat.product.domain.entity.Product>()
+                    .set(com.pat.product.domain.entity.Product::getStatus, ProductStateMachine.SOLD)
+                    .eq(com.pat.product.domain.entity.Product::getId, item.getProductId())
+                    .eq(com.pat.product.domain.entity.Product::getStatus, ProductStateMachine.ONLINE));
+        }
+        log.info("支付成功 orderNo={}, 已更新{}件商品为已售出", orderNo, items.size());
     }
 
     @Override

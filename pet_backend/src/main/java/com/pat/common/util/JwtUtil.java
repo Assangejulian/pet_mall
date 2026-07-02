@@ -10,7 +10,8 @@ import java.util.Date;
 
 public class JwtUtil {
 
-    private static final String SECRET = "PetNest2024SecretKeyForJWTTokenGeneration!@#$";
+    private static final String DEFAULT_SECRET = "PetNest2024SecretKeyForJWTTokenGeneration!@#$";
+    private static final String SECRET = System.getenv().getOrDefault("JWT_SECRET", DEFAULT_SECRET);
     private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     public static final long ADMIN_EXPIRE = 2 * 3600 * 1000L;
