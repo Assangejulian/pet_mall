@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -96,9 +97,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 普通编辑支持部分字段更新。
         // 如果商品已经售出，身份字段和售出状态会被保留。
         Product oldProduct = getActiveProduct(id);
+        if (dto != null && requestsOnline(dto.getStatus())) {
+            ensureNotPlatformRestricted(oldProduct);
+        }
         boolean soldProduct = oldProduct != null && oldProduct.getStatus() == STATUS_SOLD;
         boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
         Long storeId = soldProduct ? oldProduct.getStoreId() : (dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId());
+        if (!soldProduct && !storeId.equals(oldProduct.getStoreId())) {
+            checkOperatingStore(storeId);
+        }
 
         Integer productType = (soldPet || dto.getProductType() == null) ? oldProduct.getProductType() : dto.getProductType();
         Integer stock = soldPet ? 0 : (dto.getStock() == null ? oldProduct.getStock() : dto.getStock());
@@ -148,11 +155,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品ID不能为空");
         }
         Product current = getActiveProduct(id);
+        ensureNotPlatformRestricted(current);
         checkOperatingStore(current.getStoreId());
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
                 .set(Product::getStatus, STATUS_ONLINE)
                 .eq(Product::getId, id)
                 .eq(Product::getDeleted, 0)
+                .isNull(Product::getOfflineReason)
+                .isNull(Product::getOfflineUserId)
+                .isNull(Product::getOfflineTime)
                 .gt(Product::getStock, 0)
                 .ne(Product::getStatus, STATUS_SOLD)
                 .ne(Product::getStatus, STATUS_ONLINE));
@@ -185,7 +196,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 公开列表只展示已上架商品，支持用户端和管理端兼容查询参数。
         long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        String keyword = resolveKeyword(query);
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -206,7 +217,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
         long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
         long pageSize = resolvePageSize(query);
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        String keyword = resolveKeyword(query);
         Integer productType = resolveProductType(query);
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
@@ -238,6 +249,147 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public ProductVO getAdminDetail(Long id) {
         return toVO(getActiveProduct(id));
+    }
+
+    @Override
+    public IPage<ProductVO> pageMerchantProducts(ProductQueryDTO query, Long merchantUserId) {
+        if (merchantUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前商家");
+        }
+        long pageNum = query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
+        long pageSize = resolvePageSize(query);
+        String keyword = resolveKeyword(query);
+        Integer productType = resolveProductType(query);
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+                .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND user_id = " + merchantUserId)
+                .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
+                .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
+                .eq(productType != null, Product::getProductType, productType)
+                .eq(StringUtils.hasText(query.getCategory()), Product::getCategory, query.getCategory())
+                .eq(query.getStatus() != null, Product::getStatus, query.getStatus())
+                .orderByDesc(Product::getCreateTime);
+        return convertPage(page(new Page<>(pageNum, pageSize), wrapper));
+    }
+
+    @Override
+    public Product requireOwnedProduct(Long productId, Long merchantUserId) {
+        Product product = getActiveProduct(productId);
+        Store store = storeMapper.selectById(product.getStoreId());
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商品所属商店不存在");
+        }
+        if (merchantUserId == null || !merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商品");
+        }
+        return product;
+    }
+
+    @Override
+    public ProductVO getMerchantDetail(Long id, Long merchantUserId) {
+        return toVO(requireOwnedProduct(id, merchantUserId));
+    }
+
+    @Override
+    public ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId) {
+        requireOwnedStore(dto == null ? null : dto.getStoreId(), merchantUserId);
+        return createProduct(dto);
+    }
+
+    @Override
+    public ProductVO updateMerchantProduct(Long id, ProductUpdateDTO dto, Long merchantUserId) {
+        Product product = requireOwnedProduct(id, merchantUserId);
+        if (dto != null && requestsOnline(dto.getStatus())) {
+            ensureNotPlatformRestricted(product);
+        }
+        if (dto != null && dto.getStoreId() != null) {
+            requireOwnedStore(dto.getStoreId(), merchantUserId);
+        }
+        return updateProduct(id, dto);
+    }
+
+    @Override
+    public Boolean deleteMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return deleteProduct(id);
+    }
+
+    @Override
+    public ProductVO onlineMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return onlineProduct(id);
+    }
+
+    @Override
+    public ProductVO offlineMerchantProduct(Long id, Long merchantUserId) {
+        requireOwnedProduct(id, merchantUserId);
+        return offlineProduct(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProductVO forceOfflineProduct(Long id, String reason, Long offlineUserId) {
+        Product product = getActiveProduct(id);
+        if (product.getStatus() == STATUS_SOLD) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出商品不能强制下架");
+        }
+        if (!StringUtils.hasText(reason)) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "强制下架原因不能为空");
+        }
+        if (reason.trim().length() > 500) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "强制下架原因长度不能超过500");
+        }
+        if (offlineUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前监管人员");
+        }
+        Product update = new Product();
+        update.setId(id);
+        update.setStatus(STATUS_OFFLINE);
+        update.setOfflineReason(reason.trim());
+        update.setOfflineUserId(offlineUserId);
+        update.setOfflineTime(LocalDateTime.now());
+        if (!updateById(update)) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品强制下架失败");
+        }
+        product.setStatus(STATUS_OFFLINE);
+        product.setOfflineReason(update.getOfflineReason());
+        product.setOfflineUserId(update.getOfflineUserId());
+        product.setOfflineTime(update.getOfflineTime());
+        return toVO(product);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProductVO releaseOfflineRestriction(Long id) {
+        Product product = getActiveProduct(id);
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                .set(Product::getStatus, STATUS_OFFLINE)
+                .set(Product::getOfflineReason, null)
+                .set(Product::getOfflineUserId, null)
+                .set(Product::getOfflineTime, null)
+                .eq(Product::getId, id)
+                .eq(Product::getDeleted, 0));
+        if (rows != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "解除商品平台限制失败");
+        }
+        product.setStatus(STATUS_OFFLINE);
+        product.setOfflineReason(null);
+        product.setOfflineUserId(null);
+        product.setOfflineTime(null);
+        return toVO(product);
+    }
+
+    private Store requireOwnedStore(Long storeId, Long merchantUserId) {
+        if (storeId == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID不能为空");
+        }
+        Store store = storeMapper.selectById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        if (merchantUserId == null || !merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用该商店");
+        }
+        return store;
     }
 
     private Product getActiveProduct(Long id) {
@@ -315,6 +467,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (product.getStatus() == STATUS_SOLD) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出的商品不能重新上架");
         }
+        ensureNotPlatformRestricted(product);
         if (product.getStock() == null || product.getStock() <= 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存为0的商品不能上架");
         }
@@ -336,7 +489,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         if (productType == TYPE_PET && stock > 1) {
             // 宠物是活体，一件商品只表示一只宠物，所以库存只能是0或1。
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "宠物商品库存只能是0或1");
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "活体宠物每条商品代表一只，库存只能是0或1");
         }
         if (status == STATUS_ONLINE && stock == 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存为0的商品不能上架");
@@ -390,6 +543,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setStatus(statusText(product.getStatus()));
         vo.setStatusCode(product.getStatus());
         vo.setVideoId(product.getVideoId());
+        vo.setOfflineReason(product.getOfflineReason());
+        vo.setOfflineUserId(product.getOfflineUserId());
+        vo.setOfflineTime(product.getOfflineTime());
+        vo.setPlatformRestricted(isPlatformRestricted(product));
         vo.setCreateTime(product.getCreateTime());
         vo.setUpdateTime(product.getUpdateTime());
         vo.setName(product.getProductName());
@@ -426,6 +583,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(status);
         };
     }
@@ -459,7 +617,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (productType == null) {
             return null;
         }
-        return productType == TYPE_PET ? "宠物" : "周边";
+        return productType == TYPE_PET ? "活体宠物" : "宠物用品/周边";
     }
 
     private Integer resolveProductType(ProductQueryDTO query) {
@@ -470,10 +628,30 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return null;
         }
         return switch (query.getType().trim()) {
-            case "1", "宠物" -> TYPE_PET;
-            case "2", "周边", "宠物周边" -> TYPE_GOODS;
-            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、宠物、周边或宠物周边");
+            case "1", "宠物", "活体宠物" -> TYPE_PET;
+            case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> TYPE_GOODS;
+            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、活体宠物或宠物用品/周边");
         };
+    }
+
+    private boolean requestsOnline(String status) {
+        return StringUtils.hasText(status) && ("1".equals(status.trim()) || "上架".equals(status.trim()));
+    }
+
+    private boolean isPlatformRestricted(Product product) {
+        return product != null && (StringUtils.hasText(product.getOfflineReason())
+                || product.getOfflineUserId() != null || product.getOfflineTime() != null);
+    }
+
+    private void ensureNotPlatformRestricted(Product product) {
+        if (isPlatformRestricted(product)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "商品因平台强制下架仍受限制，请联系监管人员解除限制后再上架");
+        }
+    }
+
+    private String resolveKeyword(ProductQueryDTO query) {
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        return StringUtils.hasText(keyword) ? keyword.trim() : null;
     }
 
 

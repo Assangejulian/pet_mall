@@ -1,6 +1,5 @@
 package com.pat.user.domain.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +10,6 @@ public class LoginDTO {
     private String password;
 
     /** 认证类型: password / sms / email_code / wechat / wechat_pc / face */
-    @NotBlank
     private String authType;
 
     /** 手机号（sms / wechat 方式使用） */

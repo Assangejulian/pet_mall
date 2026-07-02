@@ -1,10 +1,11 @@
 <view class="page">
   <view class="store-hero" wx:if="{{store}}">
+    <image class="hero-bg" src="{{store.image}}" mode="aspectFill" wx:if="{{store.image}}" />
+    <view class="hero-bg hero-placeholder" wx:else></view>
     <view class="hero-overlay"></view>
-    <image class="hero-bg" src="{{store.storeLogo || ''}}" mode="aspectFill" wx:if="{{store.storeLogo}}" />
     <view class="hero-content">
       <text class="hero-name serif">{{store.storeName}}</text>
-      <text class="hero-status">{{store.statusText || "营业中"}}</text>
+      <text class="hero-status">营业中</text>
     </view>
   </view>
 
@@ -32,9 +33,9 @@
     <text class="desc-text">{{store.storeDesc}}</text>
   </view>
 
-  <view class="products-section" wx:if="{{products.length}}">
+  <view class="products-section" wx:if="{{store}}">
     <text class="sec-title serif">商品列表 ({{products.length}})</text>
-    <view class="product-grid">
+    <view class="product-grid" wx:if="{{products.length}}">
       <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="goProduct" data-id="{{item.id}}">
         <image class="p-img" src="{{item.image}}" mode="aspectFill" />
         <view class="p-body">
@@ -44,6 +45,7 @@
         </view>
       </view>
     </view>
+    <view class="products-empty" wx:if="{{!loading && !products.length}}">暂无在售商品</view>
   </view>
 
   <view class="bottom-bar" wx:if="{{store}}">
@@ -52,6 +54,7 @@
     </button>
   </view>
 
+  <view class="loading-tip" wx:if="{{loading}}">加载中...</view>
   <view class="empty-tip" wx:if="{{!loading && !store}}">
     <text>门店信息不存在</text>
   </view>

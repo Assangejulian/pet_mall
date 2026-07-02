@@ -1,10 +1,12 @@
 package com.pat.store.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.pat.product.domain.entity.Product;
+import com.pat.store.domain.dto.NearbyQuery;
 import com.pat.store.domain.entity.Store;
+import com.pat.store.domain.vo.NearbyStoreRow;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public interface IStoreService extends IService<Store> {
@@ -18,8 +20,16 @@ public interface IStoreService extends IService<Store> {
     Long countOnlineProducts(Long storeId);
 
     /** 附近门店搜索 */
-    List<Store> searchNearby(BigDecimal lat, BigDecimal lng, Double radius);
+    IPage<NearbyStoreRow> searchNearby(NearbyQuery query);
 
     /** 获取门店的商品列表 */
     List<Product> getStoreProducts(Long storeId);
+
+    Store requireOwnedStore(Long storeId, Long merchantUserId);
+
+    boolean isOwnedStore(Long storeId, Long merchantUserId);
+
+    Store auditStore(Long storeId, Integer status, Long auditUserId, String auditRemark);
+
+    Store closeStore(Long storeId, String closeReason);
 }

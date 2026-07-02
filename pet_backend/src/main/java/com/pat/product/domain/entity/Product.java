@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -35,6 +36,12 @@ public class Product extends BaseEntity {
     private Integer status;
 
     private Long videoId;
+
+    private String offlineReason;
+
+    private Long offlineUserId;
+
+    private LocalDateTime offlineTime;
 
     @TableLogic(value = "0", delval = "1")
     @TableField("deleted")

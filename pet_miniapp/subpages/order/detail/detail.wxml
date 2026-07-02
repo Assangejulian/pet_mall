@@ -1,7 +1,7 @@
 <view class="page">
   <view class="order-header" wx:if="{{order}}">
     <text class="order-no">订单号: {{order.orderNo}}</text>
-    <text class="order-status {{'s' + order.orderStatus}}">{{statusLabels[String(order.orderStatus)]}}</text>
+    <text class="order-status {{'s' + order.orderStatus}}">{{statusLabels[order.orderStatus]}}</text>
   </view>
 
   <!-- 状态提示 -->
@@ -39,7 +39,7 @@
   <view class="address-card" wx:if="{{addressParsed}}">
     <text class="sec-title">收货地址</text>
     <text class="addr-name">{{addressParsed.receiverName}}  {{addressParsed.phone}}</text>
-    <text class="addr-detail">{{[addressParsed.province, addressParsed.city, addressParsed.district, addressParsed.detail].filter(Boolean).join('')}}</text>
+    <text class="addr-detail">{{addressText}}</text>
   </view>
   <!-- 金额 -->
   <view class="amount-card" wx:if="{{order}}">
@@ -57,6 +57,3 @@
 
   <view class="empty-tip" wx:if="{{!loading && !order}}">订单不存在</view>
 </view>
-
-
-

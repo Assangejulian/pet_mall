@@ -88,10 +88,10 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
 
     @Override
     protected boolean doUpdate(Long id, Store entity, StoreDTO param) {
-        if (Integer.valueOf(2).equals(param.getStatus())) {
-            storeService.ensureCanCloseOrDelete(id);
-        }
-        return storeService.updateById(entity);
+        Store update = new Store();
+        update.setId(id);
+        copyEditableFields(param, update);
+        return storeService.updateById(update);
     }
 
     @Override
@@ -155,6 +155,19 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
         }
     }
 
+    private void copyEditableFields(StoreDTO param, Store target) {
+        target.setStoreName(param.getStoreName());
+        target.setStoreLogo(param.getStoreLogo());
+        target.setStorePhone(param.getStorePhone());
+        target.setStoreDesc(param.getStoreDesc());
+        target.setProvince(param.getProvince());
+        target.setCity(param.getCity());
+        target.setDistrict(param.getDistrict());
+        target.setAddress(param.getAddress());
+        target.setLongitude(param.getLongitude());
+        target.setLatitude(param.getLatitude());
+    }
+
     private String statusText(Integer status) {
         if (status == null) {
             return null;
@@ -163,6 +176,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(status);
         };
     }

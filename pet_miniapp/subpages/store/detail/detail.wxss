@@ -16,6 +16,9 @@
   height: 100%;
   filter: blur(6rpx);
 }
+.hero-placeholder {
+  background: linear-gradient(135deg, #e8c8b5, #9c7463);
+}
 .hero-overlay {
   position: absolute;
   inset: 0;
@@ -156,11 +159,19 @@
   color: #e8927c;
   font-weight: 700;
 }
+.products-empty {
+  padding: 72rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #bbb;
+}
 
 /* 底部导航栏 */
 .bottom-bar {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 16rpx 28rpx 40rpx;
   background: #fff;
   box-shadow: 0 -2rpx 8rpx rgba(0,0,0,.06);
@@ -179,7 +190,7 @@
 .nav-btn text {
   display: inline;
 }
-
+.loading-tip,
 .empty-tip {
   padding: 120rpx 0;
   text-align: center;

@@ -63,11 +63,16 @@ function request(method, url, data) {
           resolve(body.code === 200 ? body.data : body);
         } else {
           var msg = (body && body.message) || "请求失败";
-          reject(new Error(msg));
+          var error = new Error(msg);
+          error.isBusinessError = true;
+          error.code = body && body.code;
+          reject(error);
         }
       },
       fail: function(err) {
         // 网络错误
+        err = err || {};
+        err.isNetworkError = true;
         wx.showToast({ title: "网络异常，请检查连接", icon: "none" });
         reject(err);
       }

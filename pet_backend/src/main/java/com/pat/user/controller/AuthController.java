@@ -21,11 +21,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
 @Slf4j
 @RestController
 @Tag(name = "用户认证", description = "登录接口：密码/邮箱验证码/微信/人脸")
 public class AuthController {
+
+    private static final Set<String> MANAGEMENT_ROLES = Set.of("merchant", "auditor", "admin");
 
     @Autowired
     private AuthServiceRouter authServiceRouter;
@@ -50,12 +53,14 @@ public class AuthController {
         return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }
 
-    @Operation(summary = "管理员登录（强制密码）")
+    @Operation(summary = "管理端登录（强制密码）")
     @PostMapping("/api/admin/login")
     public Result<LoginVO> adminLogin(@Valid @RequestBody LoginDTO dto) {
         dto.setAuthType("password");
         User user = authServiceRouter.getService("password").authenticate(dto);
-        if (!"admin".equals(user.getRole())) return Result.error("无管理员权限");
+        if (user.getRole() == null || !MANAGEMENT_ROLES.contains(user.getRole())) {
+            return Result.error(403, "无管理端登录权限");
+        }
         String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole(), JwtUtil.ADMIN_EXPIRE);
         return Result.success(new LoginVO(token, user.getId(), user.getUsername(), user.getRole()));
     }

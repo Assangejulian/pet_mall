@@ -66,7 +66,11 @@ CREATE TABLE IF NOT EXISTS store (
     address     VARCHAR(200)  COMMENT '详细地址',
     longitude   DECIMAL(10,7) NOT NULL COMMENT '经度',
     latitude    DECIMAL(10,7) NOT NULL COMMENT '纬度',
-    status      TINYINT       NOT NULL DEFAULT 0 COMMENT '0待审核 1营业中 2已关闭',
+    status      TINYINT       NOT NULL DEFAULT 0 COMMENT '0待审核 1营业中 2已关闭 3审核驳回',
+    audit_user_id BIGINT      NULL COMMENT '审核人员ID',
+    audit_time    DATETIME(3) NULL COMMENT '审核时间',
+    audit_remark  VARCHAR(500) NULL COMMENT '审核意见或驳回原因',
+    close_reason  VARCHAR(500) NULL COMMENT '关闭原因',
     deleted     TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '逻辑删除',
     create_time DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     update_time DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -91,6 +95,9 @@ CREATE TABLE IF NOT EXISTS product (
     images       JSON           COMMENT '多图JSON',
     status       TINYINT        NOT NULL DEFAULT 1 COMMENT '0下架 1上架 2已售出',
     video_id     BIGINT         COMMENT '关联视频',
+    offline_reason  VARCHAR(500) NULL COMMENT '平台强制下架原因',
+    offline_user_id BIGINT       NULL COMMENT '平台下架操作人员ID',
+    offline_time    DATETIME(3)  NULL COMMENT '平台下架时间',
     deleted      TINYINT(1)     NOT NULL DEFAULT 0 COMMENT '逻辑删除',
     create_time  DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     update_time  DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -256,12 +263,12 @@ INSERT IGNORE INTO store(id, user_id, store_name, store_logo, store_phone, store
 
 -- product
 INSERT IGNORE INTO product(id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, status, video_id) VALUES
-(1,  10, '金毛幼犬', 1, 'dog',   '纯种金毛，温顺可爱，已打疫苗',         1888.00, 5,  'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800', 1, 1),
-(2,  11, '英短蓝猫', 1, 'cat',   '包子脸，性格温顺粘人',                 2580.00, 3,  'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800', 1, 2),
-(3,  10, '柯基犬',   1, 'dog',   '小短腿，活泼可爱',                     3200.00, 2,  'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=800', 1, 3),
-(4,  11, '布偶猫',   1, 'cat',   '仙女猫本仙，颜值担当',                 4500.00, 2,  'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800', 1, 4),
-(5,  10, '仓鼠',     1, 'other', '迷你小可爱，容易饲养',                   38.00, 20, 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800', 1, 5),
-(6,  11, '哈士奇',   1, 'dog',   '拆迁办主任，搞笑担当',                 2200.00, 3,  'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800', 1, 6);
+(1,  10, '金毛幼犬', 1, 'dog',   '纯种金毛，温顺可爱，已打疫苗',         1888.00, 1, 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800', 1, 1),
+(2,  11, '英短蓝猫', 1, 'cat',   '包子脸，性格温顺粘人',                 2580.00, 1, 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800', 1, 2),
+(3,  10, '柯基犬',   1, 'dog',   '小短腿，活泼可爱',                     3200.00, 1, 'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=800', 1, 3),
+(4,  11, '布偶猫',   1, 'cat',   '仙女猫本仙，颜值担当',                 4500.00, 1, 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800', 1, 4),
+(5,  10, '仓鼠',     1, 'other', '迷你小可爱，容易饲养',                   38.00, 1, 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800', 1, 5),
+(6,  11, '哈士奇',   1, 'dog',   '拆迁办主任，搞笑担当',                 2200.00, 1, 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800', 1, 6);
 
 -- video
 INSERT IGNORE INTO video(id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES

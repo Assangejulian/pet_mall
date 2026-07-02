@@ -14,6 +14,7 @@
         "video/list",
         "video/detail",
         "order/list",
+        "order/detail/detail",
         "order/detail",
         "order/submit",
         "order/pay",
@@ -60,15 +61,15 @@
       }
     ]
   },
-  "style": "v2",
-  "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents",
   "permission": {
     "scope.userLocation": {
-      "desc": "你的位置信息将用于查找附近宠物商店"
+      "desc": "用于展示附近营业门店和导航到店"
     }
   },
   "requiredPrivateInfos": [
     "getLocation"
-  ]
+  ],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
 }

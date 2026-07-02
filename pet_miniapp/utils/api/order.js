@@ -25,4 +25,3 @@ module.exports = {
     return request.get("/api/order/item/search", { orderId: orderId });
   }
 };
-

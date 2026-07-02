@@ -7,7 +7,7 @@
   detail?: string;
   price: number;
   stock: number;
-  status?: number;
+  status?: string | number;
   statusCode?: number;
   mainImage?: string;
   image?: string;
@@ -15,5 +15,15 @@
   storeId: string;
   name?: string;  // alias for productName
   videoId?: number;
+  offlineReason?: string;
+  offlineUserId?: string;
+  offlineTime?: string;
+  platformRestricted?: boolean;
+  store?: {
+    id: string;
+    storeName: string;
+    status?: number;
+    statusText?: string;
+  };
   createTime: string;
 }

@@ -22,7 +22,7 @@ public class CartController {
     }
 
     @Operation(summary = "当前用户购物车列表")
-    @GetMapping("/search")
+    @GetMapping({"/search", "/list"})
     public Result<List<CartVO>> list() {
         return Result.success(cartService.getCurrentUserCart());
     }

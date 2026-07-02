@@ -72,7 +72,6 @@
 .tl-value.warn {
   color: #c0392b;
 }
-
 /* 商品 */
 .sec-title {
   display: block;

@@ -6,11 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import cn.hutool.core.bean.BeanUtil;
 import com.pat.common.domain.Result;
 import com.pat.product.domain.entity.Product;
+import com.pat.product.domain.vo.ProductVO;
 import com.pat.store.domain.dto.NearbyQuery;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
-import com.pat.store.service.IStoreService;
+import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.domain.vo.StoreVO;
+import com.pat.store.service.IStoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.RoundingMode;
 import java.util.List;
 
 @RestController
@@ -55,20 +58,22 @@ public class StorePublicController {
 
     @Operation(summary = "附近门店搜索 (Haversine)")
     @GetMapping("/nearby")
-    public Result<List<StoreVO>> nearby(@Valid NearbyQuery query) {
-        List<Store> list = storeService.searchNearby(query.getLatitude(), query.getLongitude(), query.getRadius());
-        List<StoreVO> voList = list.stream().map(this::toVO).toList();
-        return Result.success(voList);
+    public Result<IPage<StoreVO>> nearby(NearbyQuery query) {
+        query.validate();
+        IPage<NearbyStoreRow> result = storeService.searchNearby(query);
+        return Result.success(result.convert(this::toNearbyVO));
     }
 
     @Operation(summary = "获取门店商品列表")
     @GetMapping("/{id}/products")
-    public Result<List<Product>> storeProducts(@PathVariable Long id) {
-        Store store = storeService.getById(id);
+    public Result<List<ProductVO>> storeProducts(@PathVariable Long id) {
+        Store store = storeService.getOne(new QueryWrapper<Store>()
+                .eq("id", id)
+                .eq("status", 1), false);
         if (store == null) {
-            return Result.error("商店不存在");
+            return Result.error("商店不存在或未营业");
         }
-        return Result.success(storeService.getStoreProducts(id));
+        return Result.success(storeService.getStoreProducts(id).stream().map(this::toProductVO).toList());
     }
 
     private QueryWrapper<Store> buildPublicWrapper(StoreDTO param) {
@@ -87,5 +92,72 @@ public class StorePublicController {
         vo.setStatusText("营业中");
         vo.setProductCount(storeService.countActiveProducts(entity.getId()));
         return vo;
+    }
+
+    private StoreVO toNearbyVO(NearbyStoreRow entity) {
+        Store store = new Store();
+        store.setId(entity.getId());
+        store.setUserId(entity.getUserId());
+        store.setStoreName(entity.getStoreName());
+        store.setStoreLogo(entity.getStoreLogo());
+        store.setStorePhone(entity.getStorePhone());
+        store.setStoreDesc(entity.getStoreDesc());
+        store.setProvince(entity.getProvince());
+        store.setCity(entity.getCity());
+        store.setDistrict(entity.getDistrict());
+        store.setAddress(entity.getAddress());
+        store.setLongitude(entity.getLongitude());
+        store.setLatitude(entity.getLatitude());
+        store.setStatus(entity.getStatus());
+        store.setCreateTime(entity.getCreateTime());
+        store.setUpdateTime(entity.getUpdateTime());
+        StoreVO vo = toVO(store);
+        if (entity.getDistanceKm() != null) {
+            vo.setDistanceKm(entity.getDistanceKm().setScale(2, RoundingMode.HALF_UP));
+        }
+        return vo;
+    }
+
+    private ProductVO toProductVO(Product product) {
+        ProductVO vo = new ProductVO();
+        vo.setId(product.getId());
+        vo.setStoreId(product.getStoreId());
+        vo.setProductName(product.getProductName());
+        vo.setProductType(product.getProductType());
+        vo.setCategory(product.getCategory());
+        vo.setProductDesc(product.getProductDesc());
+        vo.setPrice(product.getPrice());
+        vo.setStock(product.getStock());
+        vo.setMainImage(product.getMainImage());
+        vo.setImages(product.getImages());
+        vo.setStatus(statusText(product.getStatus()));
+        vo.setStatusCode(product.getStatus());
+        vo.setVideoId(product.getVideoId());
+        vo.setCreateTime(product.getCreateTime());
+        vo.setUpdateTime(product.getUpdateTime());
+        vo.setName(product.getProductName());
+        vo.setType(productTypeText(product.getProductType()));
+        vo.setDetail(product.getProductDesc());
+        vo.setImage(product.getMainImage());
+        return vo;
+    }
+
+    private String statusText(Integer status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case 0 -> "下架";
+            case 1 -> "上架";
+            case 2 -> "已售出";
+            default -> String.valueOf(status);
+        };
+    }
+
+    private String productTypeText(Integer productType) {
+        if (productType == null) {
+            return null;
+        }
+        return productType == 1 ? "活体宠物" : "宠物用品/周边";
     }
 }

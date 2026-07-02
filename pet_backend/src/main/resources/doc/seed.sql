@@ -41,19 +41,19 @@ INSERT IGNORE INTO store (id, user_id, store_name, store_logo, store_phone, stor
 
 -- ========== 4. product ==========
 INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, images, status, video_id) VALUES
-(1, 1, '金毛幼犬', 1, 'dog', '纯种金毛，双血统，已打第一针疫苗，驱虫完成，性格温顺。', 1888.00, 3,
+(1, 1, '金毛幼犬', 1, 'dog', '纯种金毛，双血统，已打第一针疫苗，驱虫完成，性格温顺。', 1888.00, 1,
  'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
  '["https://images.unsplash.com/photo-1552053831-71594a27632d?w=400","https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400"]', 1, 1),
 
-(2, 1, '英短蓝猫', 1, 'cat', '包子脸，3个月大，性格粘人，已驱虫。', 2580.00, 2,
+(2, 1, '英短蓝猫', 1, 'cat', '包子脸，3个月大，性格粘人，已驱虫。', 2580.00, 1,
  'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400',
  '["https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400"]', 1, 2),
 
-(3, 1, '柯基犬', 1, 'dog', '小短腿，2个月大，三色柯基，活泼可爱。', 3200.00, 2,
+(3, 1, '柯基犬', 1, 'dog', '小短腿，2个月大，三色柯基，活泼可爱。', 3200.00, 1,
  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400',
  '["https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400"]', 1, 3),
 
-(4, 1, '布偶猫', 1, 'cat', '海豹双色布偶，2个月大，CFA认证猫舍。', 4500.00, 2,
+(4, 1, '布偶猫', 1, 'cat', '海豹双色布偶，2个月大，CFA认证猫舍。', 4500.00, 1,
  'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400',
  '["https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400"]', 1, 4),
 
@@ -69,11 +69,11 @@ INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, 
  'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400',
  '[]', 1, NULL),
 
-(8, 1, '金丝熊·团子', 1, 'other', '叙利亚金丝熊，1个月大，亲人活泼，笼具用品齐全。', 68.00, 5,
+(8, 1, '金丝熊·团子', 1, 'other', '叙利亚金丝熊，1个月大，亲人活泼，笼具用品齐全。', 68.00, 1,
  'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=400',
  '["https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400"]', 1, NULL),
 
-(9, 4, '玄凤鹦鹉·蓝蓝', 1, 'bird', '黄化玄凤，2个月大，手养亲人，会吹口哨。', 580.00, 2,
+(9, 4, '玄凤鹦鹉·蓝蓝', 1, 'bird', '黄化玄凤，2个月大，手养亲人，会吹口哨。', 580.00, 1,
  'https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400',
  '["https://images.unsplash.com/photo-1552921289-7a7b0d0b76f8?w=400"]', 1, NULL),
 
@@ -81,11 +81,11 @@ INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, 
  'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400',
  '["https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400"]', 1, NULL),
 
-(11, 3, '垂耳兔·棉花', 1, 'other', '荷兰垂耳兔，1个月大，性格温顺稳定。', 188.00, 3,
+(11, 3, '垂耳兔·棉花', 1, 'other', '荷兰垂耳兔，1个月大，性格温顺稳定。', 188.00, 1,
  'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400',
  '["https://images.unsplash.com/photo-1535241749838-299277b6305f?w=400"]', 1, NULL),
 
-(12, 1, '暹罗猫·奶茶', 1, 'cat', '重点色暹罗，2个月大，粘人话痨，聪明活泼。', 2200.00, 2,
+(12, 1, '暹罗猫·奶茶', 1, 'cat', '重点色暹罗，2个月大，粘人话痨，聪明活泼。', 2200.00, 1,
  'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=400',
  '["https://images.unsplash.com/photo-1519052537078-e6302a4968d4?w=400"]', 1, NULL),
 

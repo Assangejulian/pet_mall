@@ -5,7 +5,7 @@
     <div class="search-bar">
       <input v-model="keyword" placeholder="搜索商品名称" @keyup.enter="handleSearch" />
       <select v-model.number="typeFilter">
-        <option :value="-1">全部类型</option><option :value="1">宠物</option><option :value="2">周边</option>
+        <option :value="-1">全部类型</option><option :value="1">活体宠物（每条代表1只）</option><option :value="2">宠物用品/周边</option>
       </select>
       <select v-model="statusFilter">
         <option value="">全部状态</option><option value="1">上架</option><option value="0">下架</option><option value="2">已售出</option>
@@ -56,16 +56,17 @@
           </div>
           <div class="form-row">
             <div class="form-group"><label>商品类型</label>
-              <select v-model.number="form.productType"><option :value="1">宠物</option><option :value="2">周边</option></select>
+              <select v-model.number="form.productType"><option :value="TYPE_LIVE_PET">活体宠物（每条代表1只）</option><option :value="TYPE_SUPPLY">宠物用品/周边</option></select>
             </div>
             <div class="form-group"><label>分类</label>
               <select v-model="form.category"><option value="cat">猫</option><option value="dog">狗</option><option value="bird">鸟</option><option value="fish">鱼</option><option value="other">其他</option><option value="food">粮食</option><option value="accessory">配件</option></select>
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>库存</label><input v-model.number="form.stock" type="number" /></div>
+            <div class="form-group"><label>库存</label><input v-model.number="form.stock" type="number" min="0" :max="form.productType === TYPE_LIVE_PET ? 1 : undefined" step="1" /><p class="field-hint">{{ stockHint }}</p><p v-if="stockError" class="field-error">{{ stockError }}</p></div>
             <div class="form-group"><label>所属门店 ID</label><input v-model.number="form.storeId" type="number" /></div>
           </div>
+          <div class="form-group"><label>状态</label><select v-model="form.status"><option value="1">上架</option><option value="0">下架</option><option v-if="form.status === '2'" value="2">已售出</option></select></div>
           <div class="form-group"><label>商品描述</label><textarea v-model="form.productDesc" rows="3"></textarea></div>
           <div class="form-group"><label>主图链接</label><input v-model="form.mainImage" placeholder="https://..." /></div>
         </div>
@@ -79,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from "vue"
+import { ref, onMounted, computed, reactive, watch } from "vue"
 import { useProductStore } from "../../stores/product"
 import { onlineProduct, offlineProduct, deleteProduct, updateProduct, createProduct } from "../../api/product"
 import type { Product } from "../../types/product"
@@ -93,15 +94,19 @@ const pageSize = 10
 const showModal = ref(false)
 const isAdd = ref(false)
 const form = reactive({}) as any
+const TYPE_LIVE_PET = 1
+const TYPE_SUPPLY = 2
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize))
+const stockHint = computed(() => form.productType === TYPE_LIVE_PET ? "活体宠物每条商品代表一只，库存只能为0或1" : "宠物用品/周边库存可填写任意非负整数")
+const stockError = computed(() => stockValidationMessage())
 
 function productTypeLabel(t: number | undefined) {
-  return t === 1 ? '宠物' : t === 2 ? '周边' : '-'
+  return t === TYPE_LIVE_PET ? '活体宠物（每条代表1只）' : t === TYPE_SUPPLY ? '宠物用品/周边' : '-'
 }
 
 function resolveStatusCode(item: Product): number {
-  return item.statusCode ?? item.status ?? 0
+  return item.statusCode ?? Number(item.status ?? 0)
 }
 
 function statusBadge(item: Product) {
@@ -128,7 +133,7 @@ function goPage(p: number) { currentPage.value = p; fetchData() }
 
 function openAdd() {
   isAdd.value = true
-  Object.assign(form, { productName: "", price: 0, stock: 1, productType: 1, category: "cat", storeId: 1, productDesc: "", mainImage: "" })
+  Object.assign(form, { productName: "", price: 0, stock: 1, productType: TYPE_LIVE_PET, category: "cat", storeId: 1, productDesc: "", mainImage: "", status: "1" })
   showModal.value = true
 }
 
@@ -139,16 +144,22 @@ function openEdit(item: Product) {
     productName: item.productName || item.name,
     price: item.price,
     stock: item.stock,
-    productType: item.productType || 1,
+    productType: item.productType || TYPE_LIVE_PET,
     category: item.category || "",
     storeId: item.storeId,
     productDesc: item.productDesc || item.detail,
-    mainImage: item.mainImage || item.image || ""
+    mainImage: item.mainImage || item.image || "",
+    status: String(resolveStatusCode(item))
   })
   showModal.value = true
 }
 
 async function saveProduct() {
+  const message = validationMessage()
+  if (message) {
+    showToast(message, 'error')
+    return
+  }
   try {
     if (isAdd.value) {
       await createProduct(form)
@@ -198,11 +209,38 @@ function showToast(msg: string, type: string) {
   }
 }
 
+function stockValidationMessage() {
+  const stock = Number(form.stock)
+  if (!Number.isInteger(stock)) return "库存必须是整数"
+  if (stock < 0) return "库存不能小于0"
+  if (form.productType === TYPE_LIVE_PET && stock > 1) return "活体宠物每条商品代表一只，库存只能为0或1"
+  if (form.status === "1" && stock === 0) return "库存为0的商品不能上架"
+  return ""
+}
+
+function validationMessage() {
+  if (!form.productName) return "请填写商品名称"
+  if (!Number.isFinite(Number(form.price)) || Number(form.price) < 0) return "价格不能小于0"
+  if (![TYPE_LIVE_PET, TYPE_SUPPLY].includes(Number(form.productType))) return "请选择正确的商品类型"
+  if (!form.storeId) return "请填写所属门店 ID"
+  return stockValidationMessage()
+}
+
+watch(() => form.productType, (next, previous) => {
+  if (!showModal.value || next !== TYPE_LIVE_PET || previous === TYPE_LIVE_PET) return
+  if (Number(form.stock) > 1) {
+    form.stock = 1
+    showToast("已将活体宠物库存调整为1", "error")
+  }
+})
+
 onMounted(fetchData)
 </script>
 
 <style scoped>
 .form-row { display: flex; gap: 16px; }
 .form-row .form-group { flex: 1; }
+.field-hint { margin-top: 4px; color: var(--text3); font-size: 12px; }
+.field-error { margin-top: 4px; color: #c62828; font-size: 12px; }
 </style>
 

@@ -1,4 +1,4 @@
-var orderApi = require("../../utils/api/order");
+var orderApi = require("../../../utils/api/order");
 
 function normalizeItem(item) {
   item = item || {};
@@ -26,6 +26,7 @@ Page({
       "-3": "\u9000\u5355\u5df2\u901a\u8fc7"
     },
     addressParsed: null,
+    addressText: "",
     loading: true
   },
 
@@ -53,10 +54,14 @@ Page({
       if (order.addressSnapshot) {
         try { addressParsed = JSON.parse(order.addressSnapshot); } catch(e) {}
       }
+      var addressText = addressParsed
+        ? [addressParsed.province, addressParsed.city, addressParsed.district, addressParsed.detail].filter(Boolean).join("")
+        : "";
       that.setData({
         order: order,
         items: items,
         addressParsed: addressParsed,
+        addressText: addressText,
         loading: false
       });
     }).catch(function() {

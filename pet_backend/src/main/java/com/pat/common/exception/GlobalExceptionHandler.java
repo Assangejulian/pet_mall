@@ -22,4 +22,3 @@ public class GlobalExceptionHandler {
         return Result.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
     }
 }
-

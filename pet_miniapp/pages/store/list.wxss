@@ -61,6 +61,14 @@
   font-size: 24rpx;
   color: #8f7366;
 }
+.error-tip {
+  padding: 12rpx 28rpx;
+  background: #fff7ef;
+  color: #a96c54;
+  font-size: 24rpx;
+  border-top: 1rpx solid #f0ebe3;
+  border-bottom: 1rpx solid #f0ebe3;
+}
 
 /* 门店列表 */
 .store-list {

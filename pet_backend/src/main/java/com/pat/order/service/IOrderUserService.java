@@ -19,4 +19,3 @@ public interface IOrderUserService {
     OrderPaymentVO payOrder(OrderPaymentDTO dto);
     PurchaseOrder confirmReceive(Long id);
 }
-

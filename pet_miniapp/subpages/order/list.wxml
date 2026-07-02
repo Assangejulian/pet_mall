@@ -18,4 +18,3 @@
   </view>
   <view class="empty-tip" wx:else><text>暂无订单</text></view>
 </view>
-
