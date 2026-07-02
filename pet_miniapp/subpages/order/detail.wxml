@@ -1,8 +1,18 @@
 <view class="page">
   <view class="sb" style="background:{{sbg[order.orderStatus]||'#faf7ef'}}">
-    <text class="si">{{sic[order.orderStatus]||'閳?'}}</text>
+    <text class="si">{{sic[order.orderStatus]||"○"}}</text>
     <view><text class="st">{{sl[order.orderStatus]}}</text></view>
   </view>
+
+  <!-- 已支付等待发货提示 -->
+  <view class="status-hint" wx:if="{{order.orderStatus === 1}}">
+    <text class="hint-icon">⏳</text>
+    <view class="hint-text">
+      <text class="hint-title">已支付，等待商家发货</text>
+      <text class="hint-desc">商家将尽快为你安排发货</text>
+    </view>
+  </view>
+
   <view class="card">
     <text class="ct">订单编号</text>
     <text class="ad">{{order.orderNo}}</text>
@@ -23,5 +33,12 @@
       <text>实付</text>
       <text style="color:#e8927c;font-weight:700">¥{{order.payAmount}}</text>
     </view>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="bottom-bar" wx:if="{{order.id}}">
+    <button wx:if="{{order.orderStatus === 0}}" class="btn-primary" bindtap="payOrder">去支付</button>
+    <button wx:elif="{{order.orderStatus === 2}}" class="btn-primary" bindtap="confirmReceive">确认收货</button>
+    <button class="btn-outline" bindtap="callService">联系客服</button>
   </view>
 </view>

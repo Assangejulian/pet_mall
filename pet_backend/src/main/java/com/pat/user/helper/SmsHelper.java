@@ -1,6 +1,7 @@
-package com.pat.user.utils;
+package com.pat.user.helper;
 
 import com.pat.common.constant.RedisConstants;
+import com.pat.user.utils.MailUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;

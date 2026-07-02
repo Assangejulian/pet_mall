@@ -17,7 +17,12 @@ module.exports = {
     return request.post("/api/order/pay", { orderNo: orderNo });
   },
 
+  receive: function(id) {
+    return request.post("/api/order/" + id + "/receive");
+  },
+
   items: function(orderId) {
     return request.get("/api/order/item/search", { orderId: orderId });
   }
 };
+

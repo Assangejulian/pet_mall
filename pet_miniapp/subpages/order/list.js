@@ -51,8 +51,27 @@ Page({
     this.onShow();
   },
 
+  payOrder: function (e) {
+    var that = this;
+    var id = e.currentTarget.dataset.id;
+    var order = this.data.orders.find(function (o) { return o.id === id; });
+    if (!order) return;
+    wx.showLoading({ title: "支付中..." });
+    orderApi.pay(order.orderNo).then(function () {
+      wx.hideLoading();
+      wx.showToast({ title: "支付成功", icon: "success" });
+      that.onShow();
+    }).catch(function () {
+      wx.hideLoading();
+      wx.showToast({ title: "支付失败", icon: "none" });
+    });
+  },
+
   goDetail(event) {
     wx.navigateTo({ url: "/subpages/order/detail?id=" + event.currentTarget.dataset.id });
   }
 });
+
+
+
 

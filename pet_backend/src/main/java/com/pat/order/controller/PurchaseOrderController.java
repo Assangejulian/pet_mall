@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
+import com.pat.order.domain.vo.OrderCreateVO;
 import com.pat.order.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
@@ -27,10 +28,11 @@ public class PurchaseOrderController {
         this.orderUserService = orderUserService;
     }
 
-    @Operation(summary = "创建订单")
+    @Operation(summary = "下单")
     @PostMapping("/create")
-    public Result<Long> createOrder(@Valid @RequestBody OrderCreateDTO dto) {
-        return Result.success(orderUserService.createOrder(dto));
+    public Result<OrderCreateVO> create(@Valid @RequestBody OrderCreateDTO dto) {
+        Long orderId = orderUserService.createOrder(dto);
+        return Result.success(new OrderCreateVO(orderId));
     }
 
     @Operation(summary = "当前用户订单列表")
@@ -51,9 +53,16 @@ public class PurchaseOrderController {
         return Result.success(orderUserService.payOrder(dto));
     }
 
+    @Operation(summary = "确认收货")
+    @PostMapping("/{id}/receive")
+    public Result<PurchaseOrder> receive(@PathVariable Long id) {
+        return Result.success(orderUserService.confirmReceive(id));
+    }
+
     @Operation(summary = "订单商品明细")
     @GetMapping("/item/search")
     public Result<List<OrderItem>> items(Long orderId) {
         return Result.success(orderUserService.getUserOrderItems(orderId));
     }
 }
+

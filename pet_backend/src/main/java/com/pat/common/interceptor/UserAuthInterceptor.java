@@ -1,9 +1,9 @@
-package com.pat.user.interceptor;
+package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
-import com.pat.user.utils.JwtUtil;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.JwtUtil;
+import com.pat.common.util.UserHolder;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,28 +12,27 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
-public class AdminAuthInterceptor implements HandlerInterceptor {
+public class UserAuthInterceptor implements HandlerInterceptor {
 
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String KEY_USER_ID = "userId";
-    private static final String KEY_USERNAME = "username";
-    private static final String KEY_ROLE = "role";
-    private static final String ADMIN_ROLE = "admin";
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 1. 检查 Authorization 头
+        // 放行 OPTIONS 预检请求
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         String auth = request.getHeader(AUTH_HEADER);
         if (auth == null || !auth.startsWith(BEARER_PREFIX)) {
             writeJson(response, 401, "未登录或token无效");
             return false;
         }
 
-        // 2. 解析 Token（校验+解析一步完成，避免双重解析）
         String token = auth.substring(BEARER_PREFIX.length());
         Claims claims;
         try {
@@ -43,17 +42,10 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 3. 校验管理员角色
-        String role = claims.get(KEY_ROLE, String.class);
-        if (!ADMIN_ROLE.equals(role)) {
-            writeJson(response, 403, "无管理员权限");
-            return false;
-        }
-
-        // 4. 注入用户上下文
-        UserHolder.save(KEY_USER_ID, claims.get(KEY_USER_ID, Long.class));
-        UserHolder.save(KEY_USERNAME, claims.get(KEY_USERNAME, String.class));
-        UserHolder.save(KEY_ROLE, role);
+        // 注入用户上下文
+        UserHolder.save("userId", claims.get("userId", Long.class));
+        UserHolder.save("username", claims.get("username", String.class));
+        UserHolder.save("role", claims.get("role", String.class));
         return true;
     }
 
@@ -62,7 +54,6 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         UserHolder.remove();
     }
 
-    /** 写入统一格式的错误响应 */
     private void writeJson(HttpServletResponse response, int code, String message) throws Exception {
         response.setStatus(code);
         response.setContentType("application/json;charset=utf-8");

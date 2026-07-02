@@ -4,15 +4,28 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.entity.Cart;
+import com.pat.order.domain.vo.CartVO;
 import com.pat.order.mapper.CartMapper;
 import com.pat.order.service.ICartService;
-import com.pat.user.utils.UserHolder;
+import com.pat.product.domain.entity.Product;
+import com.pat.product.domain.vo.ProductVO;
+import com.pat.product.service.IProductService;
+import com.pat.common.util.UserHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
+
+    private final IProductService productService;
+
+    public CartServiceImpl(IProductService productService) {
+        this.productService = productService;
+    }
 
     private Long requireUserId() {
         Long uid = UserHolder.getUserId();
@@ -21,11 +34,49 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     }
 
     @Override
-    public List<Cart> getCurrentUserCart() {
-        return lambdaQuery()
+    public List<CartVO> getCurrentUserCart() {
+        List<Cart> carts = lambdaQuery()
                 .eq(Cart::getUserId, requireUserId())
                 .orderByDesc(Cart::getCreateTime)
                 .list();
+
+        if (carts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 批量查询商品信息
+        List<Long> productIds = carts.stream()
+                .map(Cart::getProductId)
+                .collect(Collectors.toList());
+        List<Product> products = productService.listByIds(productIds);
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
+
+        // 组装 CartVO
+        List<CartVO> result = new ArrayList<>(carts.size());
+        for (Cart cart : carts) {
+            CartVO vo = new CartVO();
+            vo.setId(cart.getId());
+            vo.setProductId(cart.getProductId());
+            vo.setQuantity(cart.getQuantity());
+            vo.setChecked(cart.getChecked());
+
+            Product product = productMap.get(cart.getProductId());
+            if (product != null) {
+                ProductVO productVO = new ProductVO();
+                productVO.setId(product.getId());
+                productVO.setName(product.getProductName());
+                productVO.setPrice(product.getPrice());
+                productVO.setImage(product.getMainImage());
+                productVO.setMainImage(product.getMainImage());
+                productVO.setStock(product.getStock());
+                productVO.setDetail(product.getProductDesc());
+                vo.setProductInfo(productVO);
+            }
+
+            result.add(vo);
+        }
+        return result;
     }
 
     @Override

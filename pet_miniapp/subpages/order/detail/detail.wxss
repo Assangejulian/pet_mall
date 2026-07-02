@@ -150,4 +150,9 @@
   font-size: 28rpx;
   color: #bbb;
 }
-
+/* 状态提示 */
+.status-hint{display:flex;align-items:center;gap:16rpx;margin:16rpx 20rpx;padding:20rpx 24rpx;background:linear-gradient(135deg,#e8f4fd,#d0eafc);border-radius:14rpx}
+.hint-icon{font-size:48rpx;flex-shrink:0}
+.hint-text{flex:1}
+.hint-title{display:block;font-size:28rpx;font-weight:600;color:#1565c0;margin-bottom:4rpx}
+.hint-desc{display:block;font-size:22rpx;color:#5a8ab5}

@@ -17,4 +17,6 @@ public interface IOrderUserService {
     PurchaseOrder getUserOrderDetail(Long id);
     List<OrderItem> getUserOrderItems(Long orderId);
     OrderPaymentVO payOrder(OrderPaymentDTO dto);
+    PurchaseOrder confirmReceive(Long id);
 }
+
