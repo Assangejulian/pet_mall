@@ -8,9 +8,7 @@ import com.pat.user.controller.AuthController;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.dto.LoginVO;
 import com.pat.user.domain.entity.User;
-import com.pat.common.interceptor.AdminAuthInterceptor;
-import com.pat.common.interceptor.AuditorAuthInterceptor;
-import com.pat.common.interceptor.MerchantAuthInterceptor;
+import com.pat.common.interceptor.RoleInterceptor;
 import com.pat.user.service.auth.AuthService;
 import com.pat.user.service.auth.AuthServiceRouter;
 import com.pat.common.util.JwtUtil;
@@ -79,7 +77,7 @@ class ManagementAuthTest {
     @Test
     void missingTokenOnMerchantEndpointReturns401() throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
-        boolean allowed = new MerchantAuthInterceptor(objectMapper)
+        boolean allowed = new RoleInterceptor(objectMapper, java.util.Set.of("merchant"))
                 .preHandle(new MockHttpServletRequest(), response, new Object());
         assertThat(allowed).isFalse();
         assertThat(response.getStatus()).isEqualTo(401);
@@ -87,25 +85,25 @@ class ManagementAuthTest {
 
     @Test
     void userRoleOnMerchantEndpointReturns403() throws Exception {
-        MockHttpServletResponse response = authorize(new MerchantAuthInterceptor(objectMapper), "user");
+        MockHttpServletResponse response = authorize(new RoleInterceptor(objectMapper, java.util.Set.of("merchant")), "user");
         assertThat(response.getStatus()).isEqualTo(403);
     }
 
     @Test
     void merchantRoleOnAuditorEndpointReturns403() throws Exception {
-        MockHttpServletResponse response = authorize(new AuditorAuthInterceptor(objectMapper), "merchant");
+        MockHttpServletResponse response = authorize(new RoleInterceptor(objectMapper, java.util.Set.of("auditor", "admin")), "merchant");
         assertThat(response.getStatus()).isEqualTo(403);
     }
 
     @Test
     void auditorRoleOnAdminEndpointReturns403() throws Exception {
-        MockHttpServletResponse response = authorize(new AdminAuthInterceptor(objectMapper), "auditor");
+        MockHttpServletResponse response = authorize(new RoleInterceptor(objectMapper, java.util.Set.of("admin")), "auditor");
         assertThat(response.getStatus()).isEqualTo(403);
     }
 
     @Test
     void adminRoleOnAuditorEndpointSucceedsAndPopulatesContext() throws Exception {
-        AuditorAuthInterceptor interceptor = new AuditorAuthInterceptor(objectMapper);
+        RoleInterceptor interceptor = new RoleInterceptor(objectMapper, java.util.Set.of("auditor", "admin"));
         MockHttpServletRequest request = requestWithRole("admin");
         MockHttpServletResponse response = new MockHttpServletResponse();
         assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
@@ -122,7 +120,7 @@ class ManagementAuthTest {
         assertThat(JwtUtil.parseToken(result.getData().getToken()).get("role", String.class)).isEqualTo(role);
     }
 
-    private MockHttpServletResponse authorize(com.pat.common.interceptor.RoleAuthInterceptor interceptor, String role) throws Exception {
+    private MockHttpServletResponse authorize(com.pat.common.interceptor.RoleInterceptor interceptor, String role) throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         interceptor.preHandle(requestWithRole(role), response, new Object());
         return response;

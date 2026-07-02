@@ -22,8 +22,9 @@ CREATE TABLE IF NOT EXISTS comment (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频评论';
 
 -- ========== 1. user ==========
+-- WARNING: 生产部署前请修改默认管理员密码
 INSERT IGNORE INTO user (id, username, password, phone, avatar, email, member_level, real_name, birthday, role, status) VALUES
-(1, 'admin', 'admin123', '13800138000', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200', 'admin@petstore.com', 3, '系统管理员', '1990-01-01', 'admin', 1),
+(1, 'admin', 'admin123'  -- 部署后请立即修改密码, '13800138000', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200', 'admin@petstore.com', 3, '系统管理员', '1990-01-01', 'admin', 1),
 (2, 'user',  'user123',  '13900139000', 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200', 'user@petstore.com', 1, '张三', '1995-06-15', 'user', 1);
 
 -- ========== 2. user_address ==========

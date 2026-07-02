@@ -11,41 +11,45 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * 认证拦截器 —— 只验证用户是否登录，不校验角色。
+ *
+ * <p>流程：提取 Authorization 头中的 Bearer token → 解析 JWT → 存入 UserHolder</p>
+ * <p>哪些路径需要登录由 MvcConfig 通过 addPathPatterns 控制。
+ *    视频 Feed、详情、播放和评论列表是公开 GET，在这里做方法级放行。</p>
+ *
+ * @see com.pat.common.config.MvcConfig
+ * @see RoleInterceptor
+ */
 @Component
-public class UserAuthInterceptor implements HandlerInterceptor {
+public class AuthInterceptor implements HandlerInterceptor {
 
-    private static final String AUTH_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String BEARER = "Bearer ";
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 放行 OPTIONS 预检请求
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            return true;
-        }
-        if (isPublicVideoRead(request)) {
-            return true;
-        }
+    public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) throws Exception {
+        // OPTIONS 预检请求放行
+        if ("OPTIONS".equalsIgnoreCase(req.getMethod())) return true;
+        if (isPublicVideoRead(req)) return true;
 
-        String auth = request.getHeader(AUTH_HEADER);
-        if (auth == null || !auth.startsWith(BEARER_PREFIX)) {
-            writeJson(response, 401, "未登录或token无效");
+        String auth = req.getHeader("Authorization");
+        if (auth == null || !auth.startsWith(BEARER)) {
+            writeJson(res, 401, "未登录或token无效");
             return false;
         }
 
-        String token = auth.substring(BEARER_PREFIX.length());
         Claims claims;
         try {
-            claims = JwtUtil.parseToken(token);
+            claims = JwtUtil.parseToken(auth.substring(BEARER.length()));
         } catch (Exception e) {
-            writeJson(response, 401, "token已过期或无效");
+            writeJson(res, 401, "token已过期或无效");
             return false;
         }
 
-        // 注入用户上下文
+        // 存入当前线程，后续 Controller/Service 通过 UserHolder 获取
         UserHolder.save("userId", claims.get("userId", Long.class));
         UserHolder.save("username", claims.get("username", String.class));
         UserHolder.save("role", claims.get("role", String.class));
@@ -53,23 +57,23 @@ public class UserAuthInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+    public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) {
         UserHolder.remove();
     }
 
-    private void writeJson(HttpServletResponse response, int code, String message) throws Exception {
-        response.setStatus(code);
-        response.setContentType("application/json;charset=utf-8");
-        objectMapper.writeValue(response.getWriter(), Result.error(code, message));
+    private void writeJson(HttpServletResponse res, int code, String msg) throws Exception {
+        res.setStatus(code);
+        res.setContentType("application/json;charset=utf-8");
+        objectMapper.writeValue(res.getWriter(), Result.error(code, msg));
     }
 
-    private boolean isPublicVideoRead(HttpServletRequest request) {
-        if (!"GET".equalsIgnoreCase(request.getMethod())) {
+    private boolean isPublicVideoRead(HttpServletRequest req) {
+        if (!"GET".equalsIgnoreCase(req.getMethod())) {
             return false;
         }
 
-        String path = request.getRequestURI();
-        String contextPath = request.getContextPath();
+        String path = req.getRequestURI();
+        String contextPath = req.getContextPath();
         if (contextPath != null && !contextPath.isBlank() && path.startsWith(contextPath)) {
             path = path.substring(contextPath.length());
         }
