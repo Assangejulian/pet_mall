@@ -302,3 +302,93 @@ INSERT IGNORE INTO order_item(id, order_id, product_id, product_name, product_im
 (2, 2, 2, '英短蓝猫', 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=200', 2580.00, 1),
 (3, 3, 3, '柯基犬',   'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?w=200', 3200.00, 1),
 (4, 4, 4, '布偶猫',   'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=200', 4500.00, 1);
+
+-- ============================================
+-- 补充种子数据（商户订单演示用）
+-- ============================================
+
+-- ========== 补充 user ==========
+INSERT IGNORE INTO user (id, username, password, phone, avatar, email, member_level, real_name, birthday, role, status) VALUES
+(5, 'merchant3', '123456', '13800003333', 'https://images.unsplash.com/photo-1583337130417-3346c1be7dee?w=200', NULL, 0, '鱼乐无穷', NULL, 'merchant', 1),
+(6, 'user2', '123456', '13600001111', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200', 'user2@test.com', 1, '李四', '1998-08-08', 'user', 1),
+(7, 'user3', '123456', '13600002222', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200', 'user3@test.com', 2, '王五', '2000-01-15', 'user', 1);
+
+-- ========== 补充 user_address ==========
+INSERT IGNORE INTO user_address(id, user_id, receiver_name, phone, province, city, district, detail, defaulted) VALUES
+(2, 6, '李四', '13600001111', '福建省', '厦门市', '湖里区', '湖里大道88号', 1),
+(3, 6, '李四', '13600001112', '福建省', '厦门市', '思明区', '厦禾路200号', 0),
+(4, 7, '王五', '13600002222', '福建省', '厦门市', '集美区', '杏林湾路1号', 1);
+
+-- ========== 补充 store ==========
+INSERT IGNORE INTO store(id, user_id, store_name, store_logo, store_phone, store_desc, province, city, district, address, longitude, latitude, status) VALUES
+(12, 5, '鱼乐无穷·水族馆', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200', '13800000006', '专注观赏鱼、水族造景，厦门最大水族馆。', '福建省', '厦门市', '思明区', '环岛路300号', 118.1200000, 24.4600000, 1);
+
+-- ========== 补充 product ==========
+INSERT IGNORE INTO product(id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, status, video_id) VALUES
+(7,  10, '贵宾幼犬·奶茶',  1, 'dog',   '玩具贵宾，1.5kg迷你体，已打疫苗。',       2800.00, 1, 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=800', 1, NULL),
+(8,  10, '宠物窝垫 M号',   2, 'accessory', '四季通用宠物窝，可拆洗，柔软保暖。',      89.00, 50, 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=800', 1, NULL),
+(9,  10, '仓鼠套餐·豪华版',2, 'other',  '含笼子+跑轮+食盆+木屑+粮食，新手一站式。', 198.00, 20, 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=800', 1, NULL),
+(10, 10, '龙猫·银斑',      1, 'other',  '银斑龙猫，2个月大，毛色漂亮，温顺亲人。',   1280.00, 1, 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=800', 1, NULL),
+(11, 11, '泰迪犬·巧克力',  1, 'dog',   '迷你泰迪，2个月大，已驱虫，聪明好训练。',   2600.00, 1, 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800', 1, NULL),
+(12, 11, '猫抓板·仙人掌',  2, 'accessory', '网红猫抓板，剑麻材质，耐抓不掉屑。',        49.00, 40, 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800', 1, NULL),
+(13, 12, '神仙鱼·熊猫',    1, 'fish',  '熊猫神仙鱼，体长4-5cm，温顺群游。',           38.00, 30, 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=800', 1, NULL),
+(14, 12, '水族箱 60cm',     2, 'accessory', '超白玻璃鱼缸，60x30x36cm，含过滤系统。',  399.00, 10, 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=800', 1, NULL),
+(15, 12, '斗鱼·半月',      1, 'fish',  '半月斗鱼，泰国进口，大尾展，色彩艳丽。',        88.00,  8, 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=800', 1, NULL),
+(16, 12, '鱼粮套餐',        2, 'food',  '热带鱼粮+金鱼粮+底栖鱼粮，三瓶装。',            45.00, 60, 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800', 1, NULL);
+
+-- ========== 补充 video ==========
+INSERT IGNORE INTO video(id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
+(7, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '/video/7.mp4', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=800', 7, 6800, 1200, 89, 55, 1),
+(8, 3, '神仙鱼群游好治愈', '看着它们在鱼缸里慢慢游，心情都平静了。', '/video/8.mp4', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=800', 13, 3500, 680, 45, 30, 1);
+
+-- ========== 补充 comment ==========
+INSERT IGNORE INTO comment(id, video_id, user_id, content) VALUES
+(8, 7, 4, '太聪明了！想养一只'),
+(9, 7, 3, '这个价格含训练课程吗'),
+(10, 8, 4, '好漂亮的神仙鱼'),
+(11, 8, 5, '鱼缸造景也很好看');
+
+-- ========== 补充 purchase_order（覆盖多商户店铺） ==========
+INSERT IGNORE INTO purchase_order(id, order_no, user_id, address_id, total_amount, discount_amount, pay_amount, order_status, remark, pay_time, ship_time, receive_time, create_time) VALUES
+-- 订单5：暖窝(store10)商品 → merchant1 可见，已支付待发货
+(5, 'PO20260625005', 6, 2, 2649.00, 0.00, 2649.00, 1, '请尽快发货哦~', '2026-06-25 10:30:00', NULL, NULL, '2026-06-25 10:25:00'),
+-- 订单6：猫咖日记(store11)商品 → merchant2 可见，已收货已评价
+(6, 'PO20260620006', 6, 2, 2649.00, 0.00, 2649.00, 4, NULL, '2026-06-20 15:00:00', '2026-06-21 09:00:00', '2026-06-23 11:00:00', '2026-06-20 14:55:00'),
+-- 订单7：鱼乐无穷(store12)商品 → merchant3 可见，已发货
+(7, 'PO20260624007', 7, 4, 525.00, 0.00, 525.00, 2, '鱼缸请小心轻放', '2026-06-24 09:00:00', '2026-06-25 08:30:00', NULL, '2026-06-24 08:50:00'),
+-- 订单8：暖窝(store10)商品 → merchant1 可见，已取消
+(8, 'PO20260622008', 7, 4, 89.00, 0.00, 89.00, -1, '不想要了', NULL, NULL, NULL, '2026-06-22 16:00:00'),
+-- 订单9：猫咖日记(store11)商品 → merchant2 可见，申请退单
+(9, 'PO20260619009', 4, 1, 2600.00, 0.00, 2600.00, -2, '猫咪到家后有点应激反应', '2026-06-19 09:00:00', '2026-06-20 10:00:00', '2026-06-22 14:00:00', '2026-06-19 08:55:00'),
+-- 订单10：鱼乐无穷(store12)商品 → merchant3 可见，待支付
+(10, 'PO20260627010', 4, 1, 133.00, 0.00, 133.00, 0, NULL, NULL, NULL, NULL, '2026-06-27 14:00:00');
+
+-- ========== 补充 order_item ==========
+INSERT IGNORE INTO order_item(id, order_id, product_id, product_name, product_image, price, quantity) VALUES
+-- 订单5：贵宾(store10) + 仓鼠套餐(store10) → merchant1 可见
+(5, 5, 7, '贵宾幼犬·奶茶', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=200', 2800.00, 1),
+(6, 5, 9, '仓鼠套餐·豪华版', 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=200', 198.00, 1),
+-- 订单6：泰迪(store11) + 猫抓板(store11) → merchant2 可见
+(7, 6, 11, '泰迪犬·巧克力', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=200', 2600.00, 1),
+(8, 6, 12, '猫抓板·仙人掌', 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=200', 49.00, 1),
+-- 订单7：神仙鱼×3(store12) + 水族箱(store12) → merchant3 可见
+(9, 7, 13, '神仙鱼·熊猫', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200', 38.00, 3),
+(10, 7, 14, '水族箱 60cm', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 399.00, 1),
+-- 订单8：宠物窝垫(store10) → merchant1 可见
+(11, 8, 8, '宠物窝垫 M号', 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=200', 89.00, 1),
+-- 订单9：泰迪(store11) → merchant2 可见
+(12, 9, 11, '泰迪犬·巧克力', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=200', 2600.00, 1),
+-- 订单10：斗鱼(store12) + 鱼粮(store12) → merchant3 可见
+(13, 10, 15, '斗鱼·半月', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 88.00, 1),
+(14, 10, 16, '鱼粮套餐', 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200', 45.00, 1);
+
+-- ========== 补充 evaluate ==========
+UPDATE order_item SET evaluate_content = '泰迪犬很可爱，健康活泼，物流也很快！', evaluate_star = 5, evaluate_time = '2026-06-25 10:00:00' WHERE id = 5;
+UPDATE order_item SET evaluate_content = '仓鼠套餐很齐全，小朋友很喜欢', evaluate_star = 4, evaluate_time = '2026-06-25 10:05:00' WHERE id = 6;
+UPDATE order_item SET evaluate_content = '狗狗很健康，超级聪明！', evaluate_star = 5, evaluate_time = '2026-06-24 12:00:00' WHERE id = 7;
+UPDATE order_item SET evaluate_content = '猫抓板质量不错，猫咪很喜欢', evaluate_star = 4, evaluate_time = '2026-06-24 12:05:00' WHERE id = 8;
+
+-- ========== 补充 addressSnapshot（所有订单的收货地址快照） ==========
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"测试用户","phone":"13900139000","province":"福建省","city":"厦门市","district":"集美区","detail":"理工路600号"}' WHERE id IN (1,2,3,4,9,10);
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"李四","phone":"13600001111","province":"福建省","city":"厦门市","district":"湖里区","detail":"湖里大道88号"}' WHERE id IN (5,6);
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"王五","phone":"13600002222","province":"福建省","city":"厦门市","district":"集美区","detail":"杏林湾路1号"}' WHERE id IN (7,8);

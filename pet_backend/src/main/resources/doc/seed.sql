@@ -124,3 +124,142 @@ INSERT IGNORE INTO order_item (id, order_id, product_id, product_name, product_i
 (2, 2, 2, '英短蓝猫', 'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=200', 2580.00, 1),
 (3, 3, 3, '柯基犬', 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200', 3200.00, 1),
 (4, 4, 4, '布偶猫', 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=200', 4500.00, 1);
+
+-- ============================================
+-- 补充种子数据（商户订单演示用）
+-- ============================================
+
+-- ========== 补充 user（商户 + 更多用户） ==========
+INSERT IGNORE INTO user (id, username, password, phone, avatar, email, member_level, real_name, birthday, role, status) VALUES
+(3, 'merchant1', '123456', '13800001111', 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200', NULL, 0, '暖窝小暖', NULL, 'merchant', 1),
+(4, 'merchant2', '123456', '13800002222', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200', NULL, 0, '猫咖日记', NULL, 'merchant', 1),
+(5, 'merchant3', '123456', '13800003333', 'https://images.unsplash.com/photo-1583337130417-3346c1be7dee?w=200', NULL, 0, '鱼乐无穷', NULL, 'merchant', 1),
+(6, 'user2', '123456', '13600001111', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200', 'user2@test.com', 1, '李四', '1998-08-08', 'user', 1),
+(7, 'user3', '123456', '13600002222', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200', 'user3@test.com', 2, '王五', '2000-01-15', 'user', 1);
+
+-- ========== 补充 user_address ==========
+INSERT IGNORE INTO user_address (id, user_id, receiver_name, phone, province, city, district, detail, defaulted) VALUES
+(3, 6, '李四', '13600001111', '福建省', '厦门市', '湖里区', '湖里大道88号', 1),
+(4, 6, '李四', '13600001112', '福建省', '厦门市', '思明区', '厦禾路200号', 0),
+(5, 7, '王五', '13600002222', '福建省', '厦门市', '集美区', '杏林湾路1号', 1);
+
+-- ========== 补充 store（给 merchant3） ==========
+INSERT IGNORE INTO store (id, user_id, store_name, store_logo, store_phone, store_desc, province, city, district, address, longitude, latitude, status) VALUES
+(6, 5, '鱼乐无穷·水族馆', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400', '13800000006', '专注观赏鱼、水族造景，厦门最大水族馆。', '福建省', '厦门市', '思明区', '环岛路300号', 118.1200000, 24.4600000, 1),
+(7, 5, '鱼乐无穷·海沧店', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400', '13800000007', '热带鱼、海水鱼、水草专营店。', '福建省', '厦门市', '海沧区', '滨湖北路66号', 118.0360000, 24.4850000, 1);
+
+-- ========== 补充 product（覆盖所有店铺） ==========
+INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, images, status, video_id) VALUES
+(14, 1, '贵宾幼犬·奶茶', 1, 'dog', '玩具贵宾，1.5kg迷你体，已打疫苗，性格活泼。', 2800.00, 1,
+ 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400',
+ '["https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400"]', 1, NULL),
+(15, 1, '宠物窝垫 M号', 2, 'accessory', '四季通用宠物窝，可拆洗，柔软保暖。', 89.00, 50,
+ 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400',
+ '[]', 1, NULL),
+(16, 2, '泰迪犬·巧克力', 1, 'dog', '迷你泰迪，2个月大，已驱虫，聪明好训练。', 2600.00, 1,
+ 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=400',
+ '["https://images.unsplash.com/photo-1534361960057-19889db9621e?w=400"]', 1, NULL),
+(17, 2, '猫抓板·仙人掌', 2, 'accessory', '网红猫抓板，剑麻材质，耐抓不掉屑。', 49.00, 40,
+ 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400',
+ '[]', 1, NULL),
+(18, 3, '仓鼠套餐·豪华版', 2, 'other', '含笼子+跑轮+食盆+木屑+粮食，新手一站式。', 198.00, 20,
+ 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=400',
+ '["https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=400"]', 1, NULL),
+(19, 3, '宠物龟·巴西龟', 1, 'other', '健康巴西龟，约5cm，好饲养，长寿宠物。', 28.00, 10,
+ 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400',
+ '[]', 1, NULL),
+(20, 4, '虎皮鹦鹉·彩虹', 1, 'bird', '虎皮鹦鹉，多种花色可选，手养亲人。', 168.00, 5,
+ 'https://images.unsplash.com/photo-1552921289-7a7b0d0b76f8?w=400',
+ '["https://images.unsplash.com/photo-1552921289-7a7b0d0b76f8?w=400"]', 1, NULL),
+(21, 4, '鹦鹉站架', 2, 'accessory', '实木鹦鹉站架，含食杯和玩具挂件。', 128.00, 15,
+ 'https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400',
+ '[]', 1, NULL),
+(22, 5, '龙猫·银斑', 1, 'other', '银斑龙猫，2个月大，毛色漂亮，温顺亲人。', 1280.00, 1,
+ 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400',
+ '["https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400"]', 1, NULL),
+(23, 5, '兔子提摩西草 500g', 2, 'food', '进口提摩西草，高纤维助消化，兔子必备。', 25.00, 100,
+ 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
+ '[]', 1, NULL),
+(24, 6, '神仙鱼·熊猫', 1, 'fish', '熊猫神仙鱼，体长4-5cm，温顺群游。', 38.00, 30,
+ 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400',
+ '["https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400"]', 1, NULL),
+(25, 6, '水族箱 60cm', 2, 'accessory', '超白玻璃鱼缸，60x30x36cm，含过滤系统。', 399.00, 10,
+ 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400',
+ '[]', 1, NULL),
+(26, 6, '水草种子套装', 2, 'other', '迷你矮珍珠+莫斯，新手造景必备，易存活。', 35.00, 50,
+ 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400',
+ '[]', 1, NULL),
+(27, 7, '斗鱼·半月', 1, 'fish', '半月斗鱼，泰国进口，大尾展，色彩艳丽。', 88.00, 8,
+ 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400',
+ '["https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400"]', 1, NULL),
+(28, 7, '鱼粮套餐', 2, 'food', '热带鱼粮+金鱼粮+底栖鱼粮，三瓶装。', 45.00, 60,
+ 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
+ '[]', 1, NULL);
+
+-- ========== 补充 video ==========
+INSERT IGNORE INTO video (id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
+(6, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400', 14, 6800, 1200, 89, 55, 1),
+(7, 2, '龙猫揉脸合集', '圆滚滚的龙猫揉脸太解压了！', '', 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400', 22, 9200, 1800, 112, 40, 1),
+(8, 3, '神仙鱼群游好治愈', '看着它们在鱼缸里慢慢游，心情都平静了。', '', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400', 24, 3500, 680, 45, 30, 1);
+
+-- ========== 补充 comment ==========
+INSERT IGNORE INTO comment (id, video_id, user_id, content) VALUES
+(7, 6, 2, '太聪明了！想养一只'),
+(8, 6, 3, '这个价格含训练课程吗'),
+(9, 7, 2, '龙猫好圆啊！请问在哪里买的'),
+(10, 7, 4, '手感一定很棒吧'),
+(11, 8, 2, '好漂亮的神仙鱼'),
+(12, 8, 5, '鱼缸造景也很好看');
+
+-- ========== 补充 purchase_order（覆盖更多商户的店铺） ==========
+INSERT IGNORE INTO purchase_order (id, order_no, user_id, address_id, total_amount, discount_amount, pay_amount, order_status, remark, pay_time, ship_time, receive_time, create_time) VALUES
+(5, 'PO20260625005', 6, 3, 2649.00, 0.00, 2649.00, 1, '请尽快发货哦~', '2026-06-25 10:30:00', NULL, NULL, '2026-06-25 10:25:00'),
+(6, 'PO20260620006', 6, 3, 296.00, 0.00, 296.00, 4, NULL, '2026-06-20 15:00:00', '2026-06-21 09:00:00', '2026-06-23 11:00:00', '2026-06-20 14:55:00'),
+(7, 'PO20260626007', 6, 4, 466.00, 10.00, 456.00, 1, NULL, '2026-06-26 11:00:00', NULL, NULL, '2026-06-26 10:50:00'),
+(8, 'PO20260624008', 7, 5, 434.00, 0.00, 434.00, 2, '鱼缸请小心轻放', '2026-06-24 09:00:00', '2026-06-25 08:30:00', NULL, '2026-06-24 08:50:00'),
+(9, 'PO20260622009', 7, 5, 89.00, 0.00, 89.00, -1, '不想要了', NULL, NULL, NULL, '2026-06-22 16:00:00'),
+(10, 'PO20260627010', 2, 1, 133.00, 0.00, 133.00, 0, NULL, NULL, NULL, NULL, '2026-06-27 14:00:00'),
+(11, 'PO20260618011', 7, 5, 1508.00, 0.00, 1508.00, 3, '龙猫很可爱！', '2026-06-18 13:00:00', '2026-06-19 10:00:00', '2026-06-21 16:00:00', '2026-06-18 12:50:00'),
+(12, 'PO20260619012', 2, 1, 2600.00, 0.00, 2600.00, -2, '猫咪到家后有点应激反应', '2026-06-19 09:00:00', '2026-06-20 10:00:00', '2026-06-22 14:00:00', '2026-06-19 08:55:00'),
+(13, 'PO20260628013', 6, 3, 88.00, 0.00, 88.00, 1, NULL, '2026-06-28 16:20:00', NULL, NULL, '2026-06-28 16:15:00'),
+(14, 'PO20260625014', 2, 1, 25.00, 0.00, 25.00, 2, NULL, '2026-06-25 20:00:00', '2026-06-26 09:00:00', NULL, '2026-06-25 19:55:00');
+
+-- ========== 补充 order_item ==========
+INSERT IGNORE INTO order_item (id, order_id, product_id, product_name, product_image, price, quantity) VALUES
+(5, 5, 16, '泰迪犬·巧克力', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=200', 2600.00, 1),
+(6, 5, 17, '猫抓板·仙人掌', 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=200', 49.00, 1),
+(7, 6, 20, '虎皮鹦鹉·彩虹', 'https://images.unsplash.com/photo-1552921289-7a7b0d0b76f8?w=200', 168.00, 1),
+(8, 6, 21, '鹦鹉站架', 'https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=200', 128.00, 1),
+(9, 7, 15, '宠物窝垫 M号', 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=200', 89.00, 1),
+(10, 7, 24, '神仙鱼·熊猫', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200', 38.00, 1),
+(11, 7, 27, '斗鱼·半月', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 88.00, 1),
+(12, 7, 28, '鱼粮套餐', 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200', 45.00, 1),
+(13, 7, 25, '水族箱 60cm', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 399.00, 1),
+(14, 7, 26, '水草种子套装', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200', 35.00, 1),
+(15, 8, 24, '神仙鱼·熊猫', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=200', 38.00, 3),
+(16, 8, 25, '水族箱 60cm', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 399.00, 1),
+(17, 9, 15, '宠物窝垫 M号', 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=200', 89.00, 1),
+(18, 10, 27, '斗鱼·半月', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 88.00, 1),
+(19, 10, 28, '鱼粮套餐', 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200', 45.00, 1),
+(20, 11, 18, '仓鼠套餐·豪华版', 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=200', 198.00, 1),
+(21, 11, 22, '龙猫·银斑', 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=200', 1280.00, 1),
+(22, 11, 23, '兔子提摩西草 500g', 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200', 25.00, 1),
+(23, 11, 19, '宠物龟·巴西龟', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 28.00, 1),
+(24, 12, 16, '泰迪犬·巧克力', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=200', 2600.00, 1),
+(25, 13, 27, '斗鱼·半月', 'https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=200', 88.00, 1),
+(26, 14, 23, '兔子提摩西草 500g', 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200', 25.00, 1);
+
+-- ========== 补充 evaluate（部分订单已评价） ==========
+UPDATE order_item SET evaluate_content = '猫咪非常可爱，健康活泼，物流也很快！', evaluate_star = 5, evaluate_time = '2026-06-25 10:00:00' WHERE id = 4;
+UPDATE order_item SET evaluate_content = '鹦鹉会说话了！太惊喜了~', evaluate_star = 5, evaluate_time = '2026-06-24 12:00:00' WHERE id = 7;
+UPDATE order_item SET evaluate_content = '站架质量不错，鹦鹉很喜欢', evaluate_star = 4, evaluate_time = '2026-06-24 12:05:00' WHERE id = 8;
+UPDATE order_item SET evaluate_content = '仓鼠套餐很齐全，小朋友很喜欢', evaluate_star = 4, evaluate_time = '2026-06-22 09:00:00' WHERE id = 20;
+UPDATE order_item SET evaluate_content = '龙猫超级可爱！毛色漂亮', evaluate_star = 5, evaluate_time = '2026-06-22 09:05:00' WHERE id = 21;
+UPDATE order_item SET evaluate_content = '草很新鲜，兔子爱吃', evaluate_star = 4, evaluate_time = '2026-06-22 09:10:00' WHERE id = 22;
+UPDATE order_item SET evaluate_content = '小乌龟很健康，小朋友的宠物', evaluate_star = 4, evaluate_time = '2026-06-22 09:15:00' WHERE id = 23;
+
+-- ========== 补充 addressSnapshot（所有订单的收货地址快照） ==========
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"张三","phone":"13800138000","province":"福建省","city":"厦门市","district":"集美区","detail":"理工路600号"}' WHERE id IN (1,2,3,4,10,12,14);
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"李四","phone":"13600001111","province":"福建省","city":"厦门市","district":"湖里区","detail":"湖里大道88号"}' WHERE id IN (5,6,13);
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"李四","phone":"13600001112","province":"福建省","city":"厦门市","district":"思明区","detail":"厦禾路200号"}' WHERE id = 7;
+UPDATE purchase_order SET address_snapshot = '{"receiverName":"王五","phone":"13600002222","province":"福建省","city":"厦门市","district":"集美区","detail":"杏林湾路1号"}' WHERE id IN (8,9,11);

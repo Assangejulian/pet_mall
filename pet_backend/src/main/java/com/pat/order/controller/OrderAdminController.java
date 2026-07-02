@@ -8,6 +8,8 @@ import com.pat.order.domain.dto.OrderRefundDTO;
 import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.IOrderAdminService;
+import com.pat.order.service.OrderQueryService;
+import com.pat.order.service.OrderShipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,22 +22,28 @@ import java.util.Map;
 @Tag(name = "订单管理（后台）", description = "管理端订单查看、发货、取消、退款审核")
 public class OrderAdminController {
 
+    private final OrderQueryService orderQueryService;
+    private final OrderShipService orderShipService;
     private final IOrderAdminService orderAdminService;
 
-    public OrderAdminController(IOrderAdminService orderAdminService) {
+    public OrderAdminController(OrderQueryService orderQueryService,
+                                OrderShipService orderShipService,
+                                IOrderAdminService orderAdminService) {
+        this.orderQueryService = orderQueryService;
+        this.orderShipService = orderShipService;
         this.orderAdminService = orderAdminService;
     }
 
     @Operation(summary = "订单分页查询")
     @GetMapping("/search")
-    public Result<IPage<PurchaseOrder>> list(PurchaseOrder param, Page<PurchaseOrder> page) {
-        return Result.success(orderAdminService.pageList(param, page));
+    public Result<IPage<Map<String, Object>>> list(PurchaseOrder param, Page<?> page) {
+        return Result.success(orderQueryService.pageList(param, page, null));
     }
 
     @Operation(summary = "发货")
     @PutMapping("/ship")
     public Result<Void> ship(@Valid @RequestBody OrderShipDTO dto) {
-        orderAdminService.shipOrder(dto);
+        orderShipService.shipOrder(dto, null);
         return Result.success();
     }
 
@@ -63,6 +71,6 @@ public class OrderAdminController {
     @Operation(summary = "订单详情")
     @GetMapping("/{id}")
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
-        return Result.success(orderAdminService.getDetail(id));
+        return Result.success(orderQueryService.getDetail(id, null));
     }
 }

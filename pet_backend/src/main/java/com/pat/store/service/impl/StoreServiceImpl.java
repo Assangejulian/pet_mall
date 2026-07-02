@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 @Service
 public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements IStoreService {
@@ -125,6 +127,16 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     public List<Product> getStoreProducts(Long storeId) {
         if (storeId == null) return List.of();
         return baseMapper.selectStoreProducts(storeId);
+    }
+
+    @Override
+    public List<Long> getStoreIdsByUserId(Long userId) {
+        return lambdaQuery()
+                .eq(Store::getUserId, userId)
+                .list()
+                .stream()
+                .map(Store::getId)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -22,7 +22,8 @@ import com.pat.product.domain.vo.ProductPageVO;
 import com.pat.product.domain.vo.ProductStoreVO;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.store.domain.entity.Store;
-import com.pat.store.mapper.StoreMapper;
+import com.pat.store.service.IStoreService;
+import java.util.ArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -49,12 +50,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private static final int STATUS_SOLD    = ProductStateMachine.SOLD;
 
     private final ProductStoreLookupMapper productStoreLookupMapper;
-    private final StoreMapper storeMapper;
+    private final IStoreService storeService;
     private final ObjectMapper objectMapper;
 
-    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper, StoreMapper storeMapper, ObjectMapper objectMapper) {
+    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper, IStoreService storeService, ObjectMapper objectMapper) {
         this.productStoreLookupMapper = productStoreLookupMapper;
-        this.storeMapper = storeMapper;
+        this.storeService = storeService;
         this.objectMapper = objectMapper;
     }
 
@@ -277,7 +278,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public Product requireOwnedProduct(Long productId, Long merchantUserId) {
         Product product = getActiveProduct(productId);
-        Store store = storeMapper.selectById(product.getStoreId());
+        Store store = storeService.getById(product.getStoreId());
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品所属商店不存在");
         }
@@ -294,7 +295,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     public ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId) {
-        requireOwnedStore(dto == null ? null : dto.getStoreId(), merchantUserId);
+        storeService.requireOwnedStore(dto != null ? dto.getStoreId() : null, merchantUserId);
         return createProduct(dto);
     }
 
@@ -305,7 +306,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             ensureNotPlatformRestricted(product);
         }
         if (dto != null && dto.getStoreId() != null) {
-            requireOwnedStore(dto.getStoreId(), merchantUserId);
+            storeService.requireOwnedStore(dto.getStoreId(), merchantUserId);
         }
         return updateProduct(id, dto);
     }
@@ -377,20 +378,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setOfflineUserId(null);
         product.setOfflineTime(null);
         return toVO(product);
-    }
-
-    private Store requireOwnedStore(Long storeId, Long merchantUserId) {
-        if (storeId == null) {
-            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID不能为空");
-        }
-        Store store = storeMapper.selectById(storeId);
-        if (store == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
-        }
-        if (merchantUserId == null || !merchantUserId.equals(store.getUserId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用该商店");
-        }
-        return store;
     }
 
     private Product getActiveProduct(Long id) {
@@ -523,7 +510,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (storeIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<Store> stores = storeMapper.selectBatchIds(storeIds);
+        List<Store> stores = new ArrayList<>(storeService.listByIds(storeIds));
         return stores.stream().collect(Collectors.toMap(Store::getId, Function.identity(), (a, b) -> a));
     }
 

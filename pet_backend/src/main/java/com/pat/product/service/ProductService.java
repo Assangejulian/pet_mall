@@ -1,6 +1,7 @@
 package com.pat.product.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
@@ -23,6 +24,7 @@ public interface ProductService extends IProductService {
     IPage<ProductVO> pagePublicProducts(ProductQueryDTO query);
 
     ProductPageVO pageAdminProducts(ProductQueryDTO query);
+
 
     ProductVO getPublicDetail(Long id);
 

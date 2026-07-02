@@ -1,24 +1,13 @@
 package com.pat.order.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.order.domain.dto.OrderCancelDTO;
 import com.pat.order.domain.dto.OrderRefundDTO;
-import com.pat.order.domain.dto.OrderShipDTO;
-import com.pat.order.domain.entity.PurchaseOrder;
-
-import java.util.Map;
 
 /**
- * 管理端订单操作：列表、发货、取消、退款审核
+ * 管理端特有订单操作（取消、退款审核、支付回调等）
+ * <p>通用操作（列表、详情、发货）请使用 {@link IOrderService}</p>
  */
 public interface IOrderAdminService {
-    IPage<PurchaseOrder> pageList(PurchaseOrder param, Page<PurchaseOrder> page);
-
-    Map<String, Object> getDetail(Long id);
-
-    /** 发货 */
-    void shipOrder(OrderShipDTO dto);
 
     /** 取消订单 */
     void cancelOrder(OrderCancelDTO dto);

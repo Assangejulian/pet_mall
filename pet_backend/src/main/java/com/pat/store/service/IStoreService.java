@@ -25,6 +25,9 @@ public interface IStoreService extends IService<Store> {
     /** 获取门店的商品列表 */
     List<Product> getStoreProducts(Long storeId);
 
+    /** 获取商户的所有店铺ID */
+    List<Long> getStoreIdsByUserId(Long userId);
+
     Store requireOwnedStore(Long storeId, Long merchantUserId);
 
     boolean isOwnedStore(Long storeId, Long merchantUserId);

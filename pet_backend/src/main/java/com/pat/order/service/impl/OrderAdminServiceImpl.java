@@ -1,15 +1,11 @@
 package com.pat.order.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCancelDTO;
 import com.pat.order.domain.dto.OrderRefundDTO;
-import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
@@ -26,10 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
- * 管理端订单操作：列表、发货、取消、退款审核
+ * 管理端特有订单操作：取消、退款审核、支付回调
  */
 @Service
 public class OrderAdminServiceImpl implements IOrderAdminService {
@@ -37,9 +32,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     private static final Logger log = LoggerFactory.getLogger(OrderAdminServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
-
     private final ProductMapper productMapper;
-
     private final OrderItemMapper orderItemMapper;
 
     public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
@@ -48,31 +41,6 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         this.baseService = baseService;
         this.productMapper = productMapper;
         this.orderItemMapper = orderItemMapper;
-    }
-
-    @Override
-    public IPage<PurchaseOrder> pageList(PurchaseOrder param, Page<PurchaseOrder> page) {
-        QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("create_time");
-        if (param != null) {
-            if (param.getOrderStatus() != null) wrapper.eq("order_status", param.getOrderStatus());
-            if (param.getUserId() != null) wrapper.eq("user_id", param.getUserId());
-            if (param.getOrderNo() != null && !param.getOrderNo().isBlank())
-                wrapper.like("order_no", param.getOrderNo());
-        }
-        return baseService.page(page, wrapper);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void shipOrder(OrderShipDTO dto) {
-        PurchaseOrder order = getOrderById(dto.getOrderId());
-        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.SHIPPED.getCode());
-
-        order.setOrderStatus(OrderStatus.SHIPPED.getCode());
-        order.setShipTime(LocalDateTime.now());
-        baseService.updateById(order);
-        log.info("订单发货 orderId={}, logisticsNo={}, carrier={}", dto.getOrderId(), dto.getLogisticsNo(), dto.getCarrier());
     }
 
     @Override
@@ -148,16 +116,6 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
                     .eq(com.pat.product.domain.entity.Product::getStatus, ProductStateMachine.ONLINE));
         }
         log.info("支付成功 orderNo={}, 已更新{}件商品为已售出", orderNo, items.size());
-    }
-
-    @Override
-    public Map<String, Object> getDetail(Long id) {
-        PurchaseOrder order = getOrderById(id);
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", id));
-        Map<String, Object> map = BeanUtil.beanToMap(order);
-        map.put("items", items);
-        return map;
     }
 
     // ========== 私有方法 ==========

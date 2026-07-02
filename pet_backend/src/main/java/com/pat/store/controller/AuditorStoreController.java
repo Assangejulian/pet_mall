@@ -12,11 +12,14 @@ import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.StoreVO;
 import com.pat.store.service.IStoreService;
 import com.pat.common.util.UserHolder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
+@Tag(name = "门店审核", description = "审核端门店审核/驳回")
 @RestController
 @RequestMapping("/api/auditor/store")
 public class AuditorStoreController {
@@ -27,6 +30,7 @@ public class AuditorStoreController {
         this.storeService = storeService;
     }
 
+    @Operation(summary = "审核端门店分页查询")
     @GetMapping("/search")
     public Result<IPage<StoreVO>> search(StoreDTO param, Page<Store> page) {
         String keyword = param == null ? null
@@ -39,6 +43,7 @@ public class AuditorStoreController {
         return Result.success(storeService.page(page, wrapper).convert(this::toVO));
     }
 
+    @Operation(summary = "门店详情（审核端）")
     @GetMapping("/{id}")
     public Result<StoreVO> detail(@PathVariable Long id) {
         Store store = storeService.getById(id);
@@ -46,16 +51,19 @@ public class AuditorStoreController {
         return Result.success(toVO(store));
     }
 
+    @Operation(summary = "审核通过门店")
     @PutMapping("/{id}/approve")
     public Result<StoreVO> approve(@PathVariable Long id, @RequestParam(required = false) String reason) {
         return audit(id, 1, "approve", normalizeOptional(reason));
     }
 
+    @Operation(summary = "审核驳回门店")
     @PutMapping("/{id}/reject")
     public Result<StoreVO> reject(@PathVariable Long id, @RequestParam(required = false) String reason) {
         return audit(id, 3, "reject", requireReason(reason, "审核驳回原因不能为空"));
     }
 
+    @Operation(summary = "关闭门店")
     @PutMapping("/{id}/close")
     public Result<StoreVO> close(@PathVariable Long id, @RequestParam(required = false) String reason) {
         String closeReason = requireReason(reason, "门店关闭原因不能为空");

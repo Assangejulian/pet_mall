@@ -1,4 +1,4 @@
-import type { ManagementRole } from "../types/user"
+﻿import type { ManagementRole } from "../types/user"
 
 export interface ManagementMenuItem {
   path: string
@@ -27,6 +27,7 @@ export const ROLE_MENUS: Record<ManagementRole, ManagementMenuItem[]> = {
     dashboard,
     { path: "/merchant/store", label: "我的门店", icon: "店" },
     { path: "/merchant/product", label: "我的商品", icon: "品" },
+    { path: "/merchant/order", label: "我的订单", icon: "单" },
   ],
   auditor: [
     dashboard,
@@ -48,3 +49,4 @@ export const ROLE_MENUS: Record<ManagementRole, ManagementMenuItem[]> = {
 export function isManagementRole(value: unknown): value is ManagementRole {
   return typeof value === "string" && MANAGEMENT_ROLES.includes(value as ManagementRole)
 }
+

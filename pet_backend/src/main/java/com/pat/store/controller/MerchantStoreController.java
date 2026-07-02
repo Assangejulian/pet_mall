@@ -13,12 +13,15 @@ import com.pat.store.domain.vo.StoreVO;
 import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import com.pat.common.util.UserHolder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
+@Tag(name = "门店管理（商家端）", description = "商家端门店 CRUD、营业状态管理")
 @RestController
 @RequestMapping("/api/merchant/store")
 public class MerchantStoreController {
@@ -31,6 +34,7 @@ public class MerchantStoreController {
         this.mapHelper = mapHelper;
     }
 
+    @Operation(summary = "商家端门店分页查询")
     @GetMapping("/search")
     public Result<IPage<StoreVO>> search(StoreDTO param, Page<Store> page) {
         String keyword = param == null ? null
@@ -44,11 +48,13 @@ public class MerchantStoreController {
         return Result.success(storeService.page(page, wrapper).convert(this::toVO));
     }
 
+    @Operation(summary = "门店详情（商家端）")
     @GetMapping("/{id}")
     public Result<StoreVO> detail(@PathVariable Long id) {
         return Result.success(toVO(storeService.requireOwnedStore(id, UserHolder.getUserId())));
     }
 
+    @Operation(summary = "新增门店")
     @PostMapping
     public Result<Boolean> create(@RequestBody @Valid StoreDTO param) {
         validateCreate(param);
@@ -64,6 +70,7 @@ public class MerchantStoreController {
         return Result.success(true);
     }
 
+    @Operation(summary = "修改门店")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid StoreDTO param) {
         Store original = storeService.requireOwnedStore(id, UserHolder.getUserId());
@@ -80,6 +87,7 @@ public class MerchantStoreController {
         return Result.success(true);
     }
 
+    @Operation(summary = "删除门店")
     @DeleteMapping("/{id}")
     public Result<Boolean> delete(@PathVariable Long id) {
         storeService.requireOwnedStore(id, UserHolder.getUserId());

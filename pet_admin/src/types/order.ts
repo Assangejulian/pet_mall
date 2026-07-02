@@ -23,6 +23,9 @@ export interface Order {
   cancelType?: 'user' | 'timeout'
   returnReason?: string
   returnApplyTime?: string
+  shipTime?: string
+  receiveTime?: string
+  evaluateTime?: string
   items: OrderItem[]
 }
 
@@ -33,4 +36,6 @@ export interface OrderItem {
   productImage?: string
   quantity: number
   price: number
+  evaluateStar?: number
+  evaluateContent?: string
 }
