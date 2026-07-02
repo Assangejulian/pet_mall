@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -96,6 +97,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 普通编辑支持部分字段更新。
         // 如果商品已经售出，身份字段和售出状态会被保留。
         Product oldProduct = getActiveProduct(id);
+        if (dto != null && requestsOnline(dto.getStatus())) {
+            ensureNotPlatformRestricted(oldProduct);
+        }
         boolean soldProduct = oldProduct != null && oldProduct.getStatus() == STATUS_SOLD;
         boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
         Long storeId = soldProduct ? oldProduct.getStoreId() : (dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId());
@@ -151,11 +155,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品ID不能为空");
         }
         Product current = getActiveProduct(id);
+        ensureNotPlatformRestricted(current);
         checkOperatingStore(current.getStoreId());
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
                 .set(Product::getStatus, STATUS_ONLINE)
                 .eq(Product::getId, id)
                 .eq(Product::getDeleted, 0)
+                .isNull(Product::getOfflineReason)
+                .isNull(Product::getOfflineUserId)
+                .isNull(Product::getOfflineTime)
                 .gt(Product::getStock, 0)
                 .ne(Product::getStatus, STATUS_SOLD)
                 .ne(Product::getStatus, STATUS_ONLINE));
@@ -289,7 +297,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     public ProductVO updateMerchantProduct(Long id, ProductUpdateDTO dto, Long merchantUserId) {
-        requireOwnedProduct(id, merchantUserId);
+        Product product = requireOwnedProduct(id, merchantUserId);
+        if (dto != null && requestsOnline(dto.getStatus())) {
+            ensureNotPlatformRestricted(product);
+        }
         if (dto != null && dto.getStoreId() != null) {
             requireOwnedStore(dto.getStoreId(), merchantUserId);
         }
@@ -316,15 +327,54 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ProductVO forceOfflineProduct(Long id) {
+    public ProductVO forceOfflineProduct(Long id, String reason, Long offlineUserId) {
         Product product = getActiveProduct(id);
+        if (product.getStatus() == STATUS_SOLD) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出商品不能强制下架");
+        }
+        if (!StringUtils.hasText(reason)) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "强制下架原因不能为空");
+        }
+        if (reason.trim().length() > 500) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "强制下架原因长度不能超过500");
+        }
+        if (offlineUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前监管人员");
+        }
         Product update = new Product();
         update.setId(id);
         update.setStatus(STATUS_OFFLINE);
+        update.setOfflineReason(reason.trim());
+        update.setOfflineUserId(offlineUserId);
+        update.setOfflineTime(LocalDateTime.now());
         if (!updateById(update)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品强制下架失败");
         }
         product.setStatus(STATUS_OFFLINE);
+        product.setOfflineReason(update.getOfflineReason());
+        product.setOfflineUserId(update.getOfflineUserId());
+        product.setOfflineTime(update.getOfflineTime());
+        return toVO(product);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProductVO releaseOfflineRestriction(Long id) {
+        Product product = getActiveProduct(id);
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                .set(Product::getStatus, STATUS_OFFLINE)
+                .set(Product::getOfflineReason, null)
+                .set(Product::getOfflineUserId, null)
+                .set(Product::getOfflineTime, null)
+                .eq(Product::getId, id)
+                .eq(Product::getDeleted, 0));
+        if (rows != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "解除商品平台限制失败");
+        }
+        product.setStatus(STATUS_OFFLINE);
+        product.setOfflineReason(null);
+        product.setOfflineUserId(null);
+        product.setOfflineTime(null);
         return toVO(product);
     }
 
@@ -417,6 +467,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (product.getStatus() == STATUS_SOLD) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出的商品不能重新上架");
         }
+        ensureNotPlatformRestricted(product);
         if (product.getStock() == null || product.getStock() <= 0) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "库存为0的商品不能上架");
         }
@@ -492,6 +543,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setStatus(statusText(product.getStatus()));
         vo.setStatusCode(product.getStatus());
         vo.setVideoId(product.getVideoId());
+        vo.setOfflineReason(product.getOfflineReason());
+        vo.setOfflineUserId(product.getOfflineUserId());
+        vo.setOfflineTime(product.getOfflineTime());
+        vo.setPlatformRestricted(isPlatformRestricted(product));
         vo.setCreateTime(product.getCreateTime());
         vo.setUpdateTime(product.getUpdateTime());
         vo.setName(product.getProductName());
@@ -528,6 +583,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(status);
         };
     }
@@ -576,6 +632,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> TYPE_GOODS;
             default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、活体宠物或宠物用品/周边");
         };
+    }
+
+    private boolean requestsOnline(String status) {
+        return StringUtils.hasText(status) && ("1".equals(status.trim()) || "上架".equals(status.trim()));
+    }
+
+    private boolean isPlatformRestricted(Product product) {
+        return product != null && (StringUtils.hasText(product.getOfflineReason())
+                || product.getOfflineUserId() != null || product.getOfflineTime() != null);
+    }
+
+    private void ensureNotPlatformRestricted(Product product) {
+        if (isPlatformRestricted(product)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "商品因平台强制下架仍受限制，请联系监管人员解除限制后再上架");
+        }
     }
 
     private String resolveKeyword(ProductQueryDTO query) {

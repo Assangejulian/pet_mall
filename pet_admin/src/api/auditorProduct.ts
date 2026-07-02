@@ -14,3 +14,7 @@ export function getAuditorProduct(id: string) {
 export function forceOfflineProduct(id: string, reason?: string) {
   return unwrap<Product>(auditorHttp.put(`/product/${id}/force-offline`, null, { params: reason ? { reason } : undefined }))
 }
+
+export function releaseOfflineProduct(id: string) {
+  return unwrap<Product>(auditorHttp.put(`/product/${id}/release-offline`))
+}

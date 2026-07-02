@@ -2,6 +2,7 @@ export const STORE_STATUS_LABELS: Record<number, string> = {
   0: "待审核",
   1: "营业中",
   2: "已关闭",
+  3: "审核驳回",
 }
 
 export const PRODUCT_STATUS_LABELS: Record<number, string> = {

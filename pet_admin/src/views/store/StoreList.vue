@@ -4,7 +4,7 @@
     <div class="search-bar">
       <input v-model="keyword" placeholder="搜索门店名称" @keyup.enter="handleSearch" />
       <select v-model.number="statusFilter">
-        <option :value="-1">全部状态</option><option :value="0">待审核</option><option :value="1">营业中</option><option :value="2">已关闭</option>
+        <option :value="-1">全部状态</option><option :value="0">待审核</option><option :value="1">营业中</option><option :value="2">已关闭</option><option :value="3">审核驳回</option>
       </select>
       <button class="btn btn-primary" @click="handleSearch">搜索</button>
       <button class="btn btn-outline" @click="resetSearch">重置</button>
@@ -23,7 +23,7 @@
             <td>{{ item.createTime }}</td>
             <td class="actions">
               <button class="btn btn-outline btn-sm" @click="openEdit(item)">编辑</button>
-              <button class="btn btn-outline btn-sm" @click="openAudit(item)">审核</button>
+              <button v-if="item.status === 0" class="btn btn-outline btn-sm" @click="openAudit(item)">审核</button>
             </td>
           </tr>
           <tr v-if="!store.list.length"><td colspan="7" style="text-align:center;padding:32px;color:var(--text2)">暂无数据</td></tr>
@@ -75,8 +75,9 @@
           <div class="form-group"><label>电话</label><p>{{ auditForm.storePhone }}</p></div>
           <div class="form-group"><label>地址</label><p>{{ auditForm.province }}{{ auditForm.city }}{{ auditForm.district }}{{ auditForm.address }}</p></div>
           <div class="form-group"><label>审核状态</label>
-            <select v-model.number="auditForm.status"><option :value="0">待审核</option><option :value="1">通过（营业中）</option><option :value="2">拒绝（已关闭）</option></select>
+            <select v-model.number="auditForm.status"><option :value="1">通过（营业中）</option><option :value="3">驳回</option></select>
           </div>
+          <div class="form-group"><label>{{ auditForm.status === 3 ? '驳回原因（必填）' : '审核意见（选填）' }}</label><textarea v-model.trim="auditForm.auditRemark" rows="3"></textarea></div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline" @click="showAuditModal = false">取消</button>
@@ -91,9 +92,11 @@
 import { ref, onMounted, computed } from "vue"
 import { useStoreStore } from "../../stores/store"
 import { updateStore } from "../../api/store"
+import { approveStore, rejectStore } from "../../api/auditorStore"
 import http from "../../api/index"
 import { unwrap } from "../../api/helper"
 import type { Store } from "../../types/store"
+import { notify } from "../../utils/notify"
 
 const store = useStoreStore()
 const keyword = ref("")
@@ -116,8 +119,8 @@ const auditForm = ref<any>({})
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize))
 
-function statusBadge(s: number) { return ["badge-orange","badge-green","badge-red"][s] || "badge-gray" }
-function statusLabel(s: number) { return ["待审核","营业中","已关闭"][s] || "未知" }
+function statusBadge(s: number) { return s === 1 ? "badge-green" : s === 0 ? "badge-orange" : "badge-gray" }
+function statusLabel(s: number) { return ["待审核","营业中","已关闭","审核驳回"][s] || "未知" }
 
 async function fetchData() { await store.fetch({ current: currentPage.value, size: pageSize, keyword: keyword.value || undefined, status: statusFilter.value >= 0 ? statusFilter.value : undefined }) }
 function handleSearch() { currentPage.value = 1; fetchData() }
@@ -137,7 +140,7 @@ function openEdit(item: Store) {
 }
 
 function openAudit(item: Store) {
-  auditForm.value = { ...item }
+  auditForm.value = { ...item, status: 1, auditRemark: "" }
   showAuditModal.value = true
 }
 
@@ -172,8 +175,15 @@ async function saveEdit() {
 
 async function saveAudit() {
   if (auditForm.value.id) {
-    await updateStore(auditForm.value.id, { status: auditForm.value.status })
+    const remark = auditForm.value.auditRemark?.trim() || undefined
+    if (auditForm.value.status === 3 && !remark) {
+      notify("驳回原因不能为空", "error")
+      return
+    }
+    if (auditForm.value.status === 1) await approveStore(auditForm.value.id, remark)
+    else await rejectStore(auditForm.value.id, remark)
     showAuditModal.value = false
+    notify(auditForm.value.status === 1 ? "审核通过" : "审核驳回")
     fetchData()
   }
 }

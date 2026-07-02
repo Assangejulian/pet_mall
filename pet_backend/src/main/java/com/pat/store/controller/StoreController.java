@@ -13,6 +13,7 @@ import com.pat.store.helper.MapHelper;
 import cn.hutool.core.bean.BeanUtil;
 import com.pat.store.service.IStoreService;
 import com.pat.store.domain.vo.StoreVO;
+import com.pat.common.util.UserHolder;
 import jakarta.validation.Valid;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -88,8 +89,13 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
 
     @Override
     protected boolean doUpdate(Long id, Store entity, StoreDTO param) {
+        if (Integer.valueOf(1).equals(param.getStatus()) || Integer.valueOf(3).equals(param.getStatus())) {
+            storeService.auditStore(id, param.getStatus(), UserHolder.getUserId(), param.getAuditRemark());
+            return true;
+        }
         if (Integer.valueOf(2).equals(param.getStatus())) {
-            storeService.ensureCanCloseOrDelete(id);
+            storeService.closeStore(id, param.getCloseReason());
+            return true;
         }
         return storeService.updateById(entity);
     }
@@ -163,6 +169,7 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(status);
         };
     }

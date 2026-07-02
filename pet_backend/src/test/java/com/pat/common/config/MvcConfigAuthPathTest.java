@@ -23,12 +23,14 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
@@ -97,6 +99,26 @@ class MvcConfigAuthPathTest {
         assertOkWithRole("/api/auditor/store/search", "admin");
     }
 
+    @Test
+    void storeAndProductWorkflowWritesRequireCorrectManagementRole() throws Exception {
+        assertPutUnauthorized("/api/merchant/store/1");
+        assertPutForbidden("/api/merchant/store/1", "auditor");
+        assertPutOk("/api/merchant/store/1", "merchant");
+
+        assertPutUnauthorized("/api/merchant/product/1/online");
+        assertPutForbidden("/api/merchant/product/1/online", "auditor");
+        assertPutOk("/api/merchant/product/1/online", "merchant");
+
+        assertPutUnauthorized("/api/auditor/store/1/reject");
+        assertPutForbidden("/api/auditor/store/1/reject", "merchant");
+        assertPutOk("/api/auditor/store/1/reject", "auditor");
+
+        assertPutUnauthorized("/api/auditor/product/1/release-offline");
+        assertPutForbidden("/api/auditor/product/1/release-offline", "merchant");
+        assertPutOk("/api/auditor/product/1/release-offline", "auditor");
+        assertPutOk("/api/auditor/product/1/release-offline", "admin");
+    }
+
     private void assertOkWithoutToken(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());
     }
@@ -115,6 +137,18 @@ class MvcConfigAuthPathTest {
 
     private String bearer(String role) {
         return "Bearer " + JwtUtil.generateToken(1L, "tester", role, 60_000);
+    }
+
+    private void assertPutUnauthorized(String path) throws Exception {
+        mockMvc.perform(put(path)).andExpect(status().isUnauthorized());
+    }
+
+    private void assertPutForbidden(String path, String role) throws Exception {
+        mockMvc.perform(put(path).header("Authorization", bearer(role))).andExpect(status().isForbidden());
+    }
+
+    private void assertPutOk(String path, String role) throws Exception {
+        mockMvc.perform(put(path).header("Authorization", bearer(role))).andExpect(status().isOk());
     }
 
     @RestController
@@ -153,6 +187,16 @@ class MvcConfigAuthPathTest {
         @PostMapping("/api/video/{id}/comment")
         Result<String> comment(@PathVariable Long id) {
             return Result.success("commented-" + id);
+        }
+
+        @PutMapping({
+                "/api/merchant/store/{id}",
+                "/api/merchant/product/{id}/online",
+                "/api/auditor/store/{id}/reject",
+                "/api/auditor/product/{id}/release-offline"
+        })
+        Result<String> managementWrite(@PathVariable Long id) {
+            return Result.success("updated-" + id);
         }
     }
 

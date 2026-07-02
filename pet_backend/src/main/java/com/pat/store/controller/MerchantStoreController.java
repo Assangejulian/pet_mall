@@ -54,7 +54,7 @@ public class MerchantStoreController {
         validateCreate(param);
         fillCoordinates(param);
         Store store = new Store();
-        BeanUtil.copyProperties(param, store);
+        copyMerchantFields(param, store);
         store.setUserId(UserHolder.getUserId());
         store.setStatus(0);
         store.setDeleted(0);
@@ -69,7 +69,7 @@ public class MerchantStoreController {
         Store original = storeService.requireOwnedStore(id, UserHolder.getUserId());
         fillCoordinates(param);
         Store update = new Store();
-        BeanUtil.copyProperties(param, update);
+        copyMerchantFields(param, update);
         update.setId(id);
         update.setUserId(original.getUserId());
         update.setStatus(0);
@@ -117,8 +117,22 @@ public class MerchantStoreController {
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(store.getStatus());
         });
         return vo;
+    }
+
+    private void copyMerchantFields(StoreDTO param, Store target) {
+        target.setStoreName(param.getStoreName());
+        target.setStoreLogo(param.getStoreLogo());
+        target.setStorePhone(param.getStorePhone());
+        target.setStoreDesc(param.getStoreDesc());
+        target.setProvince(param.getProvince());
+        target.setCity(param.getCity());
+        target.setDistrict(param.getDistrict());
+        target.setAddress(param.getAddress());
+        target.setLongitude(param.getLongitude());
+        target.setLatitude(param.getLatitude());
     }
 }

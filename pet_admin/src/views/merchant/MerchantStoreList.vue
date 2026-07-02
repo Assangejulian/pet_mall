@@ -3,15 +3,15 @@
     <div class="page-header"><h2>我的门店</h2><p>维护自己的门店资料与审核状态</p></div>
     <div class="search-bar">
       <input v-model="keyword" placeholder="搜索门店名称" @keyup.enter="search" />
-      <select v-model.number="statusFilter"><option :value="-1">全部状态</option><option :value="0">待审核</option><option :value="1">营业中</option><option :value="2">已关闭</option></select>
+      <select v-model.number="statusFilter"><option :value="-1">全部状态</option><option :value="0">待审核</option><option :value="1">营业中</option><option :value="2">已关闭</option><option :value="3">审核驳回</option></select>
       <button class="btn btn-primary" @click="search">搜索</button><button class="btn btn-outline" @click="reset">重置</button>
       <button class="btn btn-primary push-right" @click="openCreate">+ 新增门店</button>
     </div>
     <div class="table-wrap">
-      <table class="data-table"><thead><tr><th>门店</th><th>联系电话</th><th>地址</th><th>商品数</th><th>状态</th><th>操作</th></tr></thead>
+      <table class="data-table"><thead><tr><th>门店</th><th>联系电话</th><th>地址</th><th>商品数</th><th>状态</th><th>审核/关闭说明</th><th>操作</th></tr></thead>
         <tbody>
-          <tr v-for="item in records" :key="item.id"><td>{{ item.storeName }}</td><td>{{ item.storePhone || '-' }}</td><td>{{ fullAddress(item) }}</td><td>{{ item.productCount ?? 0 }}</td><td><span class="badge" :class="statusBadge(item.status)">{{ storeStatusLabel(item.status) }}</span></td><td class="actions"><button class="btn btn-outline btn-sm" @click="openEdit(item.id)">编辑</button><button class="btn btn-danger btn-sm" @click="remove(item)">删除</button></td></tr>
-          <tr v-if="!loading && !records.length"><td colspan="6" class="empty-row">暂无门店</td></tr><tr v-if="loading"><td colspan="6" class="empty-row">加载中...</td></tr>
+          <tr v-for="item in records" :key="item.id"><td>{{ item.storeName }}</td><td>{{ item.storePhone || '-' }}</td><td>{{ fullAddress(item) }}</td><td>{{ item.productCount ?? 0 }}</td><td><span class="badge" :class="statusBadge(item.status)">{{ storeStatusLabel(item.status) }}</span></td><td><span v-if="item.status===2 && item.closeReason">{{ item.closeReason }}</span><span v-else-if="item.auditRemark">{{ item.auditRemark }}<small v-if="item.auditTime" class="meta-time">{{ item.auditTime }}</small></span><span v-else>-</span></td><td class="actions"><button class="btn btn-outline btn-sm" @click="openEdit(item.id)">编辑</button><button class="btn btn-danger btn-sm" @click="remove(item)">删除</button></td></tr>
+          <tr v-if="!loading && !records.length"><td colspan="7" class="empty-row">暂无门店</td></tr><tr v-if="loading"><td colspan="7" class="empty-row">加载中...</td></tr>
         </tbody>
       </table>
       <div class="pagination" v-if="total"><button :disabled="page <= 1" @click="go(page-1)">上一页</button><span>第 {{ page }} / {{ totalPages }} 页，共 {{ total }} 条</span><button :disabled="page >= totalPages" @click="go(page+1)">下一页</button></div>
@@ -54,4 +54,4 @@ async function remove(item:Store){if(!confirm(`确定删除门店「${item.store
 onMounted(fetchData)
 </script>
 
-<style scoped>.push-right{margin-left:auto}.modal-card{width:min(620px,100%)}.form-row .form-group{flex:1}</style>
+<style scoped>.push-right{margin-left:auto}.modal-card{width:min(620px,100%)}.form-row .form-group{flex:1}.meta-time{display:block;color:var(--text3);margin-top:4px}</style>

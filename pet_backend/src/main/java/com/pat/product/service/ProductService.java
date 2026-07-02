@@ -44,7 +44,9 @@ public interface ProductService extends IProductService {
 
     ProductVO offlineMerchantProduct(Long id, Long merchantUserId);
 
-    ProductVO forceOfflineProduct(Long id);
+    ProductVO forceOfflineProduct(Long id, String reason, Long offlineUserId);
+
+    ProductVO releaseOfflineRestriction(Long id);
 
     boolean deductStock(Long productId, Integer quantity);
 }

@@ -29,5 +29,7 @@ public interface IStoreService extends IService<Store> {
 
     boolean isOwnedStore(Long storeId, Long merchantUserId);
 
-    Store updateAuditStatus(Long storeId, Integer status);
+    Store auditStore(Long storeId, Integer status, Long auditUserId, String auditRemark);
+
+    Store closeStore(Long storeId, String closeReason);
 }

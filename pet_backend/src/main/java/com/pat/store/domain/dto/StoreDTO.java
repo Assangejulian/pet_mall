@@ -56,7 +56,13 @@ public class StoreDTO {
     @DecimalMax(value = "90.0", message = "纬度不能大于90")
     private BigDecimal latitude;
 
-    @Min(value = 0, message = "商店状态只能为0、1或2")
-    @Max(value = 2, message = "商店状态只能为0、1或2")
+    @Min(value = 0, message = "商店状态只能为0、1、2或3")
+    @Max(value = 3, message = "商店状态只能为0、1、2或3")
     private Integer status;
+
+    @Size(max = 500, message = "审核意见长度不能超过500")
+    private String auditRemark;
+
+    @Size(max = 500, message = "关闭原因长度不能超过500")
+    private String closeReason;
 }

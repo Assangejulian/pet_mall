@@ -30,6 +30,12 @@ public class ProductVO {
     private Integer statusCode;
     @JsonSerialize(using = ToStringSerializer.class)
     private Long videoId;
+    private String offlineReason;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long offlineUserId;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime offlineTime;
+    private Boolean platformRestricted;
 
     private String name;
     private String type;

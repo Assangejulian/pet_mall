@@ -6,6 +6,7 @@ import com.pat.common.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -23,6 +24,10 @@ public class Store extends BaseEntity {
     private BigDecimal longitude;
     private BigDecimal latitude;
     private Integer status;
+    private Long auditUserId;
+    private LocalDateTime auditTime;
+    private String auditRemark;
+    private String closeReason;
 
     @TableLogic
     private Integer deleted;

@@ -1,6 +1,7 @@
 package com.pat.store.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pat.common.domain.ErrorCode;
@@ -12,8 +13,10 @@ import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.mapper.StoreMapper;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -23,8 +26,8 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     @Override
     public void validateStatus(Integer status) {
         if (status == null) return;
-        if (status < 0 || status > 2)
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商店状态只能为0、1或2");
+        if (status < 0 || status > 3)
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商店状态只能为0、1、2或3");
     }
 
     @Override
@@ -103,19 +106,56 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     @Override
-    public Store updateAuditStatus(Long storeId, Integer status) {
-        validateStatus(status);
+    public Store auditStore(Long storeId, Integer status, Long auditUserId, String auditRemark) {
+        if (status == null || (status != 1 && status != 3)) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "审核结果只能为通过或驳回");
+        }
+        if (auditUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前审核人员");
+        }
+        if (status == 3 && !StringUtils.hasText(auditRemark)) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "审核驳回原因不能为空");
+        }
+        Store store = getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
+        }
+        LocalDateTime auditTime = LocalDateTime.now();
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
+                .set(Store::getStatus, status)
+                .set(Store::getAuditUserId, auditUserId)
+                .set(Store::getAuditTime, auditTime)
+                .set(Store::getAuditRemark, auditRemark)
+                .eq(Store::getId, storeId)
+                .eq(Store::getDeleted, 0));
+        if (rows != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店审核状态更新失败");
+        }
+        store.setStatus(status);
+        store.setAuditUserId(auditUserId);
+        store.setAuditTime(auditTime);
+        store.setAuditRemark(auditRemark);
+        return store;
+    }
+
+    @Override
+    public Store closeStore(Long storeId, String closeReason) {
+        if (!StringUtils.hasText(closeReason)) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "门店关闭原因不能为空");
+        }
         Store store = getById(storeId);
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
         }
         Store update = new Store();
         update.setId(storeId);
-        update.setStatus(status);
+        update.setStatus(2);
+        update.setCloseReason(closeReason);
         if (!updateById(update)) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店审核状态更新失败");
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店关闭失败");
         }
-        store.setStatus(status);
+        store.setStatus(2);
+        store.setCloseReason(closeReason);
         return store;
     }
 

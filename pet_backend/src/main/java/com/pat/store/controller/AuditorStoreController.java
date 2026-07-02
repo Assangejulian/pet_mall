@@ -11,6 +11,7 @@ import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.StoreVO;
 import com.pat.store.service.IStoreService;
+import com.pat.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -47,21 +48,24 @@ public class AuditorStoreController {
 
     @PutMapping("/{id}/approve")
     public Result<StoreVO> approve(@PathVariable Long id, @RequestParam(required = false) String reason) {
-        return audit(id, 1, "approve", reason);
+        return audit(id, 1, "approve", normalizeOptional(reason));
     }
 
     @PutMapping("/{id}/reject")
     public Result<StoreVO> reject(@PathVariable Long id, @RequestParam(required = false) String reason) {
-        return audit(id, 2, "reject", reason);
+        return audit(id, 3, "reject", requireReason(reason, "审核驳回原因不能为空"));
     }
 
     @PutMapping("/{id}/close")
     public Result<StoreVO> close(@PathVariable Long id, @RequestParam(required = false) String reason) {
-        return audit(id, 2, "close", reason);
+        String closeReason = requireReason(reason, "门店关闭原因不能为空");
+        Store store = storeService.closeStore(id, closeReason);
+        log.info("store audit action=close, storeId={}, reason={}", id, closeReason);
+        return Result.success(toVO(store));
     }
 
     private Result<StoreVO> audit(Long id, Integer status, String action, String reason) {
-        Store store = storeService.updateAuditStatus(id, status);
+        Store store = storeService.auditStore(id, status, UserHolder.getUserId(), reason);
         log.info("store audit action={}, storeId={}, reason={}", action, id, reason);
         return Result.success(toVO(store));
     }
@@ -74,8 +78,29 @@ public class AuditorStoreController {
             case 0 -> "待审核";
             case 1 -> "营业中";
             case 2 -> "已关闭";
+            case 3 -> "审核驳回";
             default -> String.valueOf(store.getStatus());
         });
         return vo;
+    }
+
+    private String requireReason(String reason, String message) {
+        if (!StringUtils.hasText(reason)) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, message);
+        }
+        String value = reason.trim();
+        if (value.length() > 500) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "原因长度不能超过500");
+        }
+        return value;
+    }
+
+    private String normalizeOptional(String reason) {
+        if (!StringUtils.hasText(reason)) return null;
+        String value = reason.trim();
+        if (value.length() > 500) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "审核意见长度不能超过500");
+        }
+        return value;
     }
 }

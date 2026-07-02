@@ -32,6 +32,7 @@
             <th>价格</th>
             <th>库存</th>
             <th>状态</th>
+            <th>平台限制</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -49,11 +50,14 @@
                 {{ productStatusLabel(item.status, item.statusCode) }}
               </span>
             </td>
+            <td><div v-if="item.platformRestricted" class="restriction"><b>平台强制下架</b><span>{{ item.offlineReason || '未填写原因' }}</span><small>{{ item.offlineTime || '-' }}</small></div><span v-else>-</span></td>
             <td class="actions">
               <button class="btn btn-outline btn-sm" @click="openEdit(item.id)">编辑</button>
               <button
                 class="btn btn-sm"
                 :class="productStatusCode(item.status, item.statusCode) === 1 ? 'btn-warning' : 'btn-success'"
+                :disabled="productStatusCode(item.status, item.statusCode) !== 1 && item.platformRestricted"
+                :title="item.platformRestricted ? '平台限制未解除，暂不能上架' : ''"
                 @click="toggle(item)"
               >
                 {{ productStatusCode(item.status, item.statusCode) === 1 ? '下架' : '上架' }}
@@ -62,10 +66,10 @@
             </td>
           </tr>
           <tr v-if="!loading && !records.length">
-            <td colspan="7" class="empty-row">暂无商品</td>
+            <td colspan="8" class="empty-row">暂无商品</td>
           </tr>
           <tr v-if="loading">
-            <td colspan="7" class="empty-row">加载中...</td>
+            <td colspan="8" class="empty-row">加载中...</td>
           </tr>
         </tbody>
       </table>
@@ -202,6 +206,7 @@ const loading = ref(false)
 const showModal = ref(false)
 const editingId = ref("")
 const saving = ref(false)
+const editingRestricted = ref(false)
 const size = 10
 const form = ref<MerchantProductPayload>(emptyForm())
 
@@ -247,6 +252,7 @@ function validationMessage() {
   if (!Number.isFinite(Number(form.value.price)) || Number(form.value.price) < 0) return "价格不能小于0"
   if (![TYPE_LIVE_PET, TYPE_SUPPLY].includes(Number(form.value.productType))) return "请选择正确的商品类型"
   if (!["0", "1"].includes(form.value.status || "")) return "请选择正确的商品状态"
+  if (editingRestricted.value && form.value.status === "1") return "商品仍受平台强制下架限制，请等待监管人员解除限制"
   return stockValidationMessage()
 }
 
@@ -292,6 +298,7 @@ function go(next: number) {
 
 function openCreate() {
   editingId.value = ""
+  editingRestricted.value = false
   form.value = emptyForm()
   showModal.value = true
 }
@@ -299,6 +306,7 @@ function openCreate() {
 async function openEdit(id: string) {
   const item = await getMerchantProduct(id)
   editingId.value = id
+  editingRestricted.value = Boolean(item.platformRestricted)
   form.value = {
     storeId: item.storeId,
     productName: item.productName || item.name || "",
@@ -334,6 +342,10 @@ async function save() {
 
 async function toggle(item: Product) {
   const online = productStatusCode(item.status, item.statusCode) === 1
+  if (!online && item.platformRestricted) {
+    notify("商品仍受平台强制下架限制，请等待监管人员解除限制", "error")
+    return
+  }
   if (online) await offlineMerchantProduct(item.id)
   else await onlineMerchantProduct(item.id)
   notify(online ? "下架成功" : "上架成功")
@@ -380,4 +392,5 @@ onMounted(async () => {
   font-size: 13px;
 }
 .stock-invalid { color: #c62828; font-weight: 700; }
+.restriction{display:grid;gap:3px;color:#a33a2a;max-width:220px}.restriction span{font-size:12px}.restriction small{color:var(--text3)}
 </style>
