@@ -1,56 +1,25 @@
--- ============================================
+﻿-- ============================================
 -- 宠物商店 - 种子数据
--- 自动迁移 + 灌数据，安全可重复执行
+-- 安全可重复执行（INSERT IGNORE）
 -- ============================================
 
 USE pet_store;
 
--- ============================================
--- 安全迁移：检查 information_schema，不存在才 ADD
--- ============================================
-SET @db = (SELECT DATABASE());
-
--- video.user_id
-SELECT COUNT(*) INTO @x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='video' AND COLUMN_NAME='user_id';
-SET @s = IF(@x=0, 'ALTER TABLE video ADD COLUMN user_id BIGINT COMMENT ''发布用户ID'' AFTER id', 'SELECT 1 AS ok');
-PREPARE s1 FROM @s; EXECUTE s1; DEALLOCATE PREPARE s1;
-
--- video.description
-SELECT COUNT(*) INTO @x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='video' AND COLUMN_NAME='description';
-SET @s = IF(@x=0, 'ALTER TABLE video ADD COLUMN description VARCHAR(500) COMMENT ''视频描述'' AFTER title', 'SELECT 1 AS ok');
-PREPARE s1 FROM @s; EXECUTE s1; DEALLOCATE PREPARE s1;
-
--- video.likes
-SELECT COUNT(*) INTO @x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='video' AND COLUMN_NAME='likes';
-SET @s = IF(@x=0, 'ALTER TABLE video ADD COLUMN likes INT DEFAULT 0 NOT NULL COMMENT ''点赞数'' AFTER play_count', 'SELECT 1 AS ok');
-PREPARE s1 FROM @s; EXECUTE s1; DEALLOCATE PREPARE s1;
-
--- video.comment_count
-SELECT COUNT(*) INTO @x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='video' AND COLUMN_NAME='comment_count';
-SET @s = IF(@x=0, 'ALTER TABLE video ADD COLUMN comment_count INT DEFAULT 0 NOT NULL COMMENT ''评论数'' AFTER likes', 'SELECT 1 AS ok');
-PREPARE s1 FROM @s; EXECUTE s1; DEALLOCATE PREPARE s1;
-
--- video.duration
-SELECT COUNT(*) INTO @x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='video' AND COLUMN_NAME='duration';
-SET @s = IF(@x=0, 'ALTER TABLE video ADD COLUMN duration INT DEFAULT 0 NOT NULL COMMENT ''时长(秒)'' AFTER comment_count', 'SELECT 1 AS ok');
-PREPARE s1 FROM @s; EXECUTE s1; DEALLOCATE PREPARE s1;
-
--- comment 表
+-- ========== comment 表（安全建表，字段已修正） ==========
 CREATE TABLE IF NOT EXISTS comment (
     id          BIGINT       NOT NULL PRIMARY KEY COMMENT '雪花ID',
     video_id    BIGINT       NOT NULL COMMENT '视频ID',
-    user_id     BIGINT       COMMENT '评论用户ID',
-    content     TEXT         NOT NULL COMMENT '评论内容',
-    create_time DATETIME(3)  DEFAULT CURRENT_TIMESTAMP(3) NOT NULL,
-    update_time DATETIME(3)  DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) NOT NULL,
-    INDEX idx_video_id (video_id),
-    INDEX idx_user_id (user_id)
+    user_id     BIGINT       NOT NULL COMMENT '评论者',
+    content     VARCHAR(500) NOT NULL COMMENT '评论内容',
+    status      TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '状态 0-隐藏 1-正常',
+    deleted     TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '逻辑删除 0-正常 1-已删除',
+    create_time DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    update_time DATETIME(3)  DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    delete_time DATETIME(3)  COMMENT '删除时间',
+    create_by   BIGINT       COMMENT '创建人',
+    update_by   BIGINT       COMMENT '更新人',
+    INDEX idx_video_id (video_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频评论';
-
-
--- ============================================
-
-USE pet_store;
 
 -- ========== 1. user ==========
 INSERT IGNORE INTO user (id, username, password, phone, avatar, email, member_level, real_name, birthday, role, status) VALUES
@@ -68,37 +37,37 @@ INSERT IGNORE INTO store (id, user_id, store_name, store_logo, store_phone, stor
 (2, 4, '暖窝·湖里店', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=400', '13800000002', '猫狗鸟类水族专门店，品种齐全，专业繁育。', '福建省', '厦门市', '湖里区', '万达广场3F', 118.0975000, 24.5095000, 1),
 (3, 3, '暖窝·集美店', 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400', '13800000003', '水族小宠专门店，提供宠物寄养、美容服务。', '福建省', '厦门市', '集美区', '石鼓路56号', 118.0910000, 24.5670000, 1),
 (4, 4, '暖窝·翔安店', 'https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=400', '13800000004', '鸟类主题店铺，鹦鹉品类齐全。', '福建省', '厦门市', '翔安区', '新兴街99号', 118.2440000, 24.6170000, 1),
-(5, 3, '暖窝·同安店', 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400', '13800000005', '小宠兔子主题店，温馨舒适。', '福建省', '厦门市', '同安区', '环城西路88号', 118.1390000, 24.7250000, 1);
+(5, 3, '暖窝·同安店', 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400', '13800000005', '兔子、仓鼠、龙猫等小宠专卖。', '福建省', '厦门市', '同安区', '城南路88号', 118.1540000, 24.7240000, 1);
 
 -- ========== 4. product ==========
 INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, images, status, video_id) VALUES
-(1, 1, '金毛幼犬', 1, 'dog', '纯种金毛，温顺可爱，已打疫苗，健康活泼。父母均有血统证书。', 1888.00, 1,
- 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400',
- '["https://images.unsplash.com/photo-1552053831-71594a27632d?w=400","https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400"]', 1, 1),
+(1, 1, '金毛幼犬', 1, 'dog', '纯种金毛，双血统，已打第一针疫苗，驱虫完成，性格温顺。', 1888.00, 1,
+ 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
+ '["https://images.unsplash.com/photo-1552053831-71594a27632d?w=400","https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400"]', 1, 1),
 
-(2, 1, '英短蓝猫', 1, 'cat', '包子脸，性格温顺粘人，品相极佳。CFA注册猫舍直出。', 2580.00, 1,
+(2, 1, '英短蓝猫', 1, 'cat', '包子脸，3个月大，性格粘人，已驱虫。', 2580.00, 1,
  'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400',
- '["https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=400","https://images.unsplash.com/photo-1519052537078-e6302a4968d4?w=400"]', 1, 2),
+ '["https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400"]', 1, 2),
 
-(3, 2, '柯基犬', 1, 'dog', '小短腿，活泼可爱，智商高，适合家庭饲养。已驱虫疫苗齐全。', 3200.00, 1,
+(3, 1, '柯基犬', 1, 'dog', '小短腿，2个月大，三色柯基，活泼可爱。', 3200.00, 1,
  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400',
- '["https://images.unsplash.com/photo-1587402092301-725e37c70fd8?w=400","https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=400"]', 1, 3),
+ '["https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400"]', 1, 3),
 
-(4, 2, '布偶猫', 1, 'cat', '仙女猫本仙，颜值担当。蓝双色，性格温柔黏人。', 4500.00, 1,
+(4, 1, '布偶猫', 1, 'cat', '海豹双色布偶，2个月大，CFA认证猫舍。', 4500.00, 1,
  'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400',
- '["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400","https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400"]', 1, 4),
+ '["https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400"]', 1, 4),
 
-(5, 1, '低敏主粮', 2, 'food', '适合肠胃敏感宠物的日常主粮，天然无谷物配方，鸡肉味。', 168.00, 20,
+(5, 1, '幼宠主粮 2kg', 2, 'food', '天然粮，无谷物配方，适合全品种幼犬/幼猫。', 168.00, 20,
  'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
- '["https://images.unsplash.com/photo-1565708097481-ea73f8e8e22c?w=400"]', 1, 5),
+ '[]', 1, NULL),
 
-(6, 1, '布偶猫·糯米', 1, 'cat', '海豹双色布偶，2个月大，已驱虫，亲人安静，适合新手陪伴。', 3800.00, 1,
- 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400',
- '["https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400"]', 1, NULL),
+(6, 2, '宠物航空箱', 2, 'accessory', '中型犬猫通用航空箱，ABS材质，透气安全。', 198.00, 15,
+ 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400',
+ '["https://images.unsplash.com/photo-1587402092301-725e37c70fd8?w=400"]', 1, NULL),
 
-(7, 2, '柴犬·柱子', 1, 'dog', '纯种柴犬，3个月大，疫苗齐全，性格独立忠诚。', 4200.00, 1,
- 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400',
- '["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400"]', 1, NULL),
+(7, 2, '宠物梳毛手套', 2, 'accessory', '硅胶按摩刷毛手套，清理浮毛同时按摩皮肤。', 39.00, 30,
+ 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400',
+ '[]', 1, NULL),
 
 (8, 1, '金丝熊·团子', 1, 'other', '叙利亚金丝熊，1个月大，亲人活泼，笼具用品齐全。', 68.00, 1,
  'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=400',
@@ -122,15 +91,7 @@ INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, 
 
 (13, 2, '英短蓝猫·灰灰', 1, 'cat', '英短蓝猫，3个月大，包子脸性格好。', 2800.00, 1,
  'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400',
- '["https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=400"]', 1, NULL),
-
-(14, 2, '宠物航空箱', 2, 'accessory', '中型犬猫通用航空箱，ABS材质，透气安全。', 198.00, 15,
- 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400',
- '["https://images.unsplash.com/photo-1587402092301-725e37c70fd8?w=400"]', 1, NULL),
-
-(15, 1, '宠物梳毛手套', 2, 'accessory', '硅胶按摩刷毛手套，清理浮毛同时按摩皮肤。', 39.00, 30,
- 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400',
- '[]', 1, NULL);
+ '["https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=400"]', 1, NULL);
 
 -- ========== 5. video ==========
 INSERT IGNORE INTO video (id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
@@ -162,4 +123,3 @@ INSERT IGNORE INTO order_item (id, order_id, product_id, product_name, product_i
 (2, 2, 2, '英短蓝猫', 'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=200', 2580.00, 1),
 (3, 3, 3, '柯基犬', 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200', 3200.00, 1),
 (4, 4, 4, '布偶猫', 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=200', 4500.00, 1);
-
