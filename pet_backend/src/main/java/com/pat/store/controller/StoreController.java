@@ -13,7 +13,6 @@ import com.pat.store.helper.MapHelper;
 import cn.hutool.core.bean.BeanUtil;
 import com.pat.store.service.IStoreService;
 import com.pat.store.domain.vo.StoreVO;
-import com.pat.common.util.UserHolder;
 import jakarta.validation.Valid;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -89,15 +88,10 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
 
     @Override
     protected boolean doUpdate(Long id, Store entity, StoreDTO param) {
-        if (Integer.valueOf(1).equals(param.getStatus()) || Integer.valueOf(3).equals(param.getStatus())) {
-            storeService.auditStore(id, param.getStatus(), UserHolder.getUserId(), param.getAuditRemark());
-            return true;
-        }
-        if (Integer.valueOf(2).equals(param.getStatus())) {
-            storeService.closeStore(id, param.getCloseReason());
-            return true;
-        }
-        return storeService.updateById(entity);
+        Store update = new Store();
+        update.setId(id);
+        copyEditableFields(param, update);
+        return storeService.updateById(update);
     }
 
     @Override
@@ -159,6 +153,19 @@ public class StoreController extends BaseController<Store, StoreDTO, StoreVO> {
             param.setLongitude(coords[0]);
             param.setLatitude(coords[1]);
         }
+    }
+
+    private void copyEditableFields(StoreDTO param, Store target) {
+        target.setStoreName(param.getStoreName());
+        target.setStoreLogo(param.getStoreLogo());
+        target.setStorePhone(param.getStorePhone());
+        target.setStoreDesc(param.getStoreDesc());
+        target.setProvince(param.getProvince());
+        target.setCity(param.getCity());
+        target.setDistrict(param.getDistrict());
+        target.setAddress(param.getAddress());
+        target.setLongitude(param.getLongitude());
+        target.setLatitude(param.getLatitude());
     }
 
     private String statusText(Integer status) {

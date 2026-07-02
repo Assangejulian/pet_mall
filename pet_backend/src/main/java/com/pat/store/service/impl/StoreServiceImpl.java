@@ -120,6 +120,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
         }
+        if (!Integer.valueOf(0).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "只有待审核门店可以执行审核");
+        }
         LocalDateTime auditTime = LocalDateTime.now();
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
                 .set(Store::getStatus, status)
@@ -127,9 +130,10 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
                 .set(Store::getAuditTime, auditTime)
                 .set(Store::getAuditRemark, auditRemark)
                 .eq(Store::getId, storeId)
+                .eq(Store::getStatus, 0)
                 .eq(Store::getDeleted, 0));
         if (rows != 1) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店审核状态更新失败");
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有待审核门店可以执行审核");
         }
         store.setStatus(status);
         store.setAuditUserId(auditUserId);
@@ -147,12 +151,21 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商店不存在");
         }
-        Store update = new Store();
-        update.setId(storeId);
-        update.setStatus(2);
-        update.setCloseReason(closeReason);
-        if (!updateById(update)) {
-            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店关闭失败");
+        if (!Integer.valueOf(1).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "只有营业中门店可以关闭");
+        }
+        Long onlineCount = countOnlineProducts(storeId);
+        if (onlineCount != null && onlineCount > 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "门店仍有上架商品，不能关闭");
+        }
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Store>()
+                .set(Store::getStatus, 2)
+                .set(Store::getCloseReason, closeReason)
+                .eq(Store::getId, storeId)
+                .eq(Store::getStatus, 1)
+                .eq(Store::getDeleted, 0));
+        if (rows != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中门店可以关闭");
         }
         store.setStatus(2);
         store.setCloseReason(closeReason);
