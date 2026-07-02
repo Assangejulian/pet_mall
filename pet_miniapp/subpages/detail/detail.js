@@ -21,7 +21,9 @@ Page({
     product: {},
     categoryName: "",
     cartCount: 0,
-    loading: true
+    loading: true,
+    showQtyPicker: false,
+    quantity: 1
   },
 
   onLoad: function (options) {
@@ -70,6 +72,42 @@ Page({
       });
   },
 
+  // 显示数量选择弹窗
+  showQtyPicker: function () {
+    this.setData({
+      quantity: 1,
+      showQtyPicker: true
+    });
+  },
+
+  // 隐藏数量选择弹窗
+  hideQtyPicker: function () {
+    this.setData({ showQtyPicker: false });
+  },
+
+  // 加减数量
+  onQtyChange: function (e) {
+    var delta = parseInt(e.currentTarget.dataset.delta) || 0;
+    var qty = this.data.quantity + delta;
+    if (qty < 1) qty = 1;
+    if (this.data.product.stock && qty > this.data.product.stock) {
+      qty = this.data.product.stock;
+      wx.showToast({ title: "已达库存上限", icon: "none" });
+    }
+    this.setData({ quantity: qty });
+  },
+
+  // 手动输入数量
+  onQtyInput: function (e) {
+    var val = parseInt(e.detail.value) || 1;
+    if (val < 1) val = 1;
+    if (this.data.product.stock && val > this.data.product.stock) {
+      val = this.data.product.stock;
+    }
+    this.setData({ quantity: val });
+  },
+
+  // 加入购物车 — 先弹数量选择
   addCart: function () {
     if (!app.requireAuth()) return;
     if (!this.data.product || !this.data.product.id) {
@@ -80,10 +118,16 @@ Page({
       wx.showToast({ title: "商品暂无库存", icon: "none" });
       return;
     }
+    this.showQtyPicker();
+  },
+
+  // 确认加入购物车
+  confirmAddCart: function () {
+    this.setData({ showQtyPicker: false });
     wx.showLoading({ title: "添加中..." });
     cartApi.add({
       productId: this.data.product.id,
-      quantity: 1,
+      quantity: this.data.quantity,
       checked: 1
     }).then(function() {
       wx.hideLoading();

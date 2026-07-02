@@ -2,6 +2,7 @@ package com.pat.order.controller;
 
 import com.pat.common.domain.Result;
 import com.pat.order.domain.entity.Cart;
+import com.pat.order.domain.vo.CartVO;
 import com.pat.order.service.ICartService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +23,7 @@ public class CartController {
 
     @Operation(summary = "当前用户购物车列表")
     @GetMapping({"/search", "/list"})
-    public Result<List<Cart>> list() {
+    public Result<List<CartVO>> list() {
         return Result.success(cartService.getCurrentUserCart());
     }
 

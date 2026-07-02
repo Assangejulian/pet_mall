@@ -2,11 +2,11 @@ package com.pat.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
-import com.pat.user.interceptor.AdminAuthInterceptor;
-import com.pat.user.interceptor.AuditorAuthInterceptor;
-import com.pat.user.interceptor.MerchantAuthInterceptor;
-import com.pat.user.interceptor.UserAuthInterceptor;
-import com.pat.user.utils.JwtUtil;
+import com.pat.common.interceptor.AdminAuthInterceptor;
+import com.pat.common.interceptor.AuditorAuthInterceptor;
+import com.pat.common.interceptor.MerchantAuthInterceptor;
+import com.pat.common.interceptor.UserAuthInterceptor;
+import com.pat.common.util.JwtUtil;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -4,6 +4,15 @@
     <text class="order-status {{'s' + order.orderStatus}}">{{statusLabels[order.orderStatus]}}</text>
   </view>
 
+  <!-- 状态提示 -->
+  <view class="status-hint" wx:if="{{order.orderStatus === 1}}">
+    <text class="hint-icon">⏳</text>
+    <view class="hint-text">
+      <text class="hint-title">已支付，等待商家发货</text>
+      <text class="hint-desc">商家将尽快为你安排发货，请耐心等待</text>
+    </view>
+  </view>
+
   <!-- 物流/时间线 -->
   <view class="timeline-card" wx:if="{{order}}">
     <view class="tl-row"><text class="tl-label">下单时间</text><text class="tl-value">{{order.createTime}}</text></view>
@@ -42,6 +51,7 @@
   <!-- 底部操作 -->
   <view class="bottom-bar" wx:if="{{order}}">
     <button wx:if="{{order.orderStatus === 0}}" class="btn-primary" bindtap="payOrder">去支付</button>
+    <button wx:elif="{{order.orderStatus === 2}}" class="btn-primary" bindtap="confirmReceive">确认收货</button>
     <button class="btn-outline" bindtap="callService">联系客服</button>
   </view>
 

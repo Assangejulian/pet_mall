@@ -11,6 +11,9 @@
         <text class="oip">¥{{oItem.price}}</text>
       </view>
       <view class="of">合计 <text style="font-weight:700">¥{{item.payAmount || item.totalAmount}}</text></view>
+      <view class="of-actions" wx:if="{{item.orderStatus === 0}}">
+        <button class="btn-pay" catchtap="payOrder" data-id="{{item.id}}">去支付</button>
+      </view>
     </view>
   </view>
   <view class="empty-tip" wx:else><text>暂无订单</text></view>

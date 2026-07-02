@@ -1,4 +1,4 @@
-package com.pat.user.interceptor;
+package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;

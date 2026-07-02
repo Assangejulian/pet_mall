@@ -11,6 +11,7 @@ import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
 import com.pat.order.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.Cart;
+import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
@@ -18,11 +19,12 @@ import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
+import com.pat.order.service.payment.PaymentServiceRouter;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.mapper.ProductMapper;
 import com.pat.user.domain.entity.UserAddress;
 import com.pat.user.mapper.UserAddressMapper;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.UserHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,17 +42,20 @@ public class OrderUserServiceImpl implements IOrderUserService {
     private final UserAddressMapper addressMapper;
     private final ICartService cartService;
     private final OrderItemMapper orderItemMapper;
+    private final PaymentServiceRouter paymentServiceRouter;
 
     public OrderUserServiceImpl(PurchaseOrderBaseService baseService,
                                 ProductMapper productMapper,
                                 UserAddressMapper addressMapper,
                                 ICartService cartService,
-                                OrderItemMapper orderItemMapper) {
+                                OrderItemMapper orderItemMapper,
+                                PaymentServiceRouter paymentServiceRouter) {
         this.baseService = baseService;
         this.productMapper = productMapper;
         this.addressMapper = addressMapper;
         this.cartService = cartService;
         this.orderItemMapper = orderItemMapper;
+        this.paymentServiceRouter = paymentServiceRouter;
     }
 
     private static Long requireUserId() {
@@ -118,7 +123,7 @@ public class OrderUserServiceImpl implements IOrderUserService {
         order.setTotalAmount(total);
         order.setPayAmount(total);
         order.setRemark(dto.getRemark());
-        order.setOrderStatus(0);
+        order.setOrderStatus(OrderStatus.PENDING_PAY.getCode());
         baseService.save(order);
 
         Long orderId = order.getId();
@@ -143,12 +148,23 @@ public class OrderUserServiceImpl implements IOrderUserService {
         QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<PurchaseOrder>()
                 .eq("user_id", userId).orderByDesc("create_time");
         if (orderStatus != null) wrapper.eq("order_status", orderStatus);
-        return baseService.page(page, wrapper);
+        IPage<PurchaseOrder> result = baseService.page(page, wrapper);
+        // 批量加载每个订单的商品明细
+        for (PurchaseOrder order : result.getRecords()) {
+            List<OrderItem> orderItems = orderItemMapper.selectList(
+                    new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+            order.setItems(orderItems);
+        }
+        return result;
     }
 
     @Override
     public PurchaseOrder getUserOrderDetail(Long id) {
-        return getOwnedOrder(id);
+        PurchaseOrder order = getOwnedOrder(id);
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+        order.setItems(items);
+        return order;
     }
 
 
@@ -161,11 +177,23 @@ public class OrderUserServiceImpl implements IOrderUserService {
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
         Long userId = requireUserId();
         if (!userId.equals(order.getUserId())) throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
-        OrderStateMachine.validate(order.getOrderStatus(), 1);
-        order.setOrderStatus(1);
-        order.setPayTime(LocalDateTime.now());
+
+        // 通过支付工厂路由到对应支付策略（mock / ALIPAY / WECHAT）
+        return paymentServiceRouter.getService(dto.getPayMethod()).pay(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder confirmReceive(Long id) {
+        PurchaseOrder order = getOwnedOrder(id);
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.RECEIVED.getCode());
+        order.setOrderStatus(3);
+        order.setReceiveTime(LocalDateTime.now());
         baseService.updateById(order);
-        return new OrderPaymentVO(order.getId(), order.getOrderNo(), 1, order.getPayAmount());
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+        order.setItems(items);
+        return order;
     }
 
     @Override

@@ -9,7 +9,7 @@ import com.pat.ai.service.PendingAiActionService;
 import com.pat.ai.domain.vo.AiChatResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
-import com.pat.user.utils.JwtUtil;
+import com.pat.common.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

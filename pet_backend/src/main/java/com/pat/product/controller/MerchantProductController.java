@@ -7,7 +7,7 @@ import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.product.service.ProductService;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.UserHolder;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 

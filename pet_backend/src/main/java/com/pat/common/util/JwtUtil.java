@@ -1,4 +1,4 @@
-package com.pat.user.utils;
+package com.pat.common.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

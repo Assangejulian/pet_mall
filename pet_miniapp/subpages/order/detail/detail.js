@@ -86,6 +86,29 @@ Page({
     });
   },
 
+  confirmReceive: function () {
+    var that = this;
+    var order = this.data.order;
+    if (!order || !order.id) return;
+    wx.showModal({
+      title: "确认收货",
+      content: "确定已收到商品吗？",
+      success: function (r) {
+        if (r.confirm) {
+          wx.showLoading({ title: "处理中..." });
+          orderApi.receive(order.id).then(function () {
+            wx.hideLoading();
+            wx.showToast({ title: "已确认收货", icon: "success" });
+            that.loadOrder(order.id);
+          }).catch(function () {
+            wx.hideLoading();
+            wx.showToast({ title: "操作失败", icon: "none" });
+          });
+        }
+      }
+    });
+  },
+
   callService: function() {
     wx.showToast({ title: "客服电话: 400-000-0000", icon: "none" });
   }

@@ -13,7 +13,7 @@ import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.UserHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

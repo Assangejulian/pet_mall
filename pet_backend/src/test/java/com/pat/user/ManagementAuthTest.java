@@ -8,13 +8,13 @@ import com.pat.user.controller.AuthController;
 import com.pat.user.domain.dto.LoginDTO;
 import com.pat.user.domain.dto.LoginVO;
 import com.pat.user.domain.entity.User;
-import com.pat.user.interceptor.AdminAuthInterceptor;
-import com.pat.user.interceptor.AuditorAuthInterceptor;
-import com.pat.user.interceptor.MerchantAuthInterceptor;
+import com.pat.common.interceptor.AdminAuthInterceptor;
+import com.pat.common.interceptor.AuditorAuthInterceptor;
+import com.pat.common.interceptor.MerchantAuthInterceptor;
 import com.pat.user.service.auth.AuthService;
 import com.pat.user.service.auth.AuthServiceRouter;
-import com.pat.user.utils.JwtUtil;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.JwtUtil;
+import com.pat.common.util.UserHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,7 +122,7 @@ class ManagementAuthTest {
         assertThat(JwtUtil.parseToken(result.getData().getToken()).get("role", String.class)).isEqualTo(role);
     }
 
-    private MockHttpServletResponse authorize(com.pat.user.interceptor.RoleAuthInterceptor interceptor, String role) throws Exception {
+    private MockHttpServletResponse authorize(com.pat.common.interceptor.RoleAuthInterceptor interceptor, String role) throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         interceptor.preHandle(requestWithRole(role), response, new Object());
         return response;

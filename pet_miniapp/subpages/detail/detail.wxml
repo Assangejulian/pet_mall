@@ -19,4 +19,27 @@
     <button class="btn-outline" style="flex:1" bindtap="addCart">加入购物车</button>
     <button class="btn-accent" style="flex:1" bindtap="buyNow">立即购买</button>
   </view>
+
+  <!-- 数量选择弹窗 -->
+  <view class="qty-mask" wx:if="{{showQtyPicker}}" bindtap="hideQtyPicker"></view>
+  <view class="qty-picker" wx:if="{{showQtyPicker}}">
+    <view class="qty-picker-header">
+      <text class="qty-picker-title">选择数量</text>
+      <text class="qty-picker-close" bindtap="hideQtyPicker">✕</text>
+    </view>
+    <view class="qty-picker-body">
+      <image class="qty-preview-img" src="{{product.image}}" mode="aspectFill" />
+      <view class="qty-preview-info">
+        <text class="qty-preview-name">{{product.name}}</text>
+        <text class="qty-preview-price">¥{{product.price}}</text>
+        <text class="qty-preview-stock">库存 {{product.stock}} 件</text>
+      </view>
+    </view>
+    <view class="qty-stepper">
+      <text class="qty-stepper-btn" bindtap="onQtyChange" data-delta="-1">−</text>
+      <input class="qty-stepper-input" type="number" value="{{quantity}}" bindinput="onQtyInput" min="1" max="{{product.stock}}" />
+      <text class="qty-stepper-btn" bindtap="onQtyChange" data-delta="1">+</text>
+    </view>
+    <button class="btn-accent qty-confirm-btn" bindtap="confirmAddCart">确定</button>
+  </view>
 </view>

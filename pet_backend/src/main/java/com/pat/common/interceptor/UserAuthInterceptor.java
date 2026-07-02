@@ -1,9 +1,9 @@
-package com.pat.user.interceptor;
+package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
-import com.pat.user.utils.JwtUtil;
-import com.pat.user.utils.UserHolder;
+import com.pat.common.util.JwtUtil;
+import com.pat.common.util.UserHolder;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

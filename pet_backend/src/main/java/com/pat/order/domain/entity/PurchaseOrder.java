@@ -1,11 +1,13 @@
 package com.pat.order.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.pat.common.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -28,4 +30,7 @@ public class PurchaseOrder extends BaseEntity {
     private LocalDateTime evaluateTime;
     private LocalDateTime refundApplyTime;
     private LocalDateTime refundAuditTime;
+
+    @TableField(exist = false)
+    private List<OrderItem> items;
 }
