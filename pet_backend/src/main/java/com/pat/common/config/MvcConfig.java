@@ -29,10 +29,16 @@ public class MvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                     "/api/user/login",
+                    "/api/user/send-email-code",
+                    "/api/user/send-sms-code",
                     "/api/admin/**",
                     "/api/product/**",
                     "/api/category/**",
-                    "/api/common/**" // assuming some public endpoints
+                    "/api/store/**",
+                    "/api/video/**",
+                    "/api/comment/**",
+                    "/api/upload/**",
+                    "/api/notify/**"
                 )
                 .order(1);
     }
