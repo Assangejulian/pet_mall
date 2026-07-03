@@ -3,7 +3,6 @@ package com.pat.video.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.pat.common.controller.BaseController;
 import com.pat.common.domain.Result;
 import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
@@ -34,7 +33,7 @@ import java.util.UUID;
 @RestController
 @Tag(name = "视频管理", description = "视频 Feed/播放/点赞/评论")
 @RequestMapping("/api/video")
-public class VideoController extends BaseController<Video, Video, Video> {
+public class VideoController {
 
     @Resource
     private IVideoService videoService;
@@ -45,58 +44,26 @@ public class VideoController extends BaseController<Video, Video, Video> {
     @Resource
     private UserService userService;
 
-    public VideoController(IVideoService service) {
-        super(service);
-    }
-
-    @Override
-    protected Video toVO(Video entity) {
-        return entity;
-    }
-
-    @Override
-    protected Video toDO(Video param) {
-        return param;
-    }
-
-    @Override
-    protected QueryWrapper<Video> buildQueryWrapper(Video param) {
-        QueryWrapper<Video> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("create_time");
-        if (param == null || param.getStatus() == null) {
-            wrapper.eq("status", 1);
-        }
-        if (param != null) {
-            if (param.getStatus() != null) {
-                wrapper.eq("status", param.getStatus());
-            }
-            if (param.getUserId() != null) {
-                wrapper.eq("user_id", param.getUserId());
-            }
-            if (param.getProductId() != null) {
-                wrapper.eq("product_id", param.getProductId());
-            }
-            if (param.getTitle() != null && !param.getTitle().isBlank()) {
-                wrapper.and(w -> w.like("title", param.getTitle()).or().like("description", param.getTitle()));
-            }
-        }
-        return wrapper;
-    }
-
-    @Override
     @Operation(summary = "视频分页搜索")
     @GetMapping("/search")
     public Result<IPage<Video>> search(Video param,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
+        QueryWrapper<Video> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", 1).orderByDesc("create_time");
+        if (param != null) {
+            if (param.getUserId() != null) wrapper.eq("user_id", param.getUserId());
+            if (param.getProductId() != null) wrapper.eq("product_id", param.getProductId());
+            if (param.getTitle() != null && !param.getTitle().isBlank())
+                wrapper.and(w -> w.like("title", param.getTitle()).or().like("description", param.getTitle()));
+        }
         Page<Video> pageParam = new Page<>(page, size);
-        Page<Video> result = videoService.page(pageParam, buildQueryWrapper(param));
+        Page<Video> result = videoService.page(pageParam, wrapper);
         return Result.success(result);
     }
 
     @Operation(summary = "视频详情（播放量+1）")
     @GetMapping("/{id}")
-    @Override
     public Result<Video> getById(@PathVariable Long id) {
         Video video = videoService.getById(id);
         if (video == null) {

@@ -126,7 +126,6 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         }
     }
 
-    @Override
     public List<Store> getStoresByUserId(Long userId) {
         return lambdaQuery().eq(Store::getUserId, userId).eq(Store::getDeleted, 0).list();
     }
@@ -219,7 +218,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     @Override
-    public void requireOwnedStore(Long storeId, Long merchantUserId) {
+    public Store requireOwnedStore(Long storeId, Long merchantUserId) {
         if (storeId == null || merchantUserId == null) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商铺");
         }
@@ -227,6 +226,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (!merchantUserId.equals(store.getUserId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商铺");
         }
+        return store;
     }
 
     @Override
