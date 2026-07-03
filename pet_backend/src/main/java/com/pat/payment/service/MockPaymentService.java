@@ -33,7 +33,7 @@ public class MockPaymentService implements PaymentService {
         baseService.updateById(order);
         log.info("模拟支付成功 orderNo={}", order.getOrderNo());
         return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                OrderStatus.PAID.getCode(), order.getPayAmount());
+                OrderStatus.PAID.getCode(), order.getPayAmount(), null, null);
     }
 
     @Override

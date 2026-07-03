@@ -1,10 +1,11 @@
 package com.pat.payment.service;
 
-import com.pat.common.domain.ErrorCode;
-import com.pat.common.exception.BusinessException;
+import com.alipay.api.AlipayApiException;
 import com.pat.order.domain.dto.PayNotifyDTO;
 import com.pat.order.domain.entity.PurchaseOrder;
+import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.domain.vo.OrderPaymentVO;
+import com.pat.order.helper.OrderStateMachine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,26 +13,34 @@ import org.springframework.stereotype.Service;
 @Service("ALIPAYPaymentService")
 public class AliPaymentService implements PaymentService {
 
+    private final AlipayPayService alipayPayService;
+
+    public AliPaymentService(AlipayPayService alipayPayService) {
+        this.alipayPayService = alipayPayService;
+    }
+
     @Override
-    /**
-     * 支付宝支付（暂未接入，抛出异常提示）。
-     *
-     * @param order 待支付订单
-     * @return 支付结果 VO
-     */
     public OrderPaymentVO pay(PurchaseOrder order) {
-        throw new BusinessException(ErrorCode.FARAMS_ERROR, "支付宝支付尚未接入");
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
+
+        String total = order.getPayAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString();
+        String subject = "宠铺 - " + order.getOrderNo();
+
+        try {
+            String form = alipayPayService.createWapPayPage(
+                    order.getOrderNo(), subject, "", total);
+
+            log.info("支付宝手机网站支付下单 orderNo={}, total={}", order.getOrderNo(), total);
+            return new OrderPaymentVO(order.getId(), order.getOrderNo(),
+                    Integer.valueOf(OrderStatus.PENDING_PAY.getCode()), order.getPayAmount(), form, null);
+        } catch (AlipayApiException e) {
+            log.error("支付宝下单异常 orderNo={}", order.getOrderNo(), e);
+            throw new RuntimeException("支付宝支付下单失败: " + e.getErrMsg());
+        }
     }
 
     @Override
-    /**
-     * 支付宝回调处理（暂未接入）。
-     *
-     * @param dto 回调参数
-     */
     public void handleNotify(PayNotifyDTO dto) {
-        throw new BusinessException(ErrorCode.FARAMS_ERROR, "支付宝支付尚未接入");
+        alipayPayService.handleNotify(dto);
     }
-
-
 }
