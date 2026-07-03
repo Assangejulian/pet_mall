@@ -19,13 +19,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements IStoreService {
+
+    private static final double EARTH_RADIUS_KM = 6371.0088;
 
     private record StoreStatusChange(
             Integer targetStatus,
@@ -44,12 +48,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
 
     @Override
-    /**
-     * 商户/管理员创建门店。merchantUserId 非空表示走商家端流程（userId 用当前登录用户，状态置为待审核）。
-     */
     public boolean createStore(StoreDTO param, Long merchantUserId) {
         if (param == null || !StringUtils.hasText(param.getStoreName())) {
-            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店名称不能为空");
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "店铺名称不能为空");
         }
         fillCoordinates(param);
         Store entity = Store.from(param);
@@ -68,9 +69,6 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     @Override
-    /**
-     * 商户/管理员修改门店。商户端修改后状态重置为待审核。
-     */
     public boolean updateStore(Long id, StoreDTO param, Long merchantUserId) {
         fillCoordinates(param);
         if (merchantUserId != null) {
@@ -82,9 +80,6 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         return updateById(entity);
     }
 
-    /**
-     * 地址反查经纬度。如果 DTO 已有经纬度则跳过，避免覆盖手工填写的精确坐标。
-     */
     private void fillCoordinates(StoreDTO param) {
         if (param.getLongitude() != null && param.getLatitude() != null) return;
         if (!StringUtils.hasText(param.getAddress())) return;
@@ -100,7 +95,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     public void validateStatus(Integer status) {
         if (status == null) return;
         if (status < 0 || status > 3)
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商店状态只能为0、1、2或3");
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "店铺状态只能为0、1、2或3");
     }
 
     @Override
@@ -120,14 +115,25 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public void ensureCanCloseOrDelete(Long storeId) {
-        if (storeId == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID不能为空");
+        if (storeId == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "店铺ID不能为空");
         Store store = requireStore(storeId);
-        if (Integer.valueOf(0).equals(store.getStatus())) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "待审核门店不能删除");
+        if (store.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中店铺可以关店或删除");
         }
-        Long count = countActiveProducts(storeId);
-        if (count != null && count > 0)
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商店仍有关联商品，不能关闭或删除");
+        Long onlineCount = countOnlineProducts(storeId);
+        if (onlineCount != null && onlineCount > 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "门店仍有上架商品，不能关店");
+        }
+    }
+
+    @Override
+    public List<Store> getStoresByUserId(Long userId) {
+        return lambdaQuery().eq(Store::getUserId, userId).eq(Store::getDeleted, 0).list();
+    }
+
+    @Override
+    public List<Long> getStoreIdsByUserId(Long userId) {
+        return getStoresByUserId(userId).stream().map(Store::getId).collect(Collectors.toList());
     }
 
     @Override
@@ -151,47 +157,76 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         BigDecimal radiusKm = query.resolvedRadiusKm();
         long current = query.resolvedCurrent();
         long size = query.resolvedSize();
-        Long totalValue = baseMapper.countNearby(query.getLongitude(), query.getLatitude(), radiusKm,
-                query.getKeyword(), query.getCity());
-        long total = totalValue == null ? 0L : totalValue;
-        Page<NearbyStoreRow> result = new Page<>(current, size, total);
-        long offset = calculateOffset(current, size, total);
-        if (offset < 0 || total == 0) {
-            result.setRecords(Collections.emptyList());
-            return result;
+
+        List<NearbyStoreRow> allStores = baseMapper.selectAllActiveStores();
+        if (allStores == null || allStores.isEmpty()) {
+            Page<NearbyStoreRow> empty = new Page<>(current, size, 0);
+            empty.setRecords(Collections.emptyList());
+            return empty;
         }
-        List<NearbyStoreRow> rows = baseMapper.selectNearby(query.getLongitude(), query.getLatitude(),
-                radiusKm, query.getKeyword(), query.getCity(), offset, size);
-        result.setRecords(rows);
+
+        List<NearbyStoreRow> filtered = allStores.stream()
+                .filter(s -> s.getLatitude() != null && s.getLongitude() != null)
+                .filter(s -> {
+                    if (StringUtils.hasText(query.getKeyword())) {
+                        return s.getStoreName() != null && s.getStoreName().contains(query.getKeyword());
+                    }
+                    return true;
+                })
+                .filter(s -> {
+                    if (StringUtils.hasText(query.getCity())) {
+                        return query.getCity().equals(s.getCity());
+                    }
+                    return true;
+                })
+                .map(s -> {
+                    double dist = haversineKm(
+                            query.getLongitude().doubleValue(),
+                            query.getLatitude().doubleValue(),
+                            s.getLongitude().doubleValue(),
+                            s.getLatitude().doubleValue());
+                    s.setDistanceKm(BigDecimal.valueOf(dist));
+                    return s;
+                })
+                .filter(s -> s.getDistanceKm().compareTo(radiusKm) <= 0)
+                .sorted(Comparator.comparingDouble(
+                        s -> s.getDistanceKm() != null ? s.getDistanceKm().doubleValue() : Double.MAX_VALUE))
+                .collect(Collectors.toList());
+
+        long total = filtered.size();
+        long from = (current - 1) * size;
+        long to = Math.min(from + size, total);
+        List<NearbyStoreRow> pageRows = (from < total) ? filtered.subList((int) from, (int) to) : Collections.emptyList();
+
+        Page<NearbyStoreRow> result = new Page<>(current, size, total);
+        result.setRecords(pageRows);
         return result;
+    }
+
+    private double haversineKm(double lng1, double lat1, double lng2, double lat2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        double c = 2 * Math.atan2(Math.sqrt(Math.min(1.0, a)), Math.sqrt(Math.max(0.0, 1.0 - a)));
+        return EARTH_RADIUS_KM * c;
     }
 
     @Override
     public List<Product> getStoreProducts(Long storeId) {
-        if (storeId == null) return List.of();
         return baseMapper.selectStoreProducts(storeId);
     }
 
     @Override
-    public List<Long> getStoreIdsByUserId(Long userId) {
-        return lambdaQuery()
-                .eq(Store::getUserId, userId)
-                .list()
-                .stream()
-                .map(Store::getId)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public Store requireOwnedStore(Long storeId, Long merchantUserId) {
+    public void requireOwnedStore(Long storeId, Long merchantUserId) {
         if (storeId == null || merchantUserId == null) {
-            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID和商家用户ID不能为空");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商铺");
         }
         Store store = requireStore(storeId);
         if (!merchantUserId.equals(store.getUserId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商店");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商铺");
         }
-        return store;
     }
 
     @Override
@@ -235,16 +270,11 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         var change = new StoreStatusChange(2, null, null, closeReason, "只有营业中门店可以关闭", true);
         return transitionStatus(store, change);
     }
-    /**
-     * 统一的状态变更方法（按 storeId 查）+ 校验状态机 → 乐观锁更新 → 回写实体
-     */
+
     private Store transitionStatus(Long storeId, StoreStatusChange change) {
         return transitionStatus(requireStore(storeId), change);
     }
 
-    /**
-     * 统一的状态变更方法：校验状态机 → 乐观锁更新 → 回写实体
-     */
     private Store transitionStatus(Store store, StoreStatusChange change) {
         StoreStateMachine.validate(store.getStatus(), change.targetStatus());
         LocalDateTime now = LocalDateTime.now();
@@ -274,25 +304,15 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         store.setCloseReason(change.closeReason());
         return store;
     }
+
     private Store requireStore(Long storeId) {
-        return requireStore(storeId, ErrorCode.NOT_FOUND, "商店不存在");
+        return requireStore(storeId, ErrorCode.NOT_FOUND, "店铺不存在");
     }
 
     private Store requireStore(Long storeId, ErrorCode errorCode, String message) {
-        if (storeId == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店ID不能为空");
+        if (storeId == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "店铺ID不能为空");
         Store store = getById(storeId);
         if (store == null) throw new BusinessException(errorCode, message);
         return store;
-    }
-
-    private long calculateOffset(long current, long size, long total) {
-        if (current <= 1) {
-            return 0L;
-        }
-        long pageIndex = current - 1;
-        if (size <= 0 || pageIndex > total / size) {
-            return -1L;
-        }
-        return pageIndex * size;
     }
 }

@@ -2,50 +2,12 @@ const app = getApp();
 var videoApi = require("../../utils/api/video");
 
 const fallbackVideos = [
-  {
-    id: 1,
-    title: "第一次接它回家",
-    desc: "从隔离区到第一晚观察，把小家伙安稳接回家。",
-    cover: "/images/mock/cat-cover.jpg",
-    author: "暖窝小鱼",
-    avatar: "/images/mock/cat-avatar.jpg",
-    likes: "2.3k",
-    commentCount: 156,
-    size: "tall"
-  },
-  {
-    id: 2,
-    title: "狗狗兴奋乱扑怎么办",
-    desc: "先让它学会坐下等待，再把奖励和社交绑定起来。",
-    cover: "/images/mock/golden.jpg",
-    author: "布偶田田",
-    avatar: "/images/mock/dog-avatar.jpg",
-    likes: "1.8k",
-    commentCount: 89,
-    size: "short"
-  },
-  {
-    id: 3,
-    title: "猫咪食欲变差怎么办",
-    desc: "排查换粮、温度、压力和精神状态，先观察重点信号。",
-    cover: "/images/mock/blue-cat.jpg",
-    author: "猫咪日记",
-    avatar: "/images/mock/cat-avatar.jpg",
-    likes: "5.1k",
-    commentCount: 432,
-    size: "medium"
-  },
-  {
-    id: 4,
-    title: "幼宠用品清单",
-    desc: "笼具、食盆、牵引和清洁用品先准备基础款，别一开始买太多。",
-    cover: "/images/mock/corgi.jpg",
-    author: "吱星日记",
-    avatar: "/images/mock/dog-avatar.jpg",
-    likes: "980",
-    commentCount: 45,
-    size: "tall"
-  }
+  { id: 1, title: "第一次接它回家", desc: "从隔离区到第一晚观察，把小家伙安稳接回家。", cover: "/images/mock/cat-cover.jpg", author: "暖窝小鱼", avatar: "/images/mock/cat-avatar.jpg", likes: "2.3k", commentCount: 156, size: "tall" },
+  { id: 2, title: "狗狗兴奋乱扑怎么办", desc: "先让它学会坐下等待，再把奖励和社交绑定起来。", cover: "/images/mock/golden.jpg", author: "布欧田田", avatar: "/images/mock/dog-avatar.jpg", likes: "1.8k", commentCount: 89, size: "short" },
+  { id: 3, title: "猫咪食欲变差怎么办", desc: "排查换粮、温度、压力和精神状态，先观察重点信号。", cover: "/images/mock/blue-cat.jpg", author: "猫咪日记", avatar: "/images/mock/cat-avatar.jpg", likes: "5.1k", commentCount: 432, size: "medium" },
+  { id: 4, title: "幼宠用品清单", desc: "笼具、食盆、牵引和清洁用品先准备基础款，别一开始买太多。", cover: "/images/mock/corgi.jpg", author: "吱星日记", avatar: "/images/mock/dog-avatar.jpg", likes: "980", commentCount: 45, size: "tall" },
+  { id: 5, title: "猫咪不爱喝水怎么办", desc: "试试流动饮水机、湿粮加水、不同位置多放几个水碗。", cover: "/images/mock/ragdoll.jpg", author: "猫咪日记", avatar: "/images/mock/cat-avatar.jpg", likes: "3.2k", commentCount: 201, size: "short" },
+  { id: 6, title: "新手养狗避坑指南", desc: "疫苗、驱虫、社会化训练，前三个月做好这几件事。", cover: "/images/mock/golden.jpg", author: "布欧田田", avatar: "/images/mock/dog-avatar.jpg", likes: "4.5k", commentCount: 378, size: "medium" }
 ];
 
 function formatCount(value) {
@@ -86,16 +48,8 @@ function extractRows(body) {
 Page({
   data: {
     videos: [],
-    leftVideos: [],
-    rightVideos: [],
-    curTab: "recommend",
     loading: true,
-    useMock: false,
-    tabs: [
-      { id: "recommend", label: "推荐" },
-      { id: "care", label: "照护" },
-      { id: "nearby", label: "附近" }
-    ]
+    useMock: false
   },
 
   onLoad: function() {
@@ -111,14 +65,10 @@ Page({
     that.setData({ loading: true });
     videoApi.list(1, 20).then(function(res) {
       var rows = extractRows(res);
-      if (rows.length) {
-        that.setVideos(rows.map(normalizeVideo), false);
-      } else {
-        that.setVideos([], false);
-      }
+      that.setVideos(rows.length ? rows.map(normalizeVideo) : [], false);
       if (done) done();
     }).catch(function(err) {
-      var message = err && err.isBusinessError
+      var message = (err && err.isBusinessError)
         ? ((err.message || "视频接口返回异常") + "，展示本地演示数据")
         : "无法连接后端，展示本地演示数据";
       that.useFallback(message);
@@ -127,46 +77,43 @@ Page({
   },
 
   useFallback: function(message) {
-    this.setVideos(fallbackVideos, true);
+    this.setData({
+      videos: fallbackVideos,
+      loading: false,
+      useMock: true
+    });
     if (message) {
       wx.showToast({ title: message, icon: "none" });
     }
   },
 
   setVideos: function(videos, useMock) {
-    const leftVideos = [];
-    const rightVideos = [];
-    videos.forEach((item, index) => {
-      if (index % 2 === 0) {
-        leftVideos.push(item);
-      } else {
-        rightVideos.push(item);
-      }
-    });
     this.setData({
-      videos,
-      leftVideos,
-      rightVideos,
+      videos: videos,
       loading: false,
-      useMock
+      useMock: !!useMock
     });
   },
 
-  swTab: function(event) {
-    this.setData({ curTab: event.currentTarget.dataset.id });
-    this.load();
+  goSearch: function() {
+    wx.navigateTo({
+      url: "/subpages/video/list",
+      fail: function() {
+        wx.showToast({ title: "搜索页面打开失败", icon: "none" });
+      }
+    });
   },
 
   goDetail: function(event) {
     const id = event.currentTarget.dataset.id;
     if (!id) {
-      wx.showToast({ title: "视频数据缺少 ID", icon: "none" });
+      wx.showToast({ title: "数据缺少 ID", icon: "none" });
       return;
     }
     wx.navigateTo({
       url: "/subpages/video/detail?id=" + id,
-      fail: () => {
-        wx.showToast({ title: "视频详情页打开失败", icon: "none" });
+      fail: function() {
+        wx.showToast({ title: "详情页打开失败", icon: "none" });
       }
     });
   },
@@ -175,4 +122,3 @@ Page({
     wx.switchTab({ url: "/pages/chat/chat" });
   }
 });
-

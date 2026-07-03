@@ -63,41 +63,35 @@ public class VideoController extends BaseController<Video, Video, Video> {
     protected QueryWrapper<Video> buildQueryWrapper(Video param) {
         QueryWrapper<Video> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("create_time");
-        if (param == null) {
-            return wrapper;
+        if (param == null || param.getStatus() == null) {
+            wrapper.eq("status", 1);
         }
-        if (param.getStatus() != null) {
-            wrapper.eq("status", param.getStatus());
-        }
-        if (param.getUserId() != null) {
-            wrapper.eq("user_id", param.getUserId());
-        }
-        if (param.getProductId() != null) {
-            wrapper.eq("product_id", param.getProductId());
-        }
-        if (param.getTitle() != null && !param.getTitle().isBlank()) {
-            wrapper.and(w -> w.like("title", param.getTitle()).or().like("description", param.getTitle()));
+        if (param != null) {
+            if (param.getStatus() != null) {
+                wrapper.eq("status", param.getStatus());
+            }
+            if (param.getUserId() != null) {
+                wrapper.eq("user_id", param.getUserId());
+            }
+            if (param.getProductId() != null) {
+                wrapper.eq("product_id", param.getProductId());
+            }
+            if (param.getTitle() != null && !param.getTitle().isBlank()) {
+                wrapper.and(w -> w.like("title", param.getTitle()).or().like("description", param.getTitle()));
+            }
         }
         return wrapper;
     }
 
-        @Operation(summary = "视频 Feed 流")
-@GetMapping({"/feed", "/list", "/search"})
-    public Result<IPage<Map<String, Object>>> feed(
+    @Override
+    @Operation(summary = "视频分页搜索")
+    @GetMapping("/search")
+    public Result<IPage<Video>> search(Video param,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         Page<Video> pageParam = new Page<>(page, size);
-        QueryWrapper<Video> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", 1).orderByDesc("create_time");
-        Page<Video> result = videoService.page(pageParam, wrapper);
-
-        Page<Map<String, Object>> voPage = new Page<>(page, size, result.getTotal());
-        List<Map<String, Object>> records = new ArrayList<>();
-        for (Video video : result.getRecords()) {
-            records.add(toFeedItem(video));
-        }
-        voPage.setRecords(records);
-        return Result.success(voPage);
+        Page<Video> result = videoService.page(pageParam, buildQueryWrapper(param));
+        return Result.success(result);
     }
 
     @Operation(summary = "视频详情（播放量+1）")
@@ -112,8 +106,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(videoService.getById(id));
     }
 
-        @Operation(summary = "视频播放（播放量+1）")
-@GetMapping("/play/{id}")
+    @Operation(summary = "视频播放（播放量+1）")
+    @GetMapping("/play/{id}")
     public Result<Video> play(@PathVariable Long id) {
         Video video = videoService.getById(id);
         if (video == null) {
@@ -123,15 +117,15 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(videoService.getById(id));
     }
 
-        @Operation(summary = "点赞视频")
-@PostMapping("/{id}/like")
+    @Operation(summary = "点赞视频")
+    @PostMapping("/{id}/like")
     public Result<Void> like(@PathVariable Long id) {
         videoService.incrementLikes(id);
         return Result.success();
     }
 
-        @Operation(summary = "视频评论列表")
-@GetMapping("/{id}/comments")
+    @Operation(summary = "视频评论列表")
+    @GetMapping("/{id}/comments")
     public Result<List<Map<String, Object>>> comments(@PathVariable Long id) {
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
         wrapper.eq("video_id", id).orderByDesc("create_time");
@@ -142,8 +136,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(records);
     }
 
-        @Operation(summary = "发表评论")
-@PostMapping("/{id}/comment")
+    @Operation(summary = "发表评论")
+    @PostMapping("/{id}/comment")
     public Result<Comment> addComment(@PathVariable Long id, @RequestBody Comment comment) {
         comment.setVideoId(id);
         if (comment.getUserId() == null) {
@@ -159,8 +153,8 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return Result.success(comment);
     }
 
-        @Operation(summary = "上传视频文件")
-@PostMapping("/upload")
+    @Operation(summary = "上传视频文件")
+    @PostMapping("/upload")
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return Result.error(400, "文件不能为空");
@@ -183,27 +177,6 @@ public class VideoController extends BaseController<Video, Video, Video> {
         }
     }
 
-    private Map<String, Object> toFeedItem(Video video) {
-        Map<String, Object> item = new LinkedHashMap<>();
-        item.put("id", video.getId());
-        item.put("title", video.getTitle());
-        item.put("desc", video.getDescription());
-        item.put("description", video.getDescription());
-        item.put("cover", video.getCover());
-        item.put("url", video.getUrl());
-        item.put("likes", video.getLikes());
-        item.put("commentCount", video.getCommentCount());
-        item.put("playCount", video.getPlayCount());
-        item.put("productId", video.getProductId());
-        item.put("duration", video.getDuration());
-        item.put("createTime", video.getCreateTime());
-
-        User author = video.getUserId() == null ? null : userService.getById(video.getUserId());
-        item.put("author", author != null ? author.getRealName() : "暖窝用户");
-        item.put("avatar", author != null ? author.getAvatar() : "");
-        return item;
-    }
-
     private Map<String, Object> toCommentItem(Comment comment) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", comment.getId());
@@ -217,4 +190,3 @@ public class VideoController extends BaseController<Video, Video, Video> {
         return item;
     }
 }
-

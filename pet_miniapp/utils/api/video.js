@@ -1,7 +1,7 @@
 var request = require("../request");
 module.exports = {
   list: function(page, size) {
-    return request.get("/api/video/feed", { page: page || 1, size: size || 10 });
+    return request.get("/api/video/search", { page: page || 1, size: size || 10 });
   },
   detail: function(id) {
     return request.get("/api/video/" + id);

@@ -1,57 +1,80 @@
 <view class="home">
+  <!-- ===== Hero ===== -->
   <view class="hero">
-    <view>
-      <text class="eyebrow">PETNEST VIDEO</text>
-      <text class="title">看看今天的小家伙</text>
-      <text class="subtitle">视频 Feed、商品线索和智能客服都在这里。</text>
+    <view class="hero-text">
+      <text class="eyebrow">PETNEST</text>
+      <text class="title">暖心宠物社区</text>
+      <text class="subtitle">发现有趣的宠物视频</text>
+    </view>
+    <view class="hero-search" bindtap="goSearch">
+      <text class="search-icon">🔍</text>
     </view>
   </view>
 
-  <view class="search-card">
-    <text class="search-icon">⌕</text>
-    <text class="search-text">搜索视频、宠物、商品或照护问题</text>
-  </view>
+  <!-- ===== Mock 提示 ===== -->
+  <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据，后端连通后会自动替换</view>
 
-  <view class="tabs">
-    <view wx:for="{{tabs}}" wx:key="id" class="tab {{curTab === item.id ? 'on' : ''}}" bindtap="swTab" data-id="{{item.id}}">
-      {{item.label}}
-    </view>
-  </view>
-
-  <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据，后端连通后会自动替换。</view>
-
-  <view class="feed">
-    <view class="waterfall-col">
-      <view wx:for="{{leftVideos}}" wx:key="id" class="video-card {{item.size}}" bindtap="goDetail" data-id="{{item.id}}">
-        <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
-        <view class="card-body">
-          <text class="video-title">{{item.title}}</text>
-          <text class="video-desc">{{item.desc}}</text>
-          <view class="meta">
-            <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
-            <text class="author">{{item.author}}</text>
-            <text class="likes">♥ {{item.likes}}</text>
+  <!-- ===== 骨架屏（加载中） ===== -->
+  <view wx:if="{{loading}}" class="skeleton-wrap">
+    <view class="skeleton-col">
+      <view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton-card tall">
+        <view class="skeleton-img"></view>
+        <view class="skeleton-body">
+          <view class="skeleton-line w-70"></view>
+          <view class="skeleton-line w-90"></view>
+          <view class="skeleton-line w-40"></view>
+          <view class="skeleton-meta">
+            <view class="skeleton-avatar"></view>
+            <view class="skeleton-line w-50"></view>
           </view>
         </view>
       </view>
     </view>
-    <view class="waterfall-col">
-      <view wx:for="{{rightVideos}}" wx:key="id" class="video-card {{item.size}}" bindtap="goDetail" data-id="{{item.id}}">
-        <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
-        <view class="card-body">
-          <text class="video-title">{{item.title}}</text>
-          <text class="video-desc">{{item.desc}}</text>
-          <view class="meta">
-            <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
-            <text class="author">{{item.author}}</text>
-            <text class="likes">♥ {{item.likes}}</text>
+    <view class="skeleton-col">
+      <view wx:for="{{[1,2]}}" wx:key="*this" class="skeleton-card short">
+        <view class="skeleton-img"></view>
+        <view class="skeleton-body">
+          <view class="skeleton-line w-60"></view>
+          <view class="skeleton-line w-80"></view>
+          <view class="skeleton-meta">
+            <view class="skeleton-avatar"></view>
+            <view class="skeleton-line w-40"></view>
+          </view>
+        </view>
+      </view>
+      <view class="skeleton-card medium">
+        <view class="skeleton-img"></view>
+        <view class="skeleton-body">
+          <view class="skeleton-line w-65"></view>
+          <view class="skeleton-line w-85"></view>
+          <view class="skeleton-line w-45"></view>
+          <view class="skeleton-meta">
+            <view class="skeleton-avatar"></view>
+            <view class="skeleton-line w-50"></view>
           </view>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="empty-tip" wx:if="{{!loading && !videos.length}}">
-    <text>暂无视频</text>
+  <!-- ===== 视频瀑布流 ===== -->
+  <view wx:elif="{{!videos.length && !loading}}" class="empty-tip">
+    <text class="empty-icon">📹</text>
+    <text>暂无视频内容</text>
+  </view>
+
+  <view class="waterfall" wx:else>
+    <view wx:for="{{videos}}" wx:key="id" class="video-card {{item.size}}" bindtap="goDetail" data-id="{{item.id}}">
+      <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      <view class="card-body">
+        <text class="video-title">{{item.title}}</text>
+        <text class="video-desc">{{item.desc}}</text>
+        <view class="meta">
+          <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
+          <text class="author">{{item.author}}</text>
+          <text class="likes">♥ {{item.likes}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

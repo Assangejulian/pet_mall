@@ -102,7 +102,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String images = resolveUpdateImages(oldProduct, dto);
         validateBusinessRules(productType, stock, price, status, soldProduct);
 
-        Product product = buildUpdateProduct(oldProduct, dto, storeId, productType, stock, price, status, images, soldProduct);
+        Product product = buildUpdateProduct(oldProduct, dto, storeId, productType, stock, price, status, images);
 
         if (!updateById(product)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品修改失败");
@@ -152,7 +152,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public ProductVO offlineProduct(Long id) {
         // 已售出商品不能再手动切回下架，售出状态由订单流程控制。
         Product product = getActiveProduct(id);
-        if (product != null && product.getStatus() == STATUS_SOLD) {
+        if (product.getStatus() == STATUS_SOLD) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "已售出商品不能手动下架");
         }
         ProductStateMachine.validate(product.getStatus(), STATUS_OFFLINE);
@@ -228,12 +228,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId) {
         storeService.requireOwnedStore(dto != null ? dto.getStoreId() : null, merchantUserId);
         return createProduct(dto);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public ProductVO updateMerchantProduct(Long id, ProductUpdateDTO dto, Long merchantUserId) {
         Product product = requireOwnedProduct(id, merchantUserId);
         if (dto != null && requestsOnline(dto.getStatus())) {
@@ -501,10 +503,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @param price       价格
      * @param status      状态
      * @param images      图片 JSON
-     * @param soldProduct 是否已售出
      * @return 待保存的商品实体
      */
-    private Product buildUpdateProduct(Product oldProduct, ProductUpdateDTO dto, Long storeId, Integer productType, Integer stock, BigDecimal price, Integer status, String images, boolean soldProduct) {
+    private Product buildUpdateProduct(Product oldProduct, ProductUpdateDTO dto, Long storeId, Integer productType, Integer stock, BigDecimal price, Integer status, String images) {
         return Product.mergeFrom(oldProduct, dto, storeId, productType, stock, price, status, images);
     }
     /**
