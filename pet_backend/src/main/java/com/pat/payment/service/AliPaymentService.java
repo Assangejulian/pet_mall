@@ -32,4 +32,6 @@ public class AliPaymentService implements PaymentService {
     public void handleNotify(PayNotifyDTO dto) {
         throw new BusinessException(ErrorCode.FARAMS_ERROR, "支付宝支付尚未接入");
     }
+
+
 }

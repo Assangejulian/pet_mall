@@ -86,12 +86,7 @@ public class OrderUserServiceImpl implements IOrderUserService {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
 
-        // 行级锁校验库存 + 扣库存
         for (OrderCreateDTO.OrderItemDTO item : items) {
-            boolean deducted = productService.deductStock(item.getProductId(), item.getQuantity());
-            if (!deducted)
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品库存不足或已下架");
-
             Product product = productService.getById(item.getProductId());
             OrderItem oi = new OrderItem();
             oi.setProductId(product.getId());

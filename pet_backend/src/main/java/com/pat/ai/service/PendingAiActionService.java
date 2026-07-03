@@ -168,8 +168,7 @@ public class PendingAiActionService {
                 throw new BusinessException(400, "Insufficient stock: " + product.getProductName(), null);
             }
 
-            product.setStock(product.getStock() - quantity);
-            productService.updateById(product);
+            // Stock deducted at payment time via ProductService.deductStock()
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProductId(product.getId());
