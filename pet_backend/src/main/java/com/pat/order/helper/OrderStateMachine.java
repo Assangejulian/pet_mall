@@ -18,10 +18,13 @@ public class OrderStateMachine {
 
     private static final Map<OrderStatus, Set<OrderStatus>> STATE_MACHINE = Map.of(
             OrderStatus.PENDING_PAY, Set.of(OrderStatus.PAID, OrderStatus.CANCELLED),
-            OrderStatus.PAID,        Set.of(OrderStatus.SHIPPED, OrderStatus.REJECTED), // 极速退款
+            OrderStatus.PAID,        Set.of(OrderStatus.SHIPPED, OrderStatus.REJECTED),
+            // 极速退款
             OrderStatus.SHIPPED,     Set.of(OrderStatus.RECEIVED, OrderStatus.REFUNDING, OrderStatus.REJECTED),
-            OrderStatus.RECEIVED,    Set.of(OrderStatus.EVALUATED, OrderStatus.REFUNDING), // 售后退款
-            OrderStatus.EVALUATED,   Set.of(OrderStatus.REFUNDING), // 售后退款
+            OrderStatus.RECEIVED,    Set.of(OrderStatus.EVALUATED, OrderStatus.REFUNDING),
+            // 售后退款
+            OrderStatus.EVALUATED,   Set.of(OrderStatus.REFUNDING),
+            // 售后退款
             OrderStatus.REFUNDING,   Set.of(OrderStatus.REFUNDED, OrderStatus.RECEIVED)
     );
 
@@ -29,9 +32,6 @@ public class OrderStateMachine {
     public static void validate(Integer currentCode, Integer targetCode) {
         OrderStatus current = OrderStatus.of(currentCode);
         OrderStatus target = OrderStatus.of(targetCode);
-        if (current == null || target == null) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "未知状态码: " + currentCode + " → " + targetCode);
-        }
         Set<OrderStatus> allowed = STATE_MACHINE.get(current);
         if (allowed == null || !allowed.contains(target)) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR,
