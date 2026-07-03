@@ -11,7 +11,7 @@ import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderItemService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.product.domain.entity.Product;
-import com.pat.product.service.IProductService;
+import com.pat.product.service.ProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,12 +42,12 @@ public class PendingAiActionService {
 
     private final Map<String, StoredAction> pendingActions = new ConcurrentHashMap<>();
     private final ICartService cartService;
-    private final IProductService productService;
+    private final ProductService productService;
     private final PurchaseOrderBaseService orderService;
     private final IOrderItemService orderItemService;
 
     public PendingAiActionService(ICartService cartService,
-                                  IProductService productService,
+                                  ProductService productService,
                                   PurchaseOrderBaseService orderService,
                                   IOrderItemService orderItemService) {
         this.cartService = cartService;
@@ -168,7 +168,8 @@ public class PendingAiActionService {
                 throw new BusinessException(400, "Insufficient stock: " + product.getProductName(), null);
             }
 
-            // Stock deducted at payment time via ProductService.deductStock()
+            boolean stockOk = productService.deductStock(product.getId(), quantity);
+            if (!stockOk) throw new BusinessException(400, "Insufficient stock: " + product.getProductName(), null);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProductId(product.getId());

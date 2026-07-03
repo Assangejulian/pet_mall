@@ -88,6 +88,10 @@ public class OrderUserServiceImpl implements IOrderUserService {
 
         for (OrderCreateDTO.OrderItemDTO item : items) {
             Product product = productService.getById(item.getProductId());
+            if (product == null) throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
+            if (product.getStatus() == null || product.getStatus() != 1) throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架: " + product.getProductName());
+            boolean stockOk = productService.deductStock(product.getId(), item.getQuantity());
+            if (!stockOk) throw new BusinessException(500, "商品库存不足或已下架: " + product.getProductName(), null);
             OrderItem oi = new OrderItem();
             oi.setProductId(product.getId());
             oi.setProductName(product.getProductName());
