@@ -1,7 +1,8 @@
-package com.pat.payment.service;
+package com.pat.payment.service.impl;
 
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
+import com.pat.payment.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

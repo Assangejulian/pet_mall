@@ -11,8 +11,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.Result;
 import com.pat.common.util.JwtUtil;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @Tag(name = "AI 智能客服", description = "AI 聊天同步/流式对话")
 @RequestMapping("/api/ai")
@@ -129,7 +134,14 @@ public class AiChatController {
         try {
             Claims claims = JwtUtil.parseToken(auth.substring("Bearer ".length()));
             return claims.get("userId", Long.class);
-        } catch (Exception ex) {
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT token expired during user resolution");
+            return null;
+        } catch (MalformedJwtException | SignatureException e) {
+            log.warn("JWT token invalid: {}", e.getMessage());
+            return null;
+        } catch (RuntimeException e) {
+            log.error("JWT parse error during user resolution", e);
             return null;
         }
     }

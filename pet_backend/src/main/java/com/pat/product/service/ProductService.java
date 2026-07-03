@@ -147,4 +147,13 @@ public interface ProductService extends IProductService {
      * @return true 成功，false 库存不足
      */
     boolean deductStock(Long productId, Integer quantity);
+
+    /**
+     * 恢复库存（订单取消/超时回滚时调用）。
+     *
+     * @param productId 商品 ID
+     * @param quantity 恢复数量
+     * @return true 成功
+     */
+    boolean restoreStock(Long productId, Integer quantity);
 }

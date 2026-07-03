@@ -1,5 +1,6 @@
 package com.pat.order.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
@@ -12,8 +13,6 @@ import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderAdminMapper;
 import com.pat.order.service.IOrderAdminService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +20,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class OrderAdminServiceImpl implements IOrderAdminService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderAdminServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
     private final OrderAdminMapper orderAdminMapper;

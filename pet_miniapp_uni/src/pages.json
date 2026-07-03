@@ -1,0 +1,48 @@
+{
+  "pages": [
+    {"path": "pages/index/index", "style": {"navigationBarTitleText": "暖窝视频","enablePullDownRefresh": true}},
+    {"path": "pages/store/list", "style": {"navigationBarTitleText": "附近门店"}},
+    {"path": "pages/chat/chat", "style": {"navigationBarTitleText": "智能客服"}},
+    {"path": "pages/cart/cart", "style": {"navigationBarTitleText": "购物车"}},
+    {"path": "pages/user/user", "style": {"navigationBarTitleText": "我的"}}
+  ],
+  "subPackages": [
+    {
+      "root": "subpages",
+      "pages": [
+        {"path": "detail/detail", "style": {"navigationBarTitleText": "商品详情","enablePullDownRefresh": true}},
+        {"path": "video/list", "style": {"navigationBarTitleText": "暖窝视频","enablePullDownRefresh": true}},
+        {"path": "video/detail", "style": {"navigationBarTitleText": "视频详情","navigationStyle":"custom"}},
+        {"path": "order/list", "style": {"navigationBarTitleText": "我的订单"}},
+        {"path": "order/detail/detail", "style": {"navigationBarTitleText": "订单详情"}},
+        {"path": "order/submit", "style": {"navigationBarTitleText": "确认订单","navigationBarBackgroundColor":"#fff","navigationBarTextStyle":"black"}},
+        {"path": "order/pay", "style": {"navigationBarTitleText": "收银台"}},
+        {"path": "order/evaluate", "style": {"navigationBarTitleText": "评价商品","navigationBarBackgroundColor":"#fff","navigationBarTextStyle":"black"}},
+        {"path": "order/refund/refund", "style": {"navigationBarTitleText": "申请退款/售后","navigationBarBackgroundColor":"#fff","navigationBarTextStyle":"black"}},
+        {"path": "address/list", "style": {"navigationBarTitleText": "收货地址"}},
+        {"path": "login/login", "style": {"navigationBarTitleText": "登录","navigationBarBackgroundColor":"#fff","navigationBarTextStyle":"black"}},
+        {"path": "login/face_capture", "style": {"navigationBarTitleText": "人脸识别"}},
+        {"path": "store/detail/detail", "style": {"navigationBarTitleText": "门店详情","enablePullDownRefresh": true}}
+      ]
+    }
+  ],
+  "tabBar": {
+    "color": "#8f7366",
+    "selectedColor": "#e8927c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {"pagePath": "pages/index/index","text": "视频"},
+      {"pagePath": "pages/store/list","text": "门店"},
+      {"pagePath": "pages/chat/chat","text": "消息"},
+      {"pagePath": "pages/cart/cart","text": "购物车"},
+      {"pagePath": "pages/user/user","text": "我的"}
+    ]
+  },
+  "globalStyle": {
+    "navigationBarBackgroundColor": "#faf7ef",
+    "navigationBarTitleText": "暖窝",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#faf7ef"
+  }
+}

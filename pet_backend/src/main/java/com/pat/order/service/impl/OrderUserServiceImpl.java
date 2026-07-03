@@ -20,7 +20,7 @@ import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
-import com.pat.payment.service.PaymentServiceRouter;
+import com.pat.payment.service.impl.PaymentServiceRouter;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
 import com.pat.user.domain.entity.UserAddress;

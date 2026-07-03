@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @TableName("store")
 public class Store extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private Long userId;
     private String storeName;
     private String storeLogo;

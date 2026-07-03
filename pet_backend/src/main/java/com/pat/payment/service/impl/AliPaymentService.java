@@ -1,4 +1,4 @@
-package com.pat.payment.service;
+package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.pat.order.domain.dto.PayNotifyDTO;
@@ -6,6 +6,7 @@ import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.domain.vo.OrderPaymentVO;
 import com.pat.order.helper.OrderStateMachine;
+import com.pat.payment.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

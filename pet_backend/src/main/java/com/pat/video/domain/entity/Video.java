@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("video")
 public class Video extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private Long userId;
     private String title;
     private String description;

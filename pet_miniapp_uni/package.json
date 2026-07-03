@@ -1,0 +1,33 @@
+{
+  "name": "pet-miniapp-uni",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:mp-weixin": "cross-env NODE_ENV=development UNI_PLATFORM=mp-weixin vue-cli-service uni-build --watch",
+    "build:mp-weixin": "cross-env NODE_ENV=production UNI_PLATFORM=mp-weixin vue-cli-service uni-build"
+  },
+  "dependencies": {
+    "@dcloudio/uni-mp-weixin": "*",
+    "regenerator-runtime": "^0.14.1",
+    "vue": "~2.6.14"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+    "@dcloudio/uni-cli-i18n": "*",
+    "@dcloudio/uni-cli-shared": "^2.0.2-5010420260703001",
+    "@dcloudio/uni-i18n": "*",
+    "@dcloudio/uni-stat": "*",
+    "@dcloudio/uni-template-compiler": "*",
+    "@dcloudio/vue-cli-plugin-uni": "*",
+    "@dcloudio/webpack-uni-mp-loader": "*",
+    "@dcloudio/webpack-uni-pages-loader": "*",
+    "@vue/cli-plugin-babel": "~4.5.19",
+    "@vue/cli-service": "~4.5.19",
+    "copy-webpack-plugin": "~5.1.2",
+    "cross-env": "^7.0.3",
+    "mini-css-extract-plugin": "~0.9.0",
+    "postcss": "^7.0.39",
+    "vue-template-compiler": "~2.6.14",
+    "webpack": "^4.47.0"
+  }
+}

@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @TableName("order_item")
 public class OrderItem extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private Long orderId;
     private Long productId;
     private String productName;

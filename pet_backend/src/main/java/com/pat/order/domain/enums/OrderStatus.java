@@ -1,5 +1,7 @@
 package com.pat.order.domain.enums;
 
+import com.pat.common.exception.BusinessException;
+import com.pat.common.domain.ErrorCode;
 import lombok.Getter;
 
 /**
@@ -46,6 +48,6 @@ public enum OrderStatus {
         for (OrderStatus s : values()) {
             if (s.code == code) return s;
         }
-        return null;
+        throw new BusinessException(ErrorCode.PARAM_ERROR, "未知订单状态: " + code);
     }
 }

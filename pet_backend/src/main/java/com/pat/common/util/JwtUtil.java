@@ -1,13 +1,18 @@
 package com.pat.common.util;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+@Slf4j
 public class JwtUtil {
 
     private static final String DEFAULT_SECRET = "PetNest2024SecretKeyForJWTTokenGeneration!@#$";
@@ -59,6 +64,9 @@ public class JwtUtil {
      */
     public static boolean validateToken(String token) {
         try { parseToken(token); return true; }
-        catch (Exception e) { return false; }
+        catch (ExpiredJwtException e) { log.warn("JWT token expired"); return false; }
+        catch (MalformedJwtException e) { log.warn("JWT token malformed: {}", e.getMessage()); return false; }
+        catch (SignatureException e) { log.warn("JWT signature invalid: {}", e.getMessage()); return false; }
+        catch (RuntimeException e) { log.error("JWT parse error", e); return false; }
     }
 }

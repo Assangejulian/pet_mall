@@ -4,29 +4,22 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.ai.domain.vo.AiChatResponse;
 import com.pat.common.domain.Result;
 import com.pat.common.exception.BusinessException;
+import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.entity.Cart;
-import com.pat.order.domain.entity.OrderItem;
-import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.ICartService;
-import com.pat.order.service.IOrderItemService;
-import com.pat.order.service.base.PurchaseOrderBaseService;
+import com.pat.order.service.IOrderUserService;
 import com.pat.product.domain.entity.Product;
-import com.pat.product.service.ProductService;
+import com.pat.product.service.IProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Service
 public class PendingAiActionService {
@@ -42,18 +35,15 @@ public class PendingAiActionService {
 
     private final Map<String, StoredAction> pendingActions = new ConcurrentHashMap<>();
     private final ICartService cartService;
-    private final ProductService productService;
-    private final PurchaseOrderBaseService orderService;
-    private final IOrderItemService orderItemService;
+    private final IProductService productService;
+    private final IOrderUserService orderUserService;
 
     public PendingAiActionService(ICartService cartService,
-                                  ProductService productService,
-                                  PurchaseOrderBaseService orderService,
-                                  IOrderItemService orderItemService) {
+                                  IProductService productService,
+                                  IOrderUserService orderUserService) {
         this.cartService = cartService;
         this.productService = productService;
-        this.orderService = orderService;
-        this.orderItemService = orderItemService;
+        this.orderUserService = orderUserService;
     }
 
     public void beginCollecting() {
@@ -100,7 +90,7 @@ public class PendingAiActionService {
             case ADD_CART -> Result.success(addCart(userId, payload));
             case UPDATE_CART -> Result.success(updateCart(userId, payload));
             case DELETE_CART -> Result.success(deleteCart(userId, payload));
-            case CREATE_ORDER -> Result.success(createOrder(userId, payload));
+            case CREATE_ORDER -> Result.success(createOrderFromAi(userId, payload));
             default -> Result.error(400, "Unsupported action type: " + action.getType());
         };
     }
@@ -109,14 +99,18 @@ public class PendingAiActionService {
         Long productId = longValue(payload.get("productId"));
         Integer quantity = intValue(payload.getOrDefault("quantity", 1));
         Product product = requireProduct(productId);
+        if (product.getStatus() == null || product.getStatus() != 1) {
+            throw new BusinessException(400, "Product is offline: " + product.getProductName(), null);
+        }
 
-        Cart existing = cartService.getOne(new QueryWrapper<Cart>()
+        List<Cart> existing = cartService.list(new QueryWrapper<Cart>()
                 .eq("user_id", userId)
-                .eq("product_id", productId), false);
-        if (existing != null) {
-            existing.setQuantity((existing.getQuantity() == null ? 0 : existing.getQuantity()) + quantity);
-            cartService.updateById(existing);
-            return existing;
+                .eq("product_id", productId));
+        if (existing != null && !existing.isEmpty()) {
+            Cart cart = existing.get(0);
+            cart.setQuantity(cart.getQuantity() + quantity);
+            cartService.updateById(cart);
+            return cart;
         }
 
         Cart cart = new Cart();
@@ -148,63 +142,25 @@ public class PendingAiActionService {
     }
 
     @SuppressWarnings("unchecked")
-    private Long createOrder(Long userId, Map<String, Object> payload) {
+    private Long createOrderFromAi(Long userId, Map<String, Object> payload) {
         Long addressId = longValue(payload.get("addressId"));
-        List<Map<String, Object>> items = (List<Map<String, Object>>) payload.get("items");
-        if (items == null || items.isEmpty()) {
+        List<Map<String, Object>> aiItems = (List<Map<String, Object>>) payload.get("items");
+        if (aiItems == null || aiItems.isEmpty()) {
             throw new BusinessException(400, "Order items cannot be empty", null);
         }
 
-        List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal total = BigDecimal.ZERO;
-        for (Map<String, Object> item : items) {
-            Long productId = longValue(item.get("productId"));
-            Integer quantity = intValue(item.getOrDefault("quantity", 1));
-            Product product = requireProduct(productId);
-            if (product.getStatus() == null || product.getStatus() != 1) {
-                throw new BusinessException(400, "Product is offline: " + product.getProductName(), null);
-            }
-            if (product.getStock() == null || product.getStock() < quantity) {
-                throw new BusinessException(400, "Insufficient stock: " + product.getProductName(), null);
-            }
-
-            boolean stockOk = productService.deductStock(product.getId(), quantity);
-            if (!stockOk) throw new BusinessException(400, "Insufficient stock: " + product.getProductName(), null);
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProductId(product.getId());
-            orderItem.setProductName(product.getProductName());
-            orderItem.setProductImage(product.getMainImage());
-            orderItem.setPrice(product.getPrice());
-            orderItem.setQuantity(quantity);
-            orderItems.add(orderItem);
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        OrderCreateDTO dto = new OrderCreateDTO();
+        dto.setAddressId(addressId);
+        List<OrderCreateDTO.OrderItemDTO> itemDTOs = new ArrayList<>();
+        for (Map<String, Object> aiItem : aiItems) {
+            OrderCreateDTO.OrderItemDTO item = new OrderCreateDTO.OrderItemDTO();
+            item.setProductId(longValue(aiItem.get("productId")));
+            item.setQuantity(intValue(aiItem.getOrDefault("quantity", 1)));
+            itemDTOs.add(item);
         }
+        dto.setItems(itemDTOs);
 
-        PurchaseOrder order = new PurchaseOrder();
-        order.setOrderNo(LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
-                + String.format("%08d", new Random().nextInt(100000000)));
-        order.setUserId(userId);
-        order.setAddressId(addressId);
-        order.setTotalAmount(total);
-        order.setPayAmount(total);
-        order.setOrderStatus(0);
-        orderService.save(order);
-
-        for (OrderItem orderItem : orderItems) {
-            orderItem.setOrderId(order.getId());
-        }
-        orderItemService.saveBatch(orderItems);
-
-        List<Long> productIds = items.stream()
-                .map(item -> longValue(item.get("productId")))
-                .collect(Collectors.toList());
-        cartService.lambdaUpdate()
-                .eq(Cart::getUserId, userId)
-                .in(Cart::getProductId, productIds)
-                .remove();
-
-        return order.getId();
+        return orderUserService.createOrder(dto);
     }
 
     private Product requireProduct(Long productId) {

@@ -3,6 +3,7 @@ package com.pat.ai.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.order.domain.entity.Cart;
@@ -202,7 +203,7 @@ public class AiMallToolService {
             List<Map<String, Object>> items;
             try {
                 items = objectMapper.readValue(itemsJson, new TypeReference<>() {});
-            } catch (Exception ex) {
+            } catch (JsonProcessingException ex) {
                 return json(Map.of("error", "itemsJson must be a valid JSON array"));
             }
             Map<String, Object> payload = new LinkedHashMap<>();
@@ -223,7 +224,7 @@ public class AiMallToolService {
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (Exception ex) {
+        } catch (JsonProcessingException ex) {
             return "{\"error\":\"failed to serialize tool result\"}";
         }
     }

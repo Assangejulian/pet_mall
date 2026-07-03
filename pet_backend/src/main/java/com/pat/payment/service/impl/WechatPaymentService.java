@@ -1,4 +1,4 @@
-package com.pat.payment.service;
+package com.pat.payment.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
@@ -13,7 +13,7 @@ import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.payment.config.WechatPayConfig;
-import com.pat.product.service.ProductService;
+import com.pat.payment.service.PaymentService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,16 +33,14 @@ public class WechatPaymentService implements PaymentService {
     private final WechatPayConfig wechatPayConfig;
     private final PurchaseOrderBaseService baseService;
     private final OrderItemMapper orderItemMapper;
-    private final ProductService productService;
 
     public WechatPaymentService(WechatPayConfig wechatPayConfig,
                                 PurchaseOrderBaseService baseService,
                                 OrderItemMapper orderItemMapper,
-                                ProductService productService) {
+) {
         this.wechatPayConfig = wechatPayConfig;
         this.baseService = baseService;
         this.orderItemMapper = orderItemMapper;
-        this.productService = productService;
     }
 
     /**
@@ -94,16 +92,6 @@ public class WechatPaymentService implements PaymentService {
             return;
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-
-        // 扣减库存
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
-        for (OrderItem item : items) {
-            boolean ok = productService.deductStock(item.getProductId(), item.getQuantity());
-            if (!ok) {
-                log.warn("微信回调：库存扣减失败 productId={}, orderNo={}", item.getProductId(), dto.getOutTradeNo());
-            }
-        }
 
         order.setOrderStatus(OrderStatus.PAID.getCode());
         order.setPayTime(LocalDateTime.now());

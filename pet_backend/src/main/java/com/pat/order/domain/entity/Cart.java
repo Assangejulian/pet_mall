@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("cart")
 public class Cart extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private Long userId;
     private Long productId;
     private Integer quantity;

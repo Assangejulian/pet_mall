@@ -1,5 +1,7 @@
 package com.pat.user.utils;
 
+import com.pat.common.exception.BusinessException;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,9 +32,9 @@ public class MailUtils {
             helper.setText(content, isHtml);
             mailSender.send(message);
             log.info("邮件发送成功，收件人: {}", to);
-        } catch (Exception e) {
+        } catch (MessagingException e) {
             log.error("邮件发送失败，收件人: {}", to, e);
-            throw new RuntimeException("邮件发送失败: " + e.getMessage(), e);
+            throw new BusinessException(500, "邮件发送失败", e.getMessage());
         }
     }
 

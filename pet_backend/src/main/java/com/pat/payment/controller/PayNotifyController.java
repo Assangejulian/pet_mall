@@ -4,7 +4,7 @@ import com.alipay.api.internal.util.AlipaySignature;
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.PayNotifyDTO;
 import com.pat.payment.config.AlipayConfig;
-import com.pat.payment.service.AlipayPayService;
+import com.pat.payment.service.impl.AlipayPayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,7 +82,7 @@ public class PayNotifyController {
                 log.warn("支付宝通知签名验证失败");
                 return "fail";
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("支付宝验签异常", e);
             return "fail";
         }

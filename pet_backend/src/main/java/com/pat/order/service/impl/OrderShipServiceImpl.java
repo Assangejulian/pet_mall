@@ -1,5 +1,6 @@
 package com.pat.order.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderShipDTO;
@@ -10,8 +11,6 @@ import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.order.service.OrderShipService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.store.service.IStoreService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +19,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderShipServiceImpl implements OrderShipService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderShipServiceImpl.class);
 
     private final PurchaseOrderBaseService baseService;
     private final OrderQueryMapper orderQueryMapper;

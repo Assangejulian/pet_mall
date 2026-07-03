@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("user_address")
 public class UserAddress extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private Long userId;
     private String receiverName;
     private String phone;

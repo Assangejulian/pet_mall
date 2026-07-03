@@ -1,0 +1,19 @@
+{
+    "name" : "pet-miniapp-uni",
+    "appid" : "__UNI__CEC8CA0",
+    "description" : "暖窝宠物商城小程序",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "mp-weixin" : {
+        "appid" : "wxe1b40e922971615f",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "postcss" : true,
+            "minified" : true
+        },
+        "usingComponents" : true
+    },
+    "fallbackLocale" : "zh-Hans"
+}

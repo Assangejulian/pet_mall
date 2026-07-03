@@ -1,25 +1,20 @@
-package com.pat.payment.service;
+package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.AlipayTradeWapPayModel;
 import com.alipay.api.request.AlipayTradeWapPayRequest;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.order.domain.dto.PayNotifyDTO;
-import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.payment.config.AlipayConfig;
-import com.pat.product.service.ProductService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -27,17 +22,11 @@ public class AlipayPayService {
 
     private final AlipayConfig alipayConfig;
     private final PurchaseOrderBaseService baseService;
-    private final OrderItemMapper orderItemMapper;
-    private final ProductService productService;
 
     public AlipayPayService(AlipayConfig alipayConfig,
-                            PurchaseOrderBaseService baseService,
-                            OrderItemMapper orderItemMapper,
-                            ProductService productService) {
+                            PurchaseOrderBaseService baseService) {
         this.alipayConfig = alipayConfig;
         this.baseService = baseService;
-        this.orderItemMapper = orderItemMapper;
-        this.productService = productService;
     }
 
     public String createWapPayPage(String outTradeNo,
@@ -87,16 +76,6 @@ public class AlipayPayService {
         }
 
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
-        for (OrderItem item : items) {
-            boolean ok = productService.deductStock(item.getProductId(), item.getQuantity());
-            if (!ok) {
-                log.warn("Alipay notify stock deduction failed productId={}, orderNo={}",
-                        item.getProductId(), dto.getOutTradeNo());
-            }
-        }
-
         order.setOrderStatus(OrderStatus.PAID.getCode());
         order.setPayTime(LocalDateTime.now());
         baseService.updateById(order);

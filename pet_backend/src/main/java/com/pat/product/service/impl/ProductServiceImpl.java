@@ -602,7 +602,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private String storeStatusText(Integer status) {
         if (status == null) {
-            return null;
+            return "--";
         }
         return switch (status) {
             case 0 -> "待审核";
@@ -628,7 +628,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private String statusText(Integer status) {
         if (status == null) {
-            return null;
+            return "--";
         }
         return switch (status) {
             case STATUS_OFFLINE -> "下架";
@@ -640,7 +640,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private String productTypeText(Integer productType) {
         if (productType == null) {
-            return null;
+            return "--";
         }
         return productType == TYPE_PET ? "活体宠物" : "宠物用品/周边";
     }
@@ -721,10 +721,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return false;
         }
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
-                .setSql("stock = stock - " + quantity)
+                .setSql("stock = stock - {0}", quantity)
                 .eq(Product::getId, productId)
                 .ge(Product::getStock, quantity)
                 .eq(Product::getStatus, STATUS_ONLINE));
+        return rows > 0;
+    }
+
+    @Override
+    public boolean restoreStock(Long productId, Integer quantity) {
+        if (productId == null || quantity == null || quantity <= 0) {
+            return false;
+        }
+        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                .setSql("stock = stock + {0}", quantity)
+                .eq(Product::getId, productId));
         return rows > 0;
     }
 }

@@ -25,9 +25,9 @@ public class OrderPaymentVO {
     @Schema(description = "实付金额")
     private BigDecimal payAmount;
 
-    @Schema(description = "支付表单HTML（支付宝手机网站支付返回）")
-    private String payForm;
+    @Schema(description = "支付表单（支付宝 WAP 支付页面）")
+    private String form;
 
-    @Schema(description = "支付页面URL（支付宝手机网站支付返回）")
-    private String payUrl;
+    @Schema(description = "支付参数（微信 JSAPI 支付调起参数 JSON）")
+    private String payParams;
 }

@@ -13,6 +13,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @TableName("purchase_order")
 public class PurchaseOrder extends BaseEntity {
+    private static final long serialVersionUID = 1L;
     private String orderNo;
     private Long userId;
     private Long addressId;

@@ -1,10 +1,14 @@
 package com.pat.common.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import com.pat.common.domain.Result;
 import com.pat.common.util.JwtUtil;
 import com.pat.common.util.UserHolder;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +26,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * @see RoleInterceptor
  */
 @Component
+@Slf4j
 public class AuthInterceptor implements HandlerInterceptor {
 
     private static final String BEARER = "Bearer ";
@@ -44,7 +49,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         Claims claims;
         try {
             claims = JwtUtil.parseToken(auth.substring(BEARER.length()));
-        } catch (Exception e) {
+        } catch (ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
+            log.warn("token校验失败: {}", e.getMessage());
             writeJson(res, 401, "token已过期或无效");
             return false;
         }
