@@ -86,3 +86,14 @@ wx:
   pc:
     appid: ${WECHAT_PC_APPID:}
     secret: ${WECHAT_PC_SECRET:}
+
+alipay:
+  app-id: ${ALIPAY_APPID:}
+  private-key: ${ALIPAY_PRIVATE_KEY:}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  gateway: https://openapi.alipaydev.com/gateway.do
+  notify-url: ${ALIPAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/alipay}
+  return-url: ${ALIPAY_RETURN_URL:http://127.0.0.1:8080/#/order/result}
+  sign-type: RSA2
+  charset: utf-8
+  format: json

@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ========== ������ ========== -->
+    <!-- ========== 父工程 ========== -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -12,23 +12,34 @@
         <relativePath/>
     </parent>
 
-    <!-- ========== ��Ŀ��Ϣ ========== -->
+    <!-- ========== 项目信息 ========== -->
     <groupId>com.pat</groupId>
     <artifactId>pet_backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>pet_store</name>
-    <description>�����̵�</description>
+    <description>宠物商店</description>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <langchain4j.version>1.15.1</langchain4j.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>maven-public</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+        </repository>
+        <repository>
+            <id>aliyun-public</id>
+            <name>Aliyun Public</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </repository>
+    </repositories>
+
     <dependencies>
-        <!-- ==================== Spring Boot ���� ==================== -->
+        <!-- ==================== Spring Boot 核心 ==================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -45,7 +56,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- �����ȼ��� -->
+        <!-- 开发热加载 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -53,7 +64,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- ==================== ���ݿ� ==================== -->
+        <!-- ==================== 数据库 ==================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
@@ -71,13 +82,13 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- ==================== ���� (Redis) ==================== -->
+        <!-- ==================== 缓存 (Redis) ==================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- ==================== AI ��ģ�� (LangChain4j) ==================== -->
+        <!-- ==================== AI 大模型 (LangChain4j) ==================== -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
@@ -96,7 +107,7 @@
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- ==================== ���߿� ==================== -->
+        <!-- ==================== 工具库 ==================== -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -109,7 +120,7 @@
             <version>5.8.40</version>
         </dependency>
 
-        <!-- ==================== API �ĵ� (Knife4j) ==================== -->
+        <!-- ==================== API 文档 (Knife4j) ==================== -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
@@ -135,13 +146,13 @@
             <scope>runtime</scope>
         </dependency>
 
-            <!-- ==================== �ʼ� ==================== -->
+            <!-- ==================== 邮件 ==================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
-        <!-- ==================== ģ������ ==================== -->
+        <!-- ==================== 模板引擎 ==================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -154,9 +165,16 @@
             <artifactId>spring-dotenv</artifactId>
             <version>4.0.0</version>
         </dependency>
-</dependencies>
 
-    <!-- ========== �������� ========== -->
+        <!-- ==================== 支付宝 SDK ==================== -->
+        <dependency>
+            <groupId>com.alipay.sdk</groupId>
+            <artifactId>alipay-sdk-java</artifactId>
+            <version>4.40.865.ALL</version>
+        </dependency>
+    </dependencies>
+
+    <!-- ========== 构建配置 ========== -->
     <build>
         <plugins>
             <plugin>
@@ -190,3 +208,4 @@
         </plugins>
     </build>
 </project>
+
