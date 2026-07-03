@@ -73,6 +73,8 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         List<Map<String, Object>> records = result.getRecords().stream().map(order -> {
             order.setItems(itemsByOrderId.getOrDefault(order.getId(), List.of()));
             Map<String, Object> map = BeanUtil.beanToMap(order);
+            map.put("id", String.valueOf(order.getId()));
+            map.put("userId", String.valueOf(order.getUserId()));
             enrichAddressAndUser(map, order);
             return map;
         }).collect(Collectors.toList());
@@ -100,6 +102,8 @@ public class OrderQueryServiceImpl implements OrderQueryService {
 
         List<OrderItem> items = orderQueryMapper.selectItemsByOrderIds(String.valueOf(id));
         Map<String, Object> map = BeanUtil.beanToMap(order);
+        map.put("id", String.valueOf(order.getId()));
+        map.put("userId", String.valueOf(order.getUserId()));
         map.put("items", items);
         enrichAddressAndUser(map, order);
         return map;

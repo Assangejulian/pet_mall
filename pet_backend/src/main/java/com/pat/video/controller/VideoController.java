@@ -7,6 +7,7 @@ import com.pat.common.domain.Result;
 import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
 import com.pat.video.domain.entity.Comment;
+import com.pat.order.mapper.OrderQueryMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.pat.video.domain.entity.Video;
@@ -43,6 +44,9 @@ public class VideoController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private OrderQueryMapper orderQueryMapper;
 
     @Operation(summary = "视频分页搜索")
     @GetMapping("/search")
@@ -117,12 +121,35 @@ public class VideoController {
     @Operation(summary = "视频评论列表")
     @GetMapping("/{id}/comments")
     public Result<List<Map<String, Object>>> comments(@PathVariable Long id) {
+        List<Map<String, Object>> records = new ArrayList<>();
+        
+        // 1. 获取关联商品的买家真实评价
+        Video video = videoService.getById(id);
+        if (video != null && video.getProductId() != null) {
+            List<Map<String, Object>> reviews = orderQueryMapper.selectProductReviews(video.getProductId());
+            for (Map<String, Object> review : reviews) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", "review_" + UUID.randomUUID().toString().substring(0, 8));
+                item.put("text", review.get("content"));
+                item.put("content", review.get("content"));
+                item.put("time", review.get("createTime"));
+                item.put("isBuyer", true); // 特殊标记为买家评论
+                
+                Long userId = review.get("userId") != null ? ((Number)review.get("userId")).longValue() : null;
+                User user = userId != null ? userService.getById(userId) : null;
+                item.put("user", user != null ? user.getRealName() : "买家用户");
+                item.put("avatar", user != null ? user.getAvatar() : "");
+                records.add(item);
+            }
+        }
+
+        // 2. 获取普通视频评论
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
         wrapper.eq("video_id", id).orderByDesc("create_time");
-        List<Map<String, Object>> records = new ArrayList<>();
         for (Comment comment : commentService.list(wrapper)) {
             records.add(toCommentItem(comment));
         }
+        
         return Result.success(records);
     }
 

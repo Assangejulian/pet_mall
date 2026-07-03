@@ -44,14 +44,19 @@
   <!-- 金额 -->
   <view class="amount-card" wx:if="{{order}}">
     <view class="amt-row"><text>商品金额</text><text>¥{{order.totalAmount}}</text></view>
+
     <view class="amt-row"><text>优惠</text><text>-¥{{order.discountAmount || '0.00'}}</text></view>
     <view class="amt-row total"><text>实付</text><text>¥{{order.payAmount}}</text></view>
   </view>
 
   <!-- 底部操作 -->
   <view class="bottom-bar" wx:if="{{order}}">
-    <button wx:if="{{order.orderStatus === 0}}" class="btn-primary" bindtap="payOrder">去支付</button>
-    <button wx:elif="{{order.orderStatus === 2}}" class="btn-primary" bindtap="confirmReceive">确认收货</button>
+    <button class="btn-primary" bindtap="payOrder" wx:if="{{order.orderStatus == 0}}">去支付</button>
+    <button class="btn-outline" bindtap="directRefund" wx:if="{{order.orderStatus == 1}}">极速退款</button>
+    <button class="btn-primary" bindtap="confirmReceive" wx:if="{{order.orderStatus == 2}}">确认收货</button>
+    <button class="btn-primary" bindtap="evaluateOrder" wx:if="{{order.orderStatus == 3}}">去评价</button>
+    <button class="btn-outline" bindtap="applyRefund" wx:if="{{order.orderStatus == 3}}">退款</button>
+    <button class="btn-outline" bindtap="applyRefund" wx:if="{{order.orderStatus == 4}}">退款</button>
     <button class="btn-outline" bindtap="callService">联系客服</button>
   </view>
 

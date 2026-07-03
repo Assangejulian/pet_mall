@@ -64,7 +64,10 @@
       <view class="comment" wx:for="{{comments}}" wx:key="id">
         <image class="comment-avatar" src="{{item.avatar}}" mode="aspectFill" />
         <view class="comment-body">
-          <text class="comment-name">{{item.user}}</text>
+          <view class="comment-header">
+            <text class="comment-name">{{item.user}}</text>
+            <text class="buyer-tag" wx:if="{{item.isBuyer}}">[买家评论]</text>
+          </view>
           <text class="comment-text">{{item.text}}</text>
           <text class="comment-time">{{item.time}}</text>
         </view>

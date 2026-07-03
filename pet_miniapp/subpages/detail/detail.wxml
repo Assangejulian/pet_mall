@@ -14,6 +14,24 @@
     <view class="info-row"><text class="lbl">分类</text><text>{{categoryName}}</text></view>
     <view class="info-row"><text class="lbl">来源</text><text>暖窝认证门店</text></view>
   </view>
+  <view class="card" wx:if="{{reviews && reviews.length > 0}}">
+    <text class="sec-title serif">买家评价 ({{reviews.length}})</text>
+    <view class="review-list">
+      <view class="review-item" wx:for="{{reviews}}" wx:key="index">
+        <view class="review-header">
+          <image class="review-avatar" src="{{item.avatar || '/images/mock/cat-avatar.jpg'}}" mode="aspectFill" />
+          <view class="review-user-info">
+            <view class="review-name-row">
+              <text class="review-name">{{item.userName}}</text>
+              <text class="buyer-tag">[买家评论]</text>
+            </view>
+            <text class="review-time">{{item.createTime}}</text>
+          </view>
+        </view>
+        <text class="review-content">{{item.content}}</text>
+      </view>
+    </view>
+  </view>
   <view class="b-bar">
     <view class="b-cart" bindtap="goCart"><text class="b-cart-icon">○</text><text class="b-badge" wx:if="{{cartCount>0}}">{{cartCount}}</text></view>
     <button class="btn-outline" style="flex:1" bindtap="addCart">加入购物车</button>

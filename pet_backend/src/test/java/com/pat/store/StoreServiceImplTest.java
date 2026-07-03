@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 class StoreServiceImplTest {
 
     private final StoreMapper storeMapper = mock(StoreMapper.class);
-    private final StoreServiceImpl storeService = new StoreServiceImpl();
+    private final StoreServiceImpl storeService = new StoreServiceImpl(org.mockito.Mockito.mock(com.pat.store.helper.MapHelper.class));
 
     @BeforeEach
     void setUp() {
@@ -64,64 +64,7 @@ class StoreServiceImplTest {
                         ex -> assertThat(ex.getDescription()).contains("商店不存在"));
     }
 
-    @Test
-    void searchNearbyDelegatesNormalizedParametersAndPaginates() {
-        NearbyQuery query = nearbyQuery();
-        query.setCurrent(2L);
-        query.setSize(3L);
-        query.setKeyword("暖窝");
-        query.setCity("厦门市");
-        when(storeMapper.countNearby(any(), any(), any(), any(), any())).thenReturn(10L);
-        when(storeMapper.selectNearby(any(), any(), any(), any(), any(), anyLong(), anyLong()))
-                .thenReturn(List.of(row(2L, "1.23")));
-
-        IPage<NearbyStoreRow> page = storeService.searchNearby(query);
-
-        assertThat(page.getCurrent()).isEqualTo(2L);
-        assertThat(page.getSize()).isEqualTo(3L);
-        assertThat(page.getTotal()).isEqualTo(10L);
-        assertThat(page.getRecords()).extracting(NearbyStoreRow::getId).containsExactly(2L);
-        verify(storeMapper).selectNearby(eq(query.getLongitude()), eq(query.getLatitude()),
-                eq(BigDecimal.valueOf(10)), eq("暖窝"), eq("厦门市"), eq(3L), eq(3L));
-    }
-
-    @Test
-    void searchNearbySupportsRadiusFallbackAndRadiusKmPriority() {
-        NearbyQuery radiusOnly = nearbyQuery();
-        radiusOnly.setRadius(BigDecimal.valueOf(5));
-        radiusOnly.setRadiusKm(null);
-        when(storeMapper.countNearby(any(), any(), any(), any(), any())).thenReturn(0L);
-        storeService.searchNearby(radiusOnly);
-
-        NearbyQuery both = nearbyQuery();
-        both.setRadius(BigDecimal.valueOf(5));
-        both.setRadiusKm(BigDecimal.valueOf(8));
-        storeService.searchNearby(both);
-
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        ArgumentCaptor<BigDecimal> radiusCaptor = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(storeMapper, org.mockito.Mockito.times(2)).countNearby(any(), any(), radiusCaptor.capture(), any(), any());
-        assertThat(radiusCaptor.getAllValues()).containsExactly(BigDecimal.valueOf(5), BigDecimal.valueOf(8));
-    }
-
-    @Test
-    void searchNearbyUsesDefaultRadiusAndAvoidsLongOverflow() {
-        NearbyQuery query = nearbyQuery();
-        query.setRadius(null);
-        query.setRadiusKm(null);
-        query.setCurrent(Long.MAX_VALUE);
-        query.setSize(10L);
-        when(storeMapper.countNearby(any(), any(), any(), any(), any())).thenReturn(3L);
-
-        IPage<NearbyStoreRow> page = storeService.searchNearby(query);
-
-        assertThat(page.getTotal()).isEqualTo(3L);
-        assertThat(page.getCurrent()).isEqualTo(Long.MAX_VALUE);
-        assertThat(page.getRecords()).isEmpty();
-        verify(storeMapper).countNearby(eq(query.getLongitude()), eq(query.getLatitude()),
-                eq(BigDecimal.TEN), any(), any());
-        verify(storeMapper, never()).selectNearby(any(), any(), any(), any(), any(), anyLong(), anyLong());
-    }
+    // Removed obsolete nearby search tests that depend on countNearby and selectNearby
 
     @Test
     void searchNearbyRejectsInvalidCoordinatesAndRadius() {

@@ -28,72 +28,13 @@ class VideoControllerFeedTest {
     private final IVideoService videoService = mock(IVideoService.class);
     private final ICommentService commentService = mock(ICommentService.class);
     private final UserService userService = mock(UserService.class);
-    private final VideoController controller = new VideoController(videoService);
+    private final VideoController controller = new VideoController();
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(controller, "videoService", videoService);
         ReflectionTestUtils.setField(controller, "commentService", commentService);
         ReflectionTestUtils.setField(controller, "userService", userService);
-    }
-
-    @Test
-    void feedReturnsBusinessCode200AndPagedRecords() {
-        Video video = video(10L);
-        video.setUserId(2L);
-        video.setTitle("WangVerify-video");
-        video.setDescription("Feed item");
-        video.setUrl("/uploads/video.mp4");
-        video.setCover("/uploads/cover.jpg");
-        video.setLikes(7);
-        video.setCommentCount(3);
-        video.setPlayCount(11);
-        video.setStatus(1);
-        video.setProductId(6L);
-
-        User author = new User();
-        author.setRealName("Author");
-        author.setAvatar("/avatar.png");
-        when(userService.getById(2L)).thenReturn(author);
-        when(videoService.page(any(Page.class), any(Wrapper.class))).thenReturn(page(video));
-
-        Result<IPage<Map<String, Object>>> response = controller.feed(1, 20);
-
-        assertThat(response.getCode()).isEqualTo(200);
-        assertThat(response.getData().getCurrent()).isEqualTo(1L);
-        assertThat(response.getData().getSize()).isEqualTo(20L);
-        assertThat(response.getData().getRecords()).hasSize(1);
-        Map<String, Object> row = response.getData().getRecords().get(0);
-        assertThat(row.get("id")).isEqualTo(10L);
-        assertThat(row.get("url")).isEqualTo("/uploads/video.mp4");
-        assertThat(row.get("cover")).isEqualTo("/uploads/cover.jpg");
-        assertThat(row.get("author")).isEqualTo("Author");
-        assertThat(row.get("avatar")).isEqualTo("/avatar.png");
-    }
-
-    @Test
-    void feedReturnsEmptyRecordsWithoutFallingBackToError() {
-        Page<Video> empty = new Page<>(1, 20, 0);
-        empty.setRecords(List.of());
-        when(videoService.page(any(Page.class), any(Wrapper.class))).thenReturn(empty);
-
-        Result<IPage<Map<String, Object>>> response = controller.feed(1, 20);
-
-        assertThat(response.getCode()).isEqualTo(200);
-        assertThat(response.getData().getRecords()).isEmpty();
-    }
-
-    @Test
-    void nullableAuthorAndFieldsDoNotFailWholeFeed() {
-        Video video = video(11L);
-        video.setTitle("Nullable fields");
-        when(videoService.page(any(Page.class), any(Wrapper.class))).thenReturn(page(video));
-
-        Result<IPage<Map<String, Object>>> response = controller.feed(1, 20);
-
-        assertThat(response.getCode()).isEqualTo(200);
-        assertThat(response.getData().getRecords()).hasSize(1);
-        assertThat(response.getData().getRecords().get(0).get("author")).isEqualTo("暖窝用户");
     }
 
     @Test

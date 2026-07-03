@@ -22,4 +22,11 @@ public interface OrderQueryMapper {
             "INNER JOIN product p ON oi.product_id = p.id " +
             "WHERE p.store_id IN (${storeIds})")
     List<Long> selectOrderIdsByStoreIds(@Param("storeIds") String storeIds);
+
+    @Select("SELECT oi.evaluate_content as content, oi.evaluate_time as createTime, po.user_id as userId " +
+            "FROM order_item oi " +
+            "JOIN purchase_order po ON oi.order_id = po.id " +
+            "WHERE oi.product_id = #{productId} AND oi.evaluate_content IS NOT NULL " +
+            "ORDER BY oi.evaluate_time DESC")
+    List<java.util.Map<String, Object>> selectProductReviews(@Param("productId") Long productId);
 }
