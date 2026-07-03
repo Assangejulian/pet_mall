@@ -46,8 +46,8 @@ public enum OrderStatus {
      */
     public static OrderStatus of(int code) {
         for (OrderStatus s : values()) {
-            if (s.code == code) return s;
+            if (s.code == code) { return s; }
         }
-        throw new BusinessException(ErrorCode.PARAM_ERROR, "未知订单状态: " + code);
+        throw new BusinessException(ErrorCode.FARAMS_ERROR, "未知订单状态: " + code);
     }
 }

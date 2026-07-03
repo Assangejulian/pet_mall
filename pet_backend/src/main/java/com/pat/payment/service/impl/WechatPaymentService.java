@@ -36,8 +36,7 @@ public class WechatPaymentService implements PaymentService {
 
     public WechatPaymentService(WechatPayConfig wechatPayConfig,
                                 PurchaseOrderBaseService baseService,
-                                OrderItemMapper orderItemMapper,
-) {
+                                OrderItemMapper orderItemMapper) {
         this.wechatPayConfig = wechatPayConfig;
         this.baseService = baseService;
         this.orderItemMapper = orderItemMapper;
@@ -69,7 +68,7 @@ public class WechatPaymentService implements PaymentService {
 
         log.info("微信小程序支付下单成功 orderNo={}, prepayId={}", order.getOrderNo(), prepayId);
         return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                Integer.valueOf(OrderStatus.PENDING_PAY.getCode()), order.getPayAmount(), null,
+                OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), null,
                 JSONUtil.toJsonStr(payParams));
     }
 
@@ -166,7 +165,7 @@ public class WechatPaymentService implements PaymentService {
                             .readAllBytes(), StandardCharsets.UTF_8);
             log.info("微信统一下单响应 status={}, body={}", statusCode, respBody);
 
-            if (statusCode == 200 || statusCode == 201) {
+            if (statusCode == HttpURLConnection.HTTP_OK || statusCode == HttpURLConnection.HTTP_CREATED) {
                 JSONObject resp = JSONUtil.parseObj(respBody);
                 return resp.getStr("prepay_id");
             } else {
@@ -220,7 +219,7 @@ public class WechatPaymentService implements PaymentService {
             if (sb.length() > 0) sb.append("; ");
             sb.append(item.getProductName()).append(" x").append(item.getQuantity());
         }
-        if (items.size() > 3) sb.append("...");
-        return sb.length() > 0 ? sb.toString() : "宠铺 - " + order.getOrderNo();
+        if (items.size() > 3) { sb.append("..."); }
+        return !sb.isEmpty() ? sb.toString() : "宠铺 - " + order.getOrderNo();
     }
 }

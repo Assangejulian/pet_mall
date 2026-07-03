@@ -13,11 +13,20 @@ export interface AiRecommendation {
   tag: string
 }
 
+export interface PendingAction {
+  id: string
+  type: string
+  label: string
+  summary: string
+  payload: Record<string, unknown>
+}
+
 export interface AiChatResponse {
   sessionId: string
   reply: string
   suggestions: string[]
   recommendations: AiRecommendation[]
+  pendingActions: PendingAction[]
 }
 
 export type AiStreamEvent =
@@ -27,6 +36,11 @@ export type AiStreamEvent =
 
 export async function sendAiMessage(payload: AiChatRequest): Promise<AiChatResponse> {
   const result = await http.post<unknown, { data: AiChatResponse }>("/ai/chat", payload)
+  return result.data
+}
+
+export async function confirmAiAction(actionId: string): Promise<{ data: unknown }> {
+  const result = await http.post<unknown, { data: unknown }>("/ai/action/confirm", { actionId })
   return result.data
 }
 

@@ -1,7 +1,6 @@
 package com.pat.product.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
@@ -109,6 +108,7 @@ public interface ProductService extends IProductService {
      *
      * @deprecated 通过 createProduct + Controller 层鉴权替代
      */
+    @Deprecated
     ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId);
 
     /**
@@ -116,6 +116,7 @@ public interface ProductService extends IProductService {
      *
      * @deprecated 通过 updateProduct + Controller 层鉴权替代
      */
+    @Deprecated
     ProductVO updateMerchantProduct(Long id, ProductUpdateDTO dto, Long merchantUserId);
 
 

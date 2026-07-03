@@ -1,5 +1,6 @@
 package com.pat.payment.controller;
 
+import com.alipay.api.AlipayApiException;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.PayNotifyDTO;
@@ -35,6 +36,9 @@ public class PayNotifyController {
     private final AlipayConfig alipayConfig;
     private final AlipayPayService alipayPayService;
 
+    private static final String TRADE_SUCCESS = "TRADE_SUCCESS";
+    private static final String TRADE_FINISHED = "TRADE_FINISHED";
+
     public PayNotifyController(AlipayConfig alipayConfig,
                                AlipayPayService alipayPayService) {
         this.alipayConfig = alipayConfig;
@@ -66,7 +70,7 @@ public class PayNotifyController {
     @PostMapping("/alipay")
     public String alipayNotify(HttpServletRequest request) {
         // 1. 获取全部回调参数
-        Map<String, String> params = new HashMap<>();
+        Map<String, String> params = new HashMap<>(16);
         Map<String, String[]> map = request.getParameterMap();
         for (String key : map.keySet()) {
             params.put(key, request.getParameter(key));
@@ -82,7 +86,7 @@ public class PayNotifyController {
                 log.warn("支付宝通知签名验证失败");
                 return "fail";
             }
-        } catch (RuntimeException e) {
+        } catch (AlipayApiException e) {
             log.error("支付宝验签异常", e);
             return "fail";
         }
@@ -90,7 +94,7 @@ public class PayNotifyController {
         // 3. 支付成功执行业务：修改订单状态、扣库存
         String outTradeNo = params.get("out_trade_no");
         String tradeStatus = params.get("trade_status");
-        if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+        if (TRADE_SUCCESS.equals(tradeStatus) || TRADE_FINISHED.equals(tradeStatus)) {
             PayNotifyDTO dto = new PayNotifyDTO();
             dto.setOutTradeNo(outTradeNo);
             alipayPayService.handleNotify(dto);

@@ -50,7 +50,7 @@
         </div>
 
         <template v-else>
-          <article v-for="message in messages" :key="message.id" class="ai-message" :class="message.role">
+          <article v-for="(message, messageIndex) in messages" :key="message.id" class="ai-message" :class="message.role">
             <div class="ai-message-avatar">{{ message.role === "assistant" ? "AI" : "我" }}</div>
             <div class="ai-message-body">
               <div class="ai-markdown" v-html="renderMarkdown(message.content)"></div>
@@ -59,6 +59,28 @@
                   <span>{{ item.tag }}</span>
                   <strong>{{ item.title }}</strong>
                   <small>{{ item.reason }}</small>
+                </div>
+              </div>
+              <div v-if="message.pendingActions?.length" class="ai-pending-actions">
+                <div v-for="action in message.pendingActions" :key="action.id" class="ai-pending-action">
+                  <span class="ai-pending-badge">{{ action.type === 'CREATE_ORDER' ? '下单' : action.label }}</span>
+                  <span class="ai-pending-summary">{{ action.summary }}</span>
+                  <button
+                    type="button"
+                    class="ai-confirm-btn"
+                    :disabled="confirming === action.id"
+                    @click="confirmAction(action)"
+                  >
+                    {{ confirming === action.id ? '处理中...' : '确认' }}
+                  </button>
+                  <button
+                    v-if="confirming !== action.id"
+                    type="button"
+                    class="ai-cancel-btn"
+                    @click="dismissAction(action.id, messageIndex)"
+                  >
+                    忽略
+                  </button>
                 </div>
               </div>
               <div v-if="message.suggestions?.length" class="ai-suggestions">
@@ -151,6 +173,7 @@ type Message = {
   content: string
   suggestions?: string[]
   recommendations?: AiRecommendation[]
+  pendingActions?: PendingAction[]
 }
 
 type HistoryItem = {
@@ -174,6 +197,7 @@ const sessionId = ref(`pet-${Date.now()}`)
 const activeHistoryId = ref<number | null>(null)
 const modelMode = ref<"flash" | "pro">("flash")
 const draft = ref("")
+const confirming = ref<string | null>(null)
 const loading = ref(false)
 const messages = ref<Message[]>([])
 const messageList = ref<HTMLDivElement | null>(null)
@@ -395,6 +419,7 @@ const submit = async () => {
         messages.value[assistantIndex].content = event.response.reply
         messages.value[assistantIndex].suggestions = event.response.suggestions
         messages.value[assistantIndex].recommendations = event.response.recommendations
+        messages.value[assistantIndex].pendingActions = event.response.pendingActions
       }
     })
     syncActiveHistory(message)
@@ -410,6 +435,7 @@ const submit = async () => {
       messages.value[assistantIndex].content = response.reply
       messages.value[assistantIndex].suggestions = response.suggestions
       messages.value[assistantIndex].recommendations = response.recommendations
+      messages.value[assistantIndex].pendingActions = response.pendingActions
     } catch {
       messages.value[assistantIndex].content = "我现在连不上后端服务，先给你一个本地建议：先记录它的饮食、精神、排便和持续时间，情况明显或持续加重时及时联系宠物医生。"
       messages.value[assistantIndex].suggestions = ["新手养猫清单", "猫咪呕吐怎么办", "如何选择低敏猫粮"]
@@ -423,6 +449,27 @@ const submit = async () => {
     loading.value = false
     await scrollToBottom()
   }
+}
+
+const confirmAction = async (action: PendingAction) => {
+  confirming.value = action.id
+  try {
+    const result = await confirmAiAction(action.id) as unknown as { data: number }
+    if (action.type === 'CREATE_ORDER') {
+      const orderId = result.data
+      window.open(/order/, '_blank')
+    }
+  } catch {
+    alert('操作失败，请重试')
+  } finally {
+    confirming.value = null
+  }
+}
+
+const dismissAction = (actionId: string, messageIndex: number) => {
+  const msg = messages.value[messageIndex]
+  if (!msg?.pendingActions) return
+  msg.pendingActions = msg.pendingActions.filter(a => a.id !== actionId)
 }
 
 const syncActiveHistory = (fallbackTitle: string) => {
