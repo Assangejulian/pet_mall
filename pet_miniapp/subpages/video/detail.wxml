@@ -1,51 +1,66 @@
-<view class="page">
-  <view class="media-card">
-    <video wx:if="{{post.url}}" class="video-player" src="{{post.url}}" poster="{{post.cover}}" controls object-fit="cover"></video>
-    <image wx:else class="cover" src="{{post.cover}}" mode="aspectFill" />
-    <view class="shade" wx:if="{{!post.url}}"></view>
-    <view class="media-copy" wx:if="{{!post.url}}">
-      <text class="eyebrow">PETNEST VIDEO</text>
-      <text class="media-title">{{post.title}}</text>
+<view class="video-page" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+  <swiper class="video-swiper" vertical current="{{currentIndex}}" circular="{{false}}" duration="220" bindchange="onSwiperChange">
+    <swiper-item wx:for="{{posts}}" wx:key="id" class="video-slide">
+      <video wx:if="{{currentIndex === index && item.url}}" id="mainVideo" class="video-layer" src="{{item.url}}" poster="{{item.cover}}" autoplay loop controls enable-progress-gesture show-center-play-btn object-fit="cover"></video>
+      <image wx:else class="video-layer" src="{{item.cover}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+
+  <view class="top-fade"></view>
+  <view class="bottom-fade"></view>
+
+  <view class="topbar">
+    <view class="back" bindtap="goBack">‹</view>
+    <text class="top-title">暖窝视频</text>
+    <view class="mock-badge" wx:if="{{useMock}}">演示</view>
+  </view>
+
+  <view class="side-actions">
+    <view class="avatar-wrap" bindtap="toggleFollow">
+      <image class="avatar" src="{{post.avatar}}" mode="aspectFill" />
+      <view class="follow-dot">{{followed ? "✓" : "+"}}</view>
+    </view>
+    <view class="action {{liked ? 'active' : ''}}" bindtap="toggleLike">
+      <text class="action-icon">♥</text>
+      <text class="action-label">{{post.likes}}</text>
+    </view>
+    <view class="action" bindtap="toggleComments">
+      <text class="action-icon">评</text>
+      <text class="action-label">{{comments.length || post.commentCount}}</text>
+    </view>
+    <view class="action" bindtap="goChat">
+      <text class="action-icon">问</text>
+      <text class="action-label">客服</text>
+    </view>
+    <view class="action buy" bindtap="goProduct">
+      <text class="action-icon">购</text>
+      <text class="action-label">购买</text>
     </view>
   </view>
 
-  <view class="content">
-    <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据。</view>
-
-    <view class="author-card">
-      <image class="avatar" src="{{post.avatar}}" mode="aspectFill" />
-      <view class="author-info">
-        <text class="author">{{post.author}}</text>
-        <text class="desc">{{post.desc}}</text>
-      </view>
-      <view class="follow {{followed ? 'on' : ''}}" bindtap="toggleFollow">{{followed ? '已关注' : '+ 关注'}}</view>
+  <view class="caption">
+    <view class="author-row">
+      <text class="author">@{{post.author}}</text>
+      <view class="follow-btn {{followed ? 'on' : ''}}" bindtap="toggleFollow">{{followed ? "已关注" : "关注"}}</view>
     </view>
-
-    <view class="actions">
-      <view class="action {{liked ? 'on' : ''}}" bindtap="toggleLike">
-        <text>{{liked ? '♥' : '♡'}}</text>
-        <text>{{post.likes}}</text>
-      </view>
-      <view class="action">
-        <text>评</text>
-        <text>{{comments.length || post.commentCount}}</text>
-      </view>
-      <view class="action {{collected ? 'on' : ''}}" bindtap="toggleCollect">
-        <text>{{collected ? '★' : '☆'}}</text>
-        <text>收藏</text>
-      </view>
+    <text class="title">{{post.title}}</text>
+    <text class="desc">{{post.desc}}</text>
+    <view class="product-bar" wx:if="{{post.productId}}" bindtap="goProduct">
+      <text class="product-name">{{product.name || "关联商品"}}</text>
+      <text class="product-price" wx:if="{{product.price}}">￥{{product.price}}</text>
+      <text class="product-action">去看看</text>
     </view>
+    <view class="position-indicator">{{currentIndex + 1}} / {{posts.length}}</view>
+  </view>
 
-    <view class="link-row">
-      <view class="product-tag" wx:if="{{post.productId}}" bindtap="goProduct">
-        <text class="tag-label">关联商品</text>
-        <text class="tag-main">{{product.name}} ¥{{product.price}}</text>
-      </view>
-      <view class="ai-link" bindtap="goChat">问客服</view>
+  <view class="comment-mask" wx:if="{{showComments}}" bindtap="closeComments"></view>
+  <view class="comment-panel {{showComments ? 'show' : ''}}" catchtap="noop">
+    <view class="panel-handle"></view>
+    <view class="panel-title">
+      <text>评论 {{comments.length}}</text>
+      <text class="panel-close" bindtap="closeComments">关闭</text>
     </view>
-
-    <view class="comments">
-      <text class="section-title">评论 {{comments.length}}</text>
+    <scroll-view class="comment-scroll" scroll-y>
       <view class="comment" wx:for="{{comments}}" wx:key="id">
         <image class="comment-avatar" src="{{item.avatar}}" mode="aspectFill" />
         <view class="comment-body">
@@ -54,11 +69,10 @@
           <text class="comment-time">{{item.time}}</text>
         </view>
       </view>
+    </scroll-view>
+    <view class="comment-input">
+      <input value="{{inputText}}" placeholder="说点什么..." bindinput="onInput" confirm-type="send" bindconfirm="sendComment" />
+      <view class="send {{inputText ? 'active' : ''}}" bindtap="sendComment">发送</view>
     </view>
-  </view>
-
-  <view class="comment-input">
-    <input placeholder="说点什么..." value="{{inputText}}" bindinput="onInput" confirm-type="send" bindconfirm="sendComment" />
-    <view class="send {{inputText ? 'active' : ''}}" bindtap="sendComment">发送</view>
   </view>
 </view>

@@ -15,7 +15,6 @@
         "video/detail",
         "order/list",
         "order/detail/detail",
-        "order/detail",
         "order/submit",
         "order/pay",
         "address/list",
@@ -39,7 +38,7 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "视频"
       },
       {
         "pagePath": "pages/store/list",
