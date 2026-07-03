@@ -62,6 +62,25 @@ public class VideoController {
         return Result.success(result);
     }
 
+    @Operation(summary = "瑙嗛 Feed 流")
+    @GetMapping({"/feed", "/list"})
+    public Result<IPage<Map<String, Object>>> feed(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        Page<Video> pageParam = new Page<>(page, size);
+        QueryWrapper<Video> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", 1).orderByDesc("create_time");
+        Page<Video> result = videoService.page(pageParam, wrapper);
+
+        Page<Map<String, Object>> voPage = new Page<>(page, size, result.getTotal());
+        List<Map<String, Object>> records = new ArrayList<>();
+        for (Video video : result.getRecords()) {
+            records.add(toFeedItem(video));
+        }
+        voPage.setRecords(records);
+        return Result.success(voPage);
+    }
+
     @Operation(summary = "视频详情（播放量+1）")
     @GetMapping("/{id}")
     public Result<Video> getById(@PathVariable Long id) {
@@ -70,7 +89,11 @@ public class VideoController {
             return Result.error(404, "视频不存在");
         }
         videoService.incrementPlayCount(id);
-        return Result.success(videoService.getById(id));
+        Video updated = videoService.getById(id);
+        if (updated != null) {
+            updated.setCommentCount(countComments(id));
+        }
+        return Result.success(updated);
     }
 
     @Operation(summary = "视频播放（播放量+1）")
@@ -114,7 +137,7 @@ public class VideoController {
 
         Video video = videoService.getById(id);
         if (video != null) {
-            video.setCommentCount((video.getCommentCount() == null ? 0 : video.getCommentCount()) + 1);
+            video.setCommentCount(countComments(id));
             videoService.updateById(video);
         }
         return Result.success(comment);
@@ -155,5 +178,35 @@ public class VideoController {
         item.put("user", user != null ? user.getRealName() : "匿名用户");
         item.put("avatar", user != null ? user.getAvatar() : "");
         return item;
+    }
+
+    private Map<String, Object> toFeedItem(Video video) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", video.getId());
+        item.put("title", video.getTitle());
+        item.put("desc", video.getDescription());
+        item.put("description", video.getDescription());
+        item.put("cover", video.getCover());
+        item.put("url", video.getUrl());
+        item.put("likes", video.getLikes());
+        item.put("commentCount", countComments(video.getId()));
+        item.put("playCount", video.getPlayCount());
+        item.put("productId", video.getProductId());
+        item.put("duration", video.getDuration());
+        item.put("createTime", video.getCreateTime());
+
+        User author = video.getUserId() == null ? null : userService.getById(video.getUserId());
+        item.put("author", author != null ? author.getRealName() : "鍖垮悕鐢ㄦ埛");
+        item.put("avatar", author != null ? author.getAvatar() : "");
+        return item;
+    }
+
+    private Integer countComments(Long videoId) {
+        if (videoId == null) {
+            return 0;
+        }
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("video_id", videoId);
+        return Math.toIntExact(commentService.count(wrapper));
     }
 }

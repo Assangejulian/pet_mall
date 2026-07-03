@@ -80,7 +80,7 @@ Page({
       wx.hideLoading();
       wx.showToast({ title: "下单成功", icon: "success" });
       setTimeout(function() {
-        wx.redirectTo({ url: "/subpages/order/detail?id=" + (res.orderId || res.id || res) });
+        wx.redirectTo({ url: "/subpages/order/detail/detail?id=" + (res.orderId || res.id || res) });
       }, 1000);
     }).catch(function(err) {
       wx.hideLoading();

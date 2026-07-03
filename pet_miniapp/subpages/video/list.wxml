@@ -1,26 +1,49 @@
 <view class="page">
-  <view class="hero">
-    <text class="eyebrow">PETNEST VIDEO</text>
-    <text class="title">暖窝视频</text>
-    <text class="subtitle">点击视频进入详情页播放，商品线索和客服入口会跟随内容展示。</text>
+  <view class="header">
+    <text class="eyebrow">暖窝视频</text>
+    <text class="title">发现正在发生的宠物瞬间</text>
+    <text class="subtitle">瀑布流浏览，点开后进入全屏短视频观看。</text>
   </view>
 
-  <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据。</view>
+  <view class="mock-tip" wx:if="{{useMock}}">当前使用本地演示数据</view>
 
-  <view class="grid">
-    <view wx:for="{{videos}}" wx:key="id" class="video-card" bindtap="goDetail" data-id="{{item.id}}">
-      <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
-      <view class="play-mark">▶</view>
-      <view class="body">
-        <text class="video-title">{{item.title}}</text>
-        <text class="video-desc">{{item.desc}}</text>
-        <view class="meta">
-          <text>{{item.author}}</text>
-          <text>♥ {{item.likes}}</text>
+  <view class="loading" wx:if="{{loading}}">
+    <view class="loading-cover"></view>
+    <view class="loading-cover small"></view>
+  </view>
+
+  <view class="masonry" wx:else>
+    <view class="column">
+      <view wx:for="{{leftVideos}}" wx:key="id" class="video-tile {{item.tileClass}}" bindtap="goDetail" data-id="{{item.id}}" hover-class="tile-press" hover-stay-time="80">
+        <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+        <view class="cover-shade"></view>
+        <view class="play-mark">▶</view>
+        <view class="tile-copy">
+          <text class="video-title">{{item.title}}</text>
+          <text class="video-desc">{{item.desc}}</text>
+          <view class="meta">
+            <text class="author">{{item.author}}</text>
+            <text class="count">{{item.likes}} 赞</text>
+          </view>
         </view>
+        <view class="product-link" wx:if="{{item.productId}}" catchtap="goProduct" data-pid="{{item.productId}}">关联商品</view>
       </view>
-      <view class="product" wx:if="{{item.productName}}" catchtap="goProduct" data-pid="{{item.productId}}">
-        <text>{{item.productName}}</text>
+    </view>
+
+    <view class="column">
+      <view wx:for="{{rightVideos}}" wx:key="id" class="video-tile {{item.tileClass}}" bindtap="goDetail" data-id="{{item.id}}" hover-class="tile-press" hover-stay-time="80">
+        <image class="cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+        <view class="cover-shade"></view>
+        <view class="play-mark">▶</view>
+        <view class="tile-copy">
+          <text class="video-title">{{item.title}}</text>
+          <text class="video-desc">{{item.desc}}</text>
+          <view class="meta">
+            <text class="author">{{item.author}}</text>
+            <text class="count">{{item.likes}} 赞</text>
+          </view>
+        </view>
+        <view class="product-link" wx:if="{{item.productId}}" catchtap="goProduct" data-pid="{{item.productId}}">关联商品</view>
       </view>
     </view>
   </view>

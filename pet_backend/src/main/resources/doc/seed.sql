@@ -151,8 +151,8 @@ INSERT IGNORE INTO store (id, user_id, store_name, store_logo, store_phone, stor
 -- ========== 补充 product（覆盖所有店铺） ==========
 INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, product_desc, price, stock, main_image, images, status, video_id) VALUES
 (14, 1, '贵宾幼犬·奶茶', 1, 'dog', '玩具贵宾，1.5kg迷你体，已打疫苗，性格活泼。', 2800.00, 1,
- 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400',
- '["https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400"]', 1, NULL),
+ '/images/mock/corgi.jpg',
+ '["/images/mock/corgi.jpg"]', 1, NULL),
 (15, 1, '宠物窝垫 M号', 2, 'accessory', '四季通用宠物窝，可拆洗，柔软保暖。', 89.00, 50,
  'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400',
  '[]', 1, NULL),
@@ -198,9 +198,18 @@ INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, 
 
 -- ========== 补充 video ==========
 INSERT IGNORE INTO video (id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
-(6, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=400', 14, 6800, 1200, 89, 55, 1),
+(6, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '', '/images/mock/corgi.jpg', 14, 6800, 1200, 89, 55, 1),
 (7, 2, '龙猫揉脸合集', '圆滚滚的龙猫揉脸太解压了！', '', 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400', 22, 9200, 1800, 112, 40, 1),
 (8, 3, '神仙鱼群游好治愈', '看着它们在鱼缸里慢慢游，心情都平静了。', '', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=400', 24, 3500, 680, 45, 30, 1);
+
+UPDATE video SET title = '黑白猫的镜头日常', description = '黑白小猫在镜头前放松伸展，适合慢慢看的一段陪伴视频。', url = 'http://video.sonetto.online/Black-and-white_cat_video_202607022313.mp4', cover = '/images/mock/cat-cover.jpg', product_id = 2, status = 1 WHERE id = 1;
+UPDATE video SET title = '猫咪下巴挠挠时刻', description = '室内猫咪被轻轻挠下巴，表情很放松。', url = 'http://video.sonetto.online/Cat_chin_scratch_indoor_video_202607022322.mp4', cover = '/images/mock/ragdoll.jpg', product_id = 4, status = 1 WHERE id = 2;
+UPDATE video SET title = '猫咪小跑上楼梯', description = '猫咪轻快地一路小跑上楼，动作灵活又可爱。', url = 'http://video.sonetto.online/Cat_trotting_up_stairs_202607022329.mp4', cover = '/images/mock/cat-avatar.jpg', product_id = 2, status = 1 WHERE id = 3;
+UPDATE video SET title = '柯基毯上乖坐', description = '柯基坐在毯子上看镜头，短腿和圆脸都很治愈。', url = 'http://video.sonetto.online/Corgi_sitting_on_blanket_202607022304.mp4', cover = '/images/mock/corgi.jpg', product_id = 3, status = 1 WHERE id = 4;
+UPDATE video SET title = '金毛叼着郁金香', description = '金毛叼着花靠近镜头，温柔又有春天感。', url = 'http://video.sonetto.online/Golden_retriever_holding_tulip_g%E2%80%A6_202607022323.mp4', cover = '/images/mock/golden.jpg', product_id = 1, status = 1 WHERE id = 5;
+UPDATE video SET title = '开心比格犬户外跑跳', description = '比格犬在户外开心活动，适合喜欢活泼狗狗的用户。', url = 'http://video.sonetto.online/Happy_beagle_dog_outdoors_202607022337.mp4', cover = '/images/mock/dog-avatar.jpg', product_id = 14, status = 1 WHERE id = 6;
+UPDATE video SET title = '橘猫木桌观察日记', description = '橘猫趴在木桌上观察周围，节奏安静又舒服。', url = 'http://video.sonetto.online/Orange_cat_on_wooden_table_202607022346.mp4', cover = '/images/mock/blue-cat.jpg', product_id = 2, status = 1 WHERE id = 7;
+UPDATE video SET status = 0 WHERE id = 8;
 
 -- ========== 补充 comment ==========
 INSERT IGNORE INTO comment (id, video_id, user_id, content) VALUES
@@ -210,6 +219,27 @@ INSERT IGNORE INTO comment (id, video_id, user_id, content) VALUES
 (10, 7, 4, '手感一定很棒吧'),
 (11, 8, 2, '好漂亮的神仙鱼'),
 (12, 8, 5, '鱼缸造景也很好看');
+
+UPDATE comment SET video_id = 1, user_id = 4, content = '太可爱了吧！每天都想看' WHERE id = 1;
+UPDATE comment SET video_id = 1, user_id = 3, content = '同款在哪里买的呢？' WHERE id = 2;
+UPDATE comment SET video_id = 4, user_id = 4, content = '这个镜头太治愈了，猫咪状态很放松。' WHERE id = 3;
+UPDATE comment SET video_id = 4, user_id = 2, content = '我家也有同款！看起来特别亲人。' WHERE id = 4;
+UPDATE comment SET video_id = 6, user_id = 4, content = '户外跑跳这一段很有活力。' WHERE id = 5;
+UPDATE comment SET video_id = 6, user_id = 2, content = '习惯了就好，狗狗看起来很开心。' WHERE id = 6;
+UPDATE comment SET video_id = 6, user_id = 3, content = '我家猫看了表示很感兴趣。' WHERE id = 7;
+UPDATE comment SET video_id = 6, user_id = 3, content = '这个价格含训练课程吗' WHERE id = 8;
+UPDATE comment SET video_id = 7, user_id = 2, content = '龙猫好圆啊！请问在哪里买的' WHERE id = 9;
+UPDATE comment SET video_id = 7, user_id = 4, content = '手感一定很棒吧' WHERE id = 10;
+UPDATE comment SET video_id = 8, user_id = 2, content = '好漂亮的神仙鱼' WHERE id = 11;
+UPDATE comment SET video_id = 8, user_id = 5, content = '鱼缸造景也很好看' WHERE id = 12;
+
+UPDATE video v
+LEFT JOIN (
+  SELECT video_id, COUNT(*) AS cnt
+  FROM comment
+  GROUP BY video_id
+) c ON c.video_id = v.id
+SET v.comment_count = COALESCE(c.cnt, 0);
 
 -- ========== 补充 purchase_order（覆盖更多商户的店铺） ==========
 INSERT IGNORE INTO purchase_order (id, order_no, user_id, address_id, total_amount, discount_amount, pay_amount, order_status, remark, pay_time, ship_time, receive_time, create_time) VALUES

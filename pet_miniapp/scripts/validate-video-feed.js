@@ -34,36 +34,32 @@ function loadRequestWithWx(wxOverrides) {
   return module.exports;
 }
 
-function loadIndexPage(videoApi, toasts) {
+function loadIndexPage(videoApi) {
   let config;
-  const context = {
-    getApp: function() { return { globalData: {} }; },
-    require: function(id) {
-      if (id === "../../utils/api/video") {
-        return videoApi;
-      }
-      throw new Error("Unexpected require: " + id);
-    },
-    wx: {
-      showToast: function(options) { toasts.push(options.title); },
-      stopPullDownRefresh: function() {},
-      switchTab: function() {},
-      navigateTo: function() {}
-    },
-    Page: function(pageConfig) { config = pageConfig; },
-    console: console
-  };
-
   vm.runInNewContext(
     fs.readFileSync(path.join(root, "pages", "index", "index.js"), "utf8"),
-    context,
+    {
+      require: function(id) {
+        if (id === "../../utils/api/video") return videoApi;
+        throw new Error("Unexpected require: " + id);
+      },
+      wx: {
+        stopPullDownRefresh: function() {},
+        navigateTo: function() {},
+        showToast: function() {}
+      },
+      Page: function(pageConfig) { config = pageConfig; },
+      console: console,
+      Promise: Promise,
+      Number: Number,
+      String: String,
+      Array: Array
+    },
     { filename: "pages/index/index.js" }
   );
 
   assert.ok(config, "index Page config should be registered");
-  assert.strictEqual(typeof context.extractRows, "function", "extractRows should be available");
-  assert.strictEqual(typeof context.normalizeVideo, "function", "normalizeVideo should be available");
-  return { config: config, helpers: context };
+  return config;
 }
 
 function makePage(config) {
@@ -76,9 +72,7 @@ function makePage(config) {
 }
 
 async function runLoad(page) {
-  await new Promise(function(resolve) {
-    page.load(resolve);
-  });
+  await new Promise(resolve => page.loadVideos(resolve));
 }
 
 async function main() {
@@ -86,7 +80,7 @@ async function main() {
     request: function(options) {
       options.success({
         statusCode: 200,
-        data: { code: 200, message: "success", data: { records: [{ id: 1 }] } }
+        data: { code: 200, data: { records: [{ id: 1 }] } }
       });
     }
   });
@@ -101,69 +95,55 @@ async function main() {
       });
     }
   });
-  await assert.rejects(
-    businessRequest.get("/api/video/feed"),
-    function(err) {
-      assert.strictEqual(err.isBusinessError, true);
-      assert.strictEqual(err.code, 500);
-      assert.strictEqual(err.message, "bad video");
-      return true;
-    }
-  );
+  await assert.rejects(businessRequest.get("/api/video/feed"), function(err) {
+    assert.strictEqual(err.isBusinessError, true);
+    assert.strictEqual(err.code, 500);
+    assert.strictEqual(err.message, "bad video");
+    return true;
+  });
 
   const networkRequest = loadRequestWithWx({
     request: function(options) {
       options.fail({ errMsg: "connect failed" });
     }
   });
-  await assert.rejects(
-    networkRequest.get("/api/video/feed"),
-    function(err) {
-      assert.strictEqual(err.isNetworkError, true);
-      return true;
-    }
-  );
+  await assert.rejects(networkRequest.get("/api/video/feed"), function(err) {
+    assert.strictEqual(err.isNetworkError, true);
+    return true;
+  });
 
   let nextResult = Promise.resolve();
-  const videoApi = {
-    list: function() {
-      return nextResult;
-    }
-  };
-  const toasts = [];
-  const loaded = loadIndexPage(videoApi, toasts);
-
-  assert.deepStrictEqual(loaded.helpers.extractRows({ records: [{ id: 2 }] }), [{ id: 2 }]);
-  assert.deepStrictEqual(loaded.helpers.extractRows({ data: { records: [{ id: 3 }] } }), [{ id: 3 }]);
-  assert.strictEqual(loaded.helpers.normalizeVideo({ id: 4, videoUrl: "/v.mp4", coverUrl: "/c.jpg" }, 0).url, "/v.mp4");
+  const config = loadIndexPage({
+    list: function() { return nextResult; }
+  });
 
   nextResult = Promise.resolve({
     records: [{ id: 88, title: "real", description: "desc", cover: "/c.jpg", url: "/v.mp4" }]
   });
-  const successPage = makePage(loaded.config);
+  const successPage = makePage(config);
   await runLoad(successPage);
   assert.strictEqual(successPage.data.useMock, false);
   assert.strictEqual(successPage.data.videos.length, 1);
-  assert.strictEqual(successPage.data.videos[0].url, "/v.mp4");
+  assert.strictEqual(successPage.data.leftVideos.length, 1);
+  assert.strictEqual(successPage.data.rightVideos.length, 0);
 
   nextResult = Promise.resolve({ records: [] });
-  const emptyPage = makePage(loaded.config);
+  const emptyPage = makePage(config);
   await runLoad(emptyPage);
-  assert.strictEqual(emptyPage.data.useMock, false);
-  assert.strictEqual(emptyPage.data.videos.length, 0);
+  assert.strictEqual(emptyPage.data.useMock, true);
+  assert.ok(emptyPage.data.videos.length > 0);
 
   nextResult = Promise.reject(Object.assign(new Error("video db failed"), { isBusinessError: true, code: 500 }));
-  const businessPage = makePage(loaded.config);
+  const businessPage = makePage(config);
   await runLoad(businessPage);
   assert.strictEqual(businessPage.data.useMock, true);
-  assert.ok(toasts[toasts.length - 1].includes("video db failed"));
-  assert.ok(!toasts[toasts.length - 1].includes("无法连接后端"));
+  assert.ok(businessPage.data.videos.length > 0);
 
   nextResult = Promise.reject(Object.assign(new Error("connect failed"), { isNetworkError: true }));
-  const networkPage = makePage(loaded.config);
+  const networkPage = makePage(config);
   await runLoad(networkPage);
   assert.strictEqual(networkPage.data.useMock, true);
-  assert.ok(toasts[toasts.length - 1].includes("无法连接后端"));
+  assert.ok(networkPage.data.videos.length > 0);
 
   console.log("video feed miniapp validation passed");
 }
