@@ -97,3 +97,10 @@ alipay:
   sign-type: RSA2
   charset: utf-8
   format: json
+
+wechat-pay:
+  appid: ${WECHAT_PAY_APPID:}
+  mch-id: ${WECHAT_PAY_MCH_ID:}
+  mch-serial-no: ${WECHAT_PAY_MCH_SERIAL_NO:}
+  private-key: ${WECHAT_PAY_PRIVATE_KEY:}
+  notify-url: ${WECHAT_PAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/wechat}
