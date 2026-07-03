@@ -1,4 +1,4 @@
-﻿var app = getApp();
+var app = getApp();
 var productApi = require("../../utils/api/product");
 var cartApi = require("../../utils/api/cart");
 
@@ -23,7 +23,8 @@ Page({
     cartCount: 0,
     loading: true,
     showQtyPicker: false,
-    quantity: 1
+    quantity: 1,
+    reviews: []
   },
 
   onLoad: function (options) {
@@ -72,6 +73,12 @@ Page({
         that._loadedOnce = true;
         if (done) done();
       });
+
+    // 加载评价
+    var request = require("../../utils/request");
+    request.get("/api/store/product/" + id + "/evaluates").then(function(res) {
+      that.setData({ reviews: res || [] });
+    }).catch(function(){});
   },
 
   // 显示数量选择弹窗

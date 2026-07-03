@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 class StoreAuditWorkflowTest {
 
     private final StoreMapper mapper = mock(StoreMapper.class);
-    private final StoreServiceImpl service = new StoreServiceImpl();
+    private final StoreServiceImpl service = new StoreServiceImpl(mock(com.pat.store.helper.MapHelper.class));
 
     @BeforeEach
     void setUp() {
@@ -336,7 +336,7 @@ class StoreAuditWorkflowTest {
     void adminCreateStillKeepsOwnerFromRequest() {
         IStoreService storeService = mock(IStoreService.class);
         when(storeService.save(any(Store.class))).thenReturn(true);
-        StoreController controller = new StoreController(storeService, mock(MapHelper.class));
+        StoreController controller = new StoreController(storeService);
         StoreDTO dto = editableDto();
         dto.setUserId(22L);
         dto.setStatus(null);
@@ -358,7 +358,7 @@ class StoreAuditWorkflowTest {
 
     private Store captureAdminUpdate(IStoreService storeService, StoreDTO dto) {
         when(storeService.updateById(any(Store.class))).thenReturn(true);
-        StoreController controller = new StoreController(storeService, mock(MapHelper.class));
+        StoreController controller = new StoreController(storeService);
 
         controller.update(1L, dto);
 

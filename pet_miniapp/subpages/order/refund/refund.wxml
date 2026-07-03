@@ -1,0 +1,10 @@
+<view class="page">
+  <view class="refund-form">
+    <text class="form-title">退单申请</text>
+    <view class="form-group">
+      <text class="label">退单原因说明：</text>
+      <textarea class="reason-input" placeholder="请详细说明您申请退款的原因..." bindinput="onInputReason" value="{{reason}}"></textarea>
+    </view>
+    <button class="submit-btn" bindtap="submitRefund" disabled="{{submitting}}">提交申请</button>
+  </view>
+</view>

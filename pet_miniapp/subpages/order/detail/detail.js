@@ -103,10 +103,45 @@ Page({
           }).catch(function () {
             wx.hideLoading();
             wx.showToast({ title: "操作失败", icon: "none" });
+
           });
         }
       }
     });
+  },
+
+  evaluateOrder: function() {
+    var id = this.data.order && this.data.order.id;
+    if (!id) return;
+    wx.navigateTo({ url: "/subpages/order/evaluate?id=" + id });
+  },
+
+  directRefund: function() {
+    var that = this;
+    var id = this.data.order && this.data.order.id;
+    if (!id) return;
+    wx.showModal({
+      title: '极速退款',
+      content: '确定要极速退款吗？资金将原路退回。',
+      success (res) {
+        if (res.confirm) {
+          wx.showLoading({ title: "退款中..." });
+          orderApi.refundDirect(id).then(function() {
+            wx.hideLoading();
+            wx.showToast({ title: "退款成功", icon: "success" });
+            that.loadOrder(id);
+          }).catch(function() {
+            wx.hideLoading();
+          });
+        }
+      }
+    });
+  },
+
+  applyRefund: function() {
+    var id = this.data.order && this.data.order.id;
+    if (!id) return;
+    wx.navigateTo({ url: "/subpages/order/refund/refund?id=" + id });
   },
 
   callService: function() {

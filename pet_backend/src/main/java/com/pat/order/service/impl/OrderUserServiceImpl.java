@@ -9,6 +9,7 @@ import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
+import com.pat.order.domain.dto.OrderEvaluateDTO;
 import com.pat.order.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.Cart;
 import com.pat.order.domain.enums.OrderStatus;
@@ -149,7 +150,13 @@ public class OrderUserServiceImpl implements IOrderUserService {
         Long userId = requireUserId();
         QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<PurchaseOrder>()
                 .eq("user_id", userId).orderByDesc("create_time");
-        if (orderStatus != null) wrapper.eq("order_status", orderStatus);
+        if (orderStatus != null) {
+            if (orderStatus == -99) {
+                wrapper.in("order_status", java.util.Arrays.asList(-2, -3, -4));
+            } else {
+                wrapper.eq("order_status", orderStatus);
+            }
+        }
         IPage<PurchaseOrder> result = baseService.page(page, wrapper);
         // 批量加载每个订单的商品明细
         for (PurchaseOrder order : result.getRecords()) {
@@ -227,5 +234,66 @@ public class OrderUserServiceImpl implements IOrderUserService {
         PurchaseOrder order = getOwnedOrder(orderId);
         return orderItemMapper.selectList(
                 new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void evaluateOrder(OrderEvaluateDTO dto) {
+        PurchaseOrder order = getOwnedOrder(dto.getOrderId());
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.EVALUATED.getCode());
+        
+        List<OrderItem> existingItems = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+                
+        Map<Long, OrderItem> itemMap = existingItems.stream()
+                .collect(Collectors.toMap(OrderItem::getId, item -> item));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (dto.getItems() != null) {
+            for (OrderEvaluateDTO.ItemEvaluate ie : dto.getItems()) {
+                OrderItem item = itemMap.get(ie.getOrderItemId());
+                if (item != null) {
+                    item.setEvaluateContent(ie.getContent());
+                    item.setEvaluateTime(now);
+                    orderItemMapper.updateById(item);
+                }
+            }
+        }
+        
+        order.setOrderStatus(4);
+        order.setEvaluateTime(now);
+        baseService.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void applyRefund(Long orderId, String reason) {
+        Long userId = requireUserId();
+        PurchaseOrder order = baseService.getById(orderId);
+        if (order == null || !order.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
+        }
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REFUNDING.getCode());
+
+        order.setOrderStatus(OrderStatus.REFUNDING.getCode());
+        order.setCancelReason(reason);
+        order.setRefundApplyTime(LocalDateTime.now());
+        baseService.updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void directRefund(Long orderId, String reason) {
+        Long userId = requireUserId();
+        PurchaseOrder order = baseService.getById(orderId);
+        if (order == null || !order.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
+        }
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
+
+        order.setOrderStatus(OrderStatus.REJECTED.getCode());
+        order.setCancelReason(reason);
+        order.setCancelTime(LocalDateTime.now());
+        baseService.updateById(order);
     }
 }

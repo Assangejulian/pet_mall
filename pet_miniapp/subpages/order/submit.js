@@ -77,13 +77,11 @@ Page({
       remark: this.data.remark
     };
     orderApi.create(dto).then(function(res) {
-      wx.hideLoading();
-      wx.showToast({ title: "下单成功", icon: "success" });
-      setTimeout(function() {
-        wx.redirectTo({ url: "/subpages/order/detail?id=" + (res.orderId || res.id || res) });
-      }, 1000);
-    }).catch(function(err) {
-      wx.hideLoading();
+        wx.hideLoading();
+        wx.showToast({ title: "订单创建成功", icon: "success" });
+        wx.redirectTo({ url: "/subpages/order/detail/detail?id=" + (res.orderId || res.id || res) });
+      }).catch(function(err) {
+        wx.hideLoading();
       wx.showToast({ title: (err && err.message) || "下单失败，请重试", icon: "none" });
     });
   }

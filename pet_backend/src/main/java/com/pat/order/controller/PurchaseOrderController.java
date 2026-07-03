@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
+import com.pat.order.domain.dto.OrderEvaluateDTO;
 import com.pat.order.domain.vo.OrderCreateVO;
 import com.pat.order.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.OrderItem;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/order")
@@ -63,5 +65,28 @@ public class PurchaseOrderController {
     @GetMapping("/item/search")
     public Result<List<OrderItem>> items(Long orderId) {
         return Result.success(orderUserService.getUserOrderItems(orderId));
+    }
+
+    @Operation(summary = "评价订单")
+    @PostMapping("/evaluate")
+    public Result<Void> evaluate(@Valid @RequestBody OrderEvaluateDTO dto) {
+        orderUserService.evaluateOrder(dto);
+        return Result.success();
+    }
+
+    @Operation(summary = "极速退款")
+    @PostMapping("/{id}/refund_direct")
+    public Result<Void> refundDirect(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String reason = body.getOrDefault("reason", "用户发起极速退款");
+        orderUserService.directRefund(id, reason);
+        return Result.success();
+    }
+
+    @Operation(summary = "申请退单")
+    @PostMapping("/{id}/refund_apply")
+    public Result<Void> refundApply(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String reason = body.getOrDefault("reason", "用户申请退款");
+        orderUserService.applyRefund(id, reason);
+        return Result.success();
     }
 }

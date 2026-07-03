@@ -57,8 +57,9 @@
             <td class="actions">
               <button v-if="canCancel(item)" class="btn btn-warning btn-sm" @click="cancelOrder(item)">取消</button>
               <button v-if="String(item.status) === '1'" class="btn btn-primary btn-sm" @click="shipOrder(item)">发货</button>
-              <button v-if="String(item.status) === '2'" class="btn btn-success btn-sm" @click="completeOrder(item)">收货完成</button>
-              <button v-if="canDirectReturn(item)" class="btn btn-danger btn-sm" @click="directReturn(item)">退单</button>
+
+              <button v-if="String(item.status) === '4'" class="btn btn-info btn-sm" @click="showReview(item)">查看评论</button>
+              <button v-if="item.cancelReason" class="btn btn-info btn-sm" @click="showReason(item)">查看退款原因</button>
               <template v-if="String(item.status) === '-2'">
                 <button class="btn btn-success btn-sm" @click="approveReturn(item)">通过</button>
                 <button class="btn btn-danger btn-sm" @click="rejectReturn(item)">拒绝</button>
@@ -98,28 +99,53 @@
           <div class="detail-items">
             <h4>商品明细</h4>
             <div class="item-row" v-for="it in detail.items" :key="it.id">
+              <img class="detail-thumb" :src="it.productImage || '/placeholder.png'" :alt="it.productName" />
               <span class="item-name">{{ it.productName }}</span>
-              <span>×{{ it.quantity }}</span>
-              <span>¥{{ it.price }}</span>
+              <span class="item-quantity">×{{ it.quantity }}</span>
+              <span class="item-price">¥{{ it.price }}</span>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <div class="modal-overlay" v-if="reviewVisible" @click.self="reviewVisible = false">
+      <div class="modal review-modal">
+        <div class="modal-header">
+          <h3>用户评论 — {{ detail?.orderNo }}</h3>
+          <button class="modal-close" @click="reviewVisible = false">✕</button>
+        </div>
+        <div class="modal-body" v-if="detail">
+          <div class="review-list">
+            <div class="review-item" v-for="it in detail.items" :key="it.id">
+              <div class="review-product-info">
+                <img class="review-thumb" :src="it.productImage || '/placeholder.png'" :alt="it.productName" />
+                <span class="review-name">{{ it.productName }}</span>
+              </div>
+              <div class="review-content-box">
+                <p class="review-text" v-if="it.evaluateContent">{{ it.evaluateContent }}</p>
+                <p class="review-text text-gray" v-else>用户未评论</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue"
 import { useOrderStore } from "../../stores/order"
-import { updateOrderStatus, reviewReturn } from "../../api/order"
+import { shipOrderAdmin, cancelOrderAdmin, reviewReturn } from "../../api/order"
 import type { Order, OrderStatus } from "../../types/order"
 
 const store = useOrderStore()
 const statusFilter = ref("")
 const currentPage = ref(1)
 const pageSize = 10
-const detail = ref<Order | null>(null)
 const detailVisible = ref(false)
+const reviewVisible = ref(false)
+const detail = ref<Order | null>(null)
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize) || 1)
 
@@ -136,7 +162,6 @@ const badgeMap: Record<string, string> = {
 function statusLabel(s: OrderStatus) { return statusMap[s] || s }
 function statusBadge(s: OrderStatus) { return badgeMap[s] || 'badge-gray' }
 function canCancel(o: Order) { const s = String(o.status); return s === '0' || s === '1' }
-function canDirectReturn(o: Order) { return String(o.status) === '3' }
 
 async function fetchData() {
   await store.fetch({
@@ -151,26 +176,22 @@ function goPage(p: number) { currentPage.value = p; fetchData() }
 
 async function cancelOrder(item: Order) {
   const reason = prompt("请输入取消原因（选填）：") || ""
-  await updateOrderStatus(item.id, '-1', reason)
+  await cancelOrderAdmin(item.id, reason)
   store.updateLocalStatus(item.id, '-1', { cancelReason: reason, cancelType: 'user' })
 }
 
+function showReason(item: Order) {
+  alert(item.cancelReason || "未填写退款原因");
+}
+
 async function shipOrder(item: Order) {
-  await updateOrderStatus(item.id, '2')
+  await shipOrderAdmin(item.id)
   store.updateLocalStatus(item.id, '2')
 }
 
-async function completeOrder(item: Order) {
-  await updateOrderStatus(item.id, '3')
-  store.updateLocalStatus(item.id, '3')
-}
 
-async function directReturn(item: Order) {
-  const reason = prompt("请输入退单理由：")
-  if (!reason) return
-  await updateOrderStatus(item.id, '-4', reason)
-  store.updateLocalStatus(item.id, '-4', { returnReason: reason })
-}
+
+
 
 async function approveReturn(item: Order) {
   await reviewReturn(item.id, true, "审核通过")
@@ -186,6 +207,11 @@ async function rejectReturn(item: Order) {
 function showDetail(item: Order) {
   detail.value = item
   detailVisible.value = true
+}
+
+function showReview(item: Order) {
+  detail.value = item
+  reviewVisible.value = true
 }
 
 onMounted(fetchData)
@@ -220,9 +246,25 @@ onMounted(fetchData)
 .detail-items { margin-top: 20px; }
 .detail-items h4 { font-size: 14px; margin-bottom: 12px; }
 .item-row {
-  display: flex; justify-content: space-between; padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5; font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5; font-size: 13px; gap: 12px;
 }
-.item-name { flex: 1; }
+.detail-thumb {
+  width: 40px; height: 40px; border-radius: 4px; object-fit: cover;
+}
+.item-name { flex: 1; font-weight: 500; }
+.item-quantity { color: #888; }
+.item-price { color: var(--primary); font-weight: 600; min-width: 60px; text-align: right; }
 .badge-teal { background: #e0f2f1; color: #00695c; }
+.btn-info { background-color: #3498db; color: white; border: none; }
+.btn-info:hover { background-color: #2980b9; }
+.review-modal { width: 500px; }
+.review-item { margin-bottom: 20px; border-bottom: 1px dashed #eee; padding-bottom: 15px; }
+.review-item:last-child { border-bottom: none; }
+.review-product-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.review-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; }
+.review-name { font-weight: 500; font-size: 14px; }
+.review-content-box { background: #f8f9fa; padding: 12px; border-radius: 6px; }
+.review-text { margin: 0; font-size: 14px; line-height: 1.5; color: #333; }
+.text-gray { color: #999; font-style: italic; }
 </style>

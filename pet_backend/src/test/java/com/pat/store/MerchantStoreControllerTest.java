@@ -11,7 +11,6 @@ import com.pat.common.exception.BusinessException;
 import com.pat.store.controller.MerchantStoreController;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
-import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import com.pat.common.util.UserHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -32,8 +31,7 @@ import static org.mockito.Mockito.when;
 class MerchantStoreControllerTest {
 
     private final IStoreService storeService = mock(IStoreService.class);
-    private final MapHelper mapHelper = mock(MapHelper.class);
-    private final MerchantStoreController controller = new MerchantStoreController(storeService, mapHelper);
+    private final MerchantStoreController controller = new MerchantStoreController(storeService);
 
     @BeforeEach
     void setUp() {

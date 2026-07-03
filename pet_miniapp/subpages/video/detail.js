@@ -40,7 +40,8 @@ function normalizeComment(item) {
   return {
     id: item.id || Date.now(), user: item.user || item.userName || "暖窝用户",
     avatar: item.avatar || "/images/mock/cat-avatar.jpg",
-    text: item.text || item.content || "", time: item.time || "刚刚"
+    text: item.text || item.content || "", time: item.time || "刚刚",
+    isBuyer: item.isBuyer || false
   };
 }
 

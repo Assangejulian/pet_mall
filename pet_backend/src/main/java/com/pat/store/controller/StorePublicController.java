@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import cn.hutool.core.bean.BeanUtil;
 import com.pat.common.domain.Result;
+import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.store.domain.dto.NearbyQuery;
@@ -12,9 +13,13 @@ import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.domain.vo.StoreVO;
+
 import com.pat.store.service.IStoreService;
+import com.pat.user.domain.entity.User;
+import com.pat.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +28,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/store")
@@ -31,6 +39,13 @@ import java.util.List;
 public class StorePublicController {
 
     private final IStoreService storeService;
+
+
+    @Resource
+    private OrderQueryMapper orderQueryMapper;
+
+    @Resource
+    private UserService userService;
 
     public StorePublicController(IStoreService storeService) {
         this.storeService = storeService;
@@ -54,6 +69,24 @@ public class StorePublicController {
             return Result.error("商店不存在或未营业");
         }
         return Result.success(toVO(store));
+    }
+
+    @Operation(summary = "获取商品的所有评价")
+    @GetMapping("/product/{productId}/evaluates")
+    public Result<List<Map<String, Object>>> getProductEvaluates(@PathVariable Long productId) {
+        List<Map<String, Object>> records = new ArrayList<>();
+        List<Map<String, Object>> reviews = orderQueryMapper.selectProductReviews(productId);
+        for (Map<String, Object> review : reviews) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("content", review.get("content"));
+            item.put("createTime", review.get("createTime"));
+            Long userId = review.get("userId") != null ? ((Number)review.get("userId")).longValue() : null;
+            User user = userId != null ? userService.getById(userId) : null;
+            item.put("userName", user != null ? user.getRealName() : "买家用户");
+            item.put("avatar", user != null ? user.getAvatar() : "");
+            records.add(item);
+        }
+        return Result.success(records);
     }
 
     @Operation(summary = "附近门店搜索 (Haversine)")
