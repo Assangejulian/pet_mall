@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.dao.DataAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +33,9 @@ public class MemberCDataInitializer implements ApplicationRunner {
     private void ensureSchema() {
         safeExecute("ALTER TABLE video ADD COLUMN user_id BIGINT NULL COMMENT '发布用户ID' AFTER id");
         safeExecute("ALTER TABLE video ADD COLUMN description VARCHAR(500) NULL COMMENT '视频描述' AFTER title");
-        safeExecute("ALTER TABLE video ADD COLUMN likes INT NOT NULL DEFAULT 0 COMMENT '点赞数' AFTER play_count");
-        safeExecute("ALTER TABLE video ADD COLUMN comment_count INT NOT NULL DEFAULT 0 COMMENT '评论数' AFTER likes");
-        safeExecute("ALTER TABLE video ADD COLUMN duration INT NULL COMMENT '时长秒' AFTER comment_count");
+        safeExecute("ALTER TABLE video ADD COLUMN likes INT NOT NULL DEFAULT 0 COMMENT '点赞�? AFTER play_count");
+        safeExecute("ALTER TABLE video ADD COLUMN comment_count INT NOT NULL DEFAULT 0 COMMENT '评论�? AFTER likes");
+        safeExecute("ALTER TABLE video ADD COLUMN duration INT NULL COMMENT '时长�? AFTER comment_count");
         safeExecute("ALTER TABLE video ADD INDEX idx_video_user_id (user_id)");
         safeExecute("ALTER TABLE video ADD INDEX idx_video_status_create_time (status, create_time)");
 
@@ -101,8 +103,8 @@ public class MemberCDataInitializer implements ApplicationRunner {
         insertVideo(
                 910000000000001001L,
                 910000000000000101L,
-                "第一次接它回家",
-                "从到家动线、隔离区到第一晚观察，把小家伙安稳接回家。",
+                "第一次接它回�?,
+                "从到家动线、隔离区到第一晚观察，把小家伙安稳接回家�?,
                 "https://samplelib.com/preview/mp4/sample-5s.mp4",
                 "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
                 1280,
@@ -112,8 +114,8 @@ public class MemberCDataInitializer implements ApplicationRunner {
         insertVideo(
                 910000000000001002L,
                 910000000000000102L,
-                "狗狗兴奋乱扑怎么办",
-                "先让它学会坐下等待，再把奖励和社交绑定起来。",
+                "狗狗兴奋乱扑怎么�?,
+                "先让它学会坐下等待，再把奖励和社交绑定起来�?,
                 "https://samplelib.com/preview/mp4/sample-10s.mp4",
                 "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
                 980,
@@ -123,8 +125,8 @@ public class MemberCDataInitializer implements ApplicationRunner {
         insertVideo(
                 910000000000001003L,
                 910000000000000101L,
-                "猫咪食欲变差怎么办",
-                "排查换粮、温度、压力和精神状态，先观察重点信号。",
+                "猫咪食欲变差怎么�?,
+                "排查换粮、温度、压力和精神状态，先观察重点信号�?,
                 "https://samplelib.com/preview/mp4/sample-15s.mp4",
                 "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=80",
                 764,
@@ -135,7 +137,7 @@ public class MemberCDataInitializer implements ApplicationRunner {
                 910000000000001004L,
                 910000000000000102L,
                 "幼宠用品清单",
-                "笼具、食盆、牵引和清洁用品先准备基础款，别一开始买太多。",
+                "笼具、食盆、牵引和清洁用品先准备基础款，别一开始买太多�?,
                 "https://samplelib.com/preview/mp4/sample-20s.mp4",
                 "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=80",
                 640,
@@ -178,9 +180,9 @@ public class MemberCDataInitializer implements ApplicationRunner {
     }
 
     private void seedComments() {
-        insertComment(910000000000002001L, 910000000000001001L, 910000000000000102L, "隔离区这个点很有用，第一晚确实别太频繁打扰。");
-        insertComment(910000000000002002L, 910000000000001002L, 910000000000000101L, "坐下等待比直接压住它有效多了。");
-        insertComment(910000000000002003L, 910000000000001003L, 910000000000000102L, "食欲和精神状态一起看，这个提醒很关键。");
+        insertComment(910000000000002001L, 910000000000001001L, 910000000000000102L, "隔离区这个点很有用，第一晚确实别太频繁打扰�?);
+        insertComment(910000000000002002L, 910000000000001002L, 910000000000000101L, "坐下等待比直接压住它有效多了�?);
+        insertComment(910000000000002003L, 910000000000001003L, 910000000000000102L, "食欲和精神状态一起看，这个提醒很关键�?);
     }
 
     private void insertComment(Long id, Long videoId, Long userId, String content) {
@@ -192,11 +194,19 @@ public class MemberCDataInitializer implements ApplicationRunner {
                 id, videoId, userId, content);
     }
 
+
+    private static final Logger log = LoggerFactory.getLogger(MemberCDataInitializer.class);
+
     private void safeExecute(String sql) {
         try {
             jdbcTemplate.execute(sql);
-        } catch (DataAccessException ignored) {
-            // Existing columns/indexes are expected when the dev database was initialized before this module.
+        } catch (DataAccessException e) {
+            String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            if (msg != null && msg.contains("Duplicate")) {
+                log.debug("DDL skipped (already exists): {}", msg);
+            } else {
+                log.warn("DDL failed: {}", msg, e);
+            }
         }
     }
 }

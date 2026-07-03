@@ -29,7 +29,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     private Long requireUserId() {
         Long uid = UserHolder.getUserId();
-        if (uid == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "用户未登录");
+        if (uid == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "用户未登录");
+        }
         return uid;
     }
 
@@ -43,8 +45,12 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     private Cart requireOwnedCart(Long id) {
         Long userId = requireUserId();
         Cart cart = getById(id);
-        if (cart == null) throw new BusinessException(ErrorCode.NOT_FOUND, "购物车记录不存在");
-        if (!userId.equals(cart.getUserId())) throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
+        if (cart == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "购物车记录不存在");
+        }
+        if (!userId.equals(cart.getUserId())) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
+        }
         return cart;
     }
 

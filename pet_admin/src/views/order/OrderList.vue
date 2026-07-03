@@ -2,25 +2,25 @@
   <div class="admin-page">
     <div class="page-header">
       <h2>订单管理</h2>
-      <p>查看和管理用户订单 · 退单审核
+      <p>查看和管理用户订�?· 退单审�?
         <span v-if="store.pendingReturnCount > 0" class="alert-badge">
-          待审核 {{ store.pendingReturnCount }}
+          待审�?{{ store.pendingReturnCount }}
         </span>
       </p>
     </div>
 
     <div class="search-bar">
       <select v-model="statusFilter">
-        <option value="">全部状态</option>
-        <option value="0">待支付</option>
-        <option value="1">已支付</option>
-        <option value="2">已发货</option>
-        <option value="3">已收货</option>
-        <option value="4">已评价</option>
-        <option value="-1">已取消</option>
-        <option value="-2">申请退单</option>
+        <option value="">全部状�?/option>
+        <option value="0">待支�?/option>
+        <option value="1">已支�?/option>
+        <option value="2">已发�?/option>
+        <option value="3">已收�?/option>
+        <option value="4">已评�?/option>
+        <option value="-1">已取�?/option>
+        <option value="-2">申请退�?/option>
         <option value="-3">退单通过</option>
-        <option value="-4">已退单</option>
+        <option value="-4">已退�?/option>
       </select>
       <button class="btn btn-primary" @click="handleSearch">搜索</button>
       <button class="btn btn-outline" @click="resetSearch">重置</button>
@@ -30,10 +30,10 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>订单号</th>
+            <th>订单�?/th>
             <th>用户</th>
             <th>金额</th>
-            <th>状态</th>
+            <th>状�?/th>
             <th>地址</th>
             <th>创建时间</th>
             <th>操作</th>
@@ -59,7 +59,7 @@
               <button v-if="String(item.status) === '1'" class="btn btn-primary btn-sm" @click="shipOrder(item)">发货</button>
 
               <button v-if="String(item.status) === '4'" class="btn btn-info btn-sm" @click="showReview(item)">查看评论</button>
-              <button v-if="item.cancelReason" class="btn btn-info btn-sm" @click="showReason(item)">查看退款原因</button>
+              <button v-if="item.cancelReason" class="btn btn-info btn-sm" @click="showReason(item)">查看退款原�?/button>
               <template v-if="String(item.status) === '-2'">
                 <button class="btn btn-success btn-sm" @click="approveReturn(item)">通过</button>
                 <button class="btn btn-danger btn-sm" @click="rejectReturn(item)">拒绝</button>
@@ -73,27 +73,27 @@
       </table>
 
       <div class="pagination" v-if="store.total > 0">
-        <button :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">上一页</button>
-        <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ store.total }} 条</span>
-        <button :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">下一页</button>
+        <button :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">上一�?/button>
+        <span class="page-info">�?{{ currentPage }} / {{ totalPages }} 页，�?{{ store.total }} �?/span>
+        <button :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">下一�?/button>
       </div>
     </div>
 
     <div class="modal-overlay" v-if="detailVisible" @click.self="detailVisible = false">
       <div class="modal">
         <div class="modal-header">
-          <h3>订单详情 — {{ detail?.orderNo }}</h3>
-          <button class="modal-close" @click="detailVisible = false">✕</button>
+          <h3>订单详情 �?{{ detail?.orderNo }}</h3>
+          <button class="modal-close" @click="detailVisible = false">�?/button>
         </div>
         <div class="modal-body" v-if="detail">
           <div class="detail-info">
             <div><label>用户</label><span>{{ detail.userName }}</span></div>
             <div><label>金额</label><span>¥{{ detail.totalAmount }}</span></div>
-            <div><label>状态</label><span class="badge" :class="statusBadge(detail.status)">{{ statusLabel(detail.status) }}</span></div>
+            <div><label>状�?/label><span class="badge" :class="statusBadge(detail.status)">{{ statusLabel(detail.status) }}</span></div>
             <div><label>地址</label><span>{{ detail.address }}</span></div>
             <div><label>创建时间</label><span>{{ detail.createTime }}</span></div>
             <div v-if="detail.payTime"><label>支付时间</label><span>{{ detail.payTime }}</span></div>
-            <div v-if="detail.returnReason"><label>退单理由</label><span class="text-danger">{{ detail.returnReason }}</span></div>
+            <div v-if="detail.returnReason"><label>退单理�?/label><span class="text-danger">{{ detail.returnReason }}</span></div>
             <div v-if="detail.cancelReason"><label>取消原因</label><span>{{ detail.cancelReason }}</span></div>
           </div>
           <div class="detail-items">
@@ -111,8 +111,8 @@
     <div class="modal-overlay" v-if="reviewVisible" @click.self="reviewVisible = false">
       <div class="modal review-modal">
         <div class="modal-header">
-          <h3>用户评论 — {{ detail?.orderNo }}</h3>
-          <button class="modal-close" @click="reviewVisible = false">✕</button>
+          <h3>用户评论 �?{{ detail?.orderNo }}</h3>
+          <button class="modal-close" @click="reviewVisible = false">�?/button>
         </div>
         <div class="modal-body" v-if="detail">
           <div class="review-list">
@@ -123,7 +123,7 @@
               </div>
               <div class="review-content-box">
                 <p class="review-text" v-if="it.evaluateContent">{{ it.evaluateContent }}</p>
-                <p class="review-text text-gray" v-else>用户未评论</p>
+                <p class="review-text text-gray" v-else>用户未评�?/p>
               </div>
             </div>
           </div>
@@ -150,8 +150,8 @@ const detail = ref<Order | null>(null)
 const totalPages = computed(() => Math.ceil(store.total / pageSize) || 1)
 
 const statusMap: Record<string, string> = {
-  '0': '待支付', '1': '已支付', '2': '已发货', '3': '已收货', '4': '已评价',
-  '-1': '已取消', '-2': '申请退单', '-3': '退单通过', '-4': '已退单'
+  '0': '待支�?, '1': '已支�?, '2': '已发�?, '3': '已收�?, '4': '已评�?,
+  '-1': '已取�?, '-2': '申请退�?, '-3': '退单通过', '-4': '已退�?
 }
 const badgeMap: Record<string, string> = {
   '0': 'badge-orange', '1': 'badge-blue', '2': 'badge-green',
@@ -181,7 +181,7 @@ async function cancelOrder(item: Order) {
 }
 
 function showReason(item: Order) {
-  alert(item.cancelReason || "未填写退款原因");
+  alert(item.cancelReason || "未填写退款原�?);
 }
 
 async function shipOrder(item: Order) {

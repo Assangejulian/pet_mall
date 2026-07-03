@@ -11,19 +11,19 @@ export function listOrders(params: {
   return unwrap(http.get("/order/search", { params }))
 }
 
-export function shipOrderAdmin(orderId: string): Promise<null> {
+export function shipOrderAdmin(orderId: string): Promise<void> {
   return unwrap(http.put("/order/ship", { orderId }))
 }
 
-export function cancelOrderAdmin(orderId: string, reason?: string): Promise<null> {
+export function cancelOrderAdmin(orderId: string, reason?: string): Promise<void> {
   return unwrap(http.put("/order/cancel", { orderId, cancelReason: reason }))
 }
 
-export function reviewReturn(orderId: string, approved: boolean, reason?: string): Promise<null> {
+export function reviewReturn(orderId: string, approved: boolean, reason?: string): Promise<void> {
   return unwrap(http.put("/order/refund/approve", { orderId, approved, rejectReason: reason }))
 }
 
-export function directReturnAdmin(orderId: string, reason?: string): Promise<null> {
+export function directReturnAdmin(orderId: string, reason?: string): Promise<void> {
   return unwrap(http.put("/order/refund/direct", { orderId, cancelReason: reason }))
 }
 
