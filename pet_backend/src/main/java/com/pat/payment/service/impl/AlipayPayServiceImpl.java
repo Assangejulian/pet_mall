@@ -18,13 +18,13 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-public class AlipayPayService {
+public class AlipayPayServiceImpl {
 
     private final AlipayConfig alipayConfig;
     private final PurchaseOrderBaseService baseService;
 
-    public AlipayPayService(AlipayConfig alipayConfig,
-                            PurchaseOrderBaseService baseService) {
+    public AlipayPayServiceImpl(AlipayConfig alipayConfig,
+                                PurchaseOrderBaseService baseService) {
         this.alipayConfig = alipayConfig;
         this.baseService = baseService;
     }

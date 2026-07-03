@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.math.RoundingMode;
 import java.security.Signature;
@@ -28,15 +29,18 @@ import java.util.*;
 
 @Slf4j
 @Service("WECHATPaymentService")
-public class WechatPaymentService implements PaymentService {
+public class WechatPaymentServiceImpl implements PaymentService {
+
+    private static final int MAX_SUBJECT_ITEMS = 3;
+    private static final String SUBJECT_ELLIPSIS = "...";
 
     private final WechatPayConfig wechatPayConfig;
     private final PurchaseOrderBaseService baseService;
     private final OrderItemMapper orderItemMapper;
 
-    public WechatPaymentService(WechatPayConfig wechatPayConfig,
-                                PurchaseOrderBaseService baseService,
-                                OrderItemMapper orderItemMapper) {
+    public WechatPaymentServiceImpl(WechatPayConfig wechatPayConfig,
+                                    PurchaseOrderBaseService baseService,
+                                    OrderItemMapper orderItemMapper) {
         this.wechatPayConfig = wechatPayConfig;
         this.baseService = baseService;
         this.orderItemMapper = orderItemMapper;
@@ -214,12 +218,12 @@ public class WechatPaymentService implements PaymentService {
         List<OrderItem> items = orderItemMapper.selectList(
                 new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < items.size() && i < 3; i++) {
+        for (int i = 0; i < items.size() && i < MAX_SUBJECT_ITEMS; i++) {
             OrderItem item = items.get(i);
-            if (sb.length() > 0) sb.append("; ");
+            if (!sb.isEmpty()) { sb.append("; "); }
             sb.append(item.getProductName()).append(" x").append(item.getQuantity());
         }
-        if (items.size() > 3) { sb.append("..."); }
+        if (items.size() > MAX_SUBJECT_ITEMS) { sb.append(SUBJECT_ELLIPSIS); }
         return !sb.isEmpty() ? sb.toString() : "宠铺 - " + order.getOrderNo();
     }
 }

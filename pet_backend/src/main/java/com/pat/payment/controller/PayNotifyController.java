@@ -5,7 +5,7 @@ import com.alipay.api.internal.util.AlipaySignature;
 import com.pat.common.domain.Result;
 import com.pat.order.domain.dto.PayNotifyDTO;
 import com.pat.payment.config.AlipayConfig;
-import com.pat.payment.service.impl.AlipayPayService;
+import com.pat.payment.service.impl.AlipayPayServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,13 +34,13 @@ import java.util.Map;
 public class PayNotifyController {
 
     private final AlipayConfig alipayConfig;
-    private final AlipayPayService alipayPayService;
+    private final AlipayPayServiceImpl alipayPayService;
 
     private static final String TRADE_SUCCESS = "TRADE_SUCCESS";
     private static final String TRADE_FINISHED = "TRADE_FINISHED";
 
     public PayNotifyController(AlipayConfig alipayConfig,
-                               AlipayPayService alipayPayService) {
+                               AlipayPayServiceImpl alipayPayService) {
         this.alipayConfig = alipayConfig;
         this.alipayPayService = alipayPayService;
     }

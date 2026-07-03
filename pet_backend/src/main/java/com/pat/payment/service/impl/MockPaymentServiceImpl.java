@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service("mockPaymentService")
-public class MockPaymentService implements PaymentService {
+public class MockPaymentServiceImpl implements PaymentService {
 
     private final PurchaseOrderBaseService baseService;
 
-    public MockPaymentService(PurchaseOrderBaseService baseService) {
+    public MockPaymentServiceImpl(PurchaseOrderBaseService baseService) {
         this.baseService = baseService;
     }
 

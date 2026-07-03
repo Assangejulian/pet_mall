@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service("ALIPAYPaymentService")
-public class AliPaymentService implements PaymentService {
+public class AliPaymentServiceImpl implements PaymentService {
 
-    private final AlipayPayService alipayPayService;
+    private final AlipayPayServiceImpl alipayPayService;
 
-    public AliPaymentService(AlipayPayService alipayPayService) {
+    public AliPaymentServiceImpl(AlipayPayServiceImpl alipayPayService) {
         this.alipayPayService = alipayPayService;
     }
 
@@ -33,7 +33,7 @@ public class AliPaymentService implements PaymentService {
 
             log.info("支付宝手机网站支付下单 orderNo={}, total={}", order.getOrderNo(), total);
             return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                    Integer.valueOf(OrderStatus.PENDING_PAY.getCode()), order.getPayAmount(), form, null);
+                    OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), form, null);
         } catch (AlipayApiException e) {
             log.error("支付宝下单异常 orderNo={}", order.getOrderNo(), e);
             throw new RuntimeException("支付宝支付下单失败: " + e.getErrMsg());
