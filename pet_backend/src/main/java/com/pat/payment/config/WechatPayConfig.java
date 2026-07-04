@@ -12,5 +12,6 @@ public class WechatPayConfig {
     private String mchId;
     private String mchSerialNo;
     private String privateKey;
+    private String apiV3Key;
     private String notifyUrl;
 }

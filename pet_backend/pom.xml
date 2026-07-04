@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -158,7 +158,8 @@
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
 
-        <!-- ==================== 支付宝 ==================== -->
+
+        <!-- ==================== 配置 ==================== -->
             <!-- 加载 .env 文件（开发环境）-->
         <dependency>
             <groupId>me.paulschwarz</groupId>
@@ -166,13 +167,20 @@
             <version>4.0.0</version>
         </dependency>
 
-        <!-- ==================== 支付宝 SDK ==================== -->
+        <!-- ==================== \u652f\u4ed8 SDK ==================== -->
         <dependency>
             <groupId>com.alipay.sdk</groupId>
             <artifactId>alipay-sdk-java</artifactId>
             <version>4.40.865.ALL</version>
         </dependency>
-        <!-- ==================== 存储 OSS SDK ==================== -->
+
+        <!-- ==================== \u5fae\u4fe1\u652f\u4ed8 SDK ==================== -->
+        <dependency>
+            <groupId>com.github.wechatpay-apiv3</groupId>
+            <artifactId>wechatpay-java</artifactId>
+            <version>0.2.12</version>
+        </dependency>
+
         <dependency>
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>

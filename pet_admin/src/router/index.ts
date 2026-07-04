@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 import { useAdminStore } from "../stores/admin"
 import AdminLayout from "../layouts/AdminLayout.vue"
 import Login from "../views/Login.vue"
@@ -14,6 +14,7 @@ import MerchantOrderList from "../views/merchant/MerchantOrderList.vue"
 import MerchantVideoList from "../views/merchant/MerchantVideoList.vue"
 import AuditorStoreList from "../views/auditor/AuditorStoreList.vue"
 import AuditorProductList from "../views/auditor/AuditorProductList.vue"
+import ReportPage from "../views/report/ReportPage.vue"
 
 const routes: RouteRecordRaw[] = [
   { path: "/login", name: "Login", component: Login, meta: { public: true, title: "登录" } },
@@ -23,6 +24,7 @@ const routes: RouteRecordRaw[] = [
     redirect: () => useAdminStore().homePath,
     children: [
       { path: "dashboard", name: "Dashboard", component: Dashboard, meta: { title: "概览", roles: ["merchant", "auditor", "admin"] } },
+      { path: "report", name: "ReportPage", component: ReportPage, meta: { title: "数据统计", roles: ["admin"] } },
       { path: "merchant/store", name: "MerchantStoreList", component: MerchantStoreList, meta: { title: "我的门店", roles: ["merchant"] } },
       { path: "merchant/product", name: "MerchantProductList", component: MerchantProductList, meta: { title: "我的商品", roles: ["merchant"] } },
       { path: "merchant/order", name: "MerchantOrderList", component: MerchantOrderList, meta: { title: "我的订单", roles: ["merchant"] } },
@@ -55,4 +57,3 @@ router.beforeEach(to => {
 })
 
 export default router
-

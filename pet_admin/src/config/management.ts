@@ -44,6 +44,7 @@ export const ROLE_MENUS: Record<ManagementRole, ManagementMenuItem[]> = {
     { path: "/video", label: "视频管理", icon: "视" },
     { path: "/auditor/store", label: "门店审核", icon: "审" },
     { path: "/auditor/product", label: "商品监管", icon: "监" },
+    { path: "/report", label: "数据统计", icon: "统" },
   ],
 }
 

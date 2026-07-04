@@ -88,7 +88,7 @@ wx:
     secret: ${WECHAT_PC_SECRET:}
 
 alipay:
-  app-id: ${ALIPAY_APPID:}
+  app-id: ${ALIPAY_APPID:9021000165632109}
   private-key: ${ALIPAY_PRIVATE_KEY:}
   alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
   gateway: ${ALIPAY_GATEWAY:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
@@ -97,14 +97,13 @@ alipay:
   sign-type: RSA2
   charset: utf-8
   format: json
-
 wechat-pay:
   appid: ${WECHAT_PAY_APPID:}
   mch-id: ${WECHAT_PAY_MCH_ID:}
   mch-serial-no: ${WECHAT_PAY_MCH_SERIAL_NO:}
   private-key: ${WECHAT_PAY_PRIVATE_KEY:}
+  api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
   notify-url: ${WECHAT_PAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/wechat}
-oss:
   endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
   access-key-id: ${OSS_ACCESS_KEY_ID:}
   access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
