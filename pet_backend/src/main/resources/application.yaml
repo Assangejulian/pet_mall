@@ -104,3 +104,9 @@ wechat-pay:
   mch-serial-no: ${WECHAT_PAY_MCH_SERIAL_NO:}
   private-key: ${WECHAT_PAY_PRIVATE_KEY:}
   notify-url: ${WECHAT_PAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/wechat}
+oss:
+  endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  bucket-name: ${OSS_BUCKET_NAME:pet-store-videos}
+  domain: ${OSS_DOMAIN:https://pet-store-videos.oss-cn-hangzhou.aliyuncs.com}

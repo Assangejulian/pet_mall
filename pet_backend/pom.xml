@@ -172,6 +172,12 @@
             <artifactId>alipay-sdk-java</artifactId>
             <version>4.40.865.ALL</version>
         </dependency>
+        <!-- ==================== 存储 OSS SDK ==================== -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.17.1</version>
+        </dependency>
     </dependencies>
 
     <!-- ========== 构建配置 ========== -->

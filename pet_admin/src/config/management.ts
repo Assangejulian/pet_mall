@@ -1,4 +1,4 @@
-﻿import type { ManagementRole } from "../types/user"
+import type { ManagementRole } from "../types/user"
 
 export interface ManagementMenuItem {
   path: string
@@ -28,6 +28,7 @@ export const ROLE_MENUS: Record<ManagementRole, ManagementMenuItem[]> = {
     { path: "/merchant/store", label: "我的门店", icon: "店" },
     { path: "/merchant/product", label: "我的商品", icon: "品" },
     { path: "/merchant/order", label: "我的订单", icon: "单" },
+    { path: "/merchant/video", label: "我的视频", icon: "视" },
   ],
   auditor: [
     dashboard,
