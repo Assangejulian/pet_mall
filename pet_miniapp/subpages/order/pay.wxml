@@ -1,36 +1,58 @@
 <view class="page">
   <view class="amount-section">
-    <view class="amount-title">鏀粯閲戦</view>
-    <view class="amount-value"><text class="symbol">楼</text>{{amount}}</view>
-    <view class="order-no">璁㈠崟鍙凤細{{orderNo}}</view>
+    <view class="amount-title">支付金额</view>
+    <view class="amount-value"><text class="symbol">¥</text>{{amount}}</view>
+    <view class="order-no">订单号：{{orderNo}}</view>
   </view>
 
   <view class="method-section">
-    <view class="section-title">閫夋嫨鏀粯鏂瑰紡</view>
+    <view class="section-title">选择支付方式</view>
 
     <view class="method-item" bindtap="selectMethod" data-method="wechat">
       <view class="method-left">
         <text class="method-icon wechat">W</text>
-        <text class="method-name">寰俊鏀粯</text>
+        <text class="method-name">微信支付</text>
       </view>
       <view class="method-right">
         <view class="radio {{payMethod === 'wechat' ? 'checked' : ''}}"></view>
       </view>
     </view>
 
-    <view class="method-item" bindtap="selectMethod" data-method="balance">
+    <view class="method-item" bindtap="selectMethod" data-method="alipay">
       <view class="method-left">
-        <text class="method-icon balance">B</text>
-        <text class="method-name">浣欓鏀粯</text>
-        <text class="method-desc">(妯℃嫙)</text>
+        <text class="method-icon alipay">支</text>
+        <text class="method-name">支付宝</text>
       </view>
       <view class="method-right">
-        <view class="radio {{payMethod === 'balance' ? 'checked' : ''}}"></view>
+        <view class="radio {{payMethod === 'alipay' ? 'checked' : ''}}"></view>
+      </view>
+    </view>
+
+    <view class="method-item" bindtap="selectMethod" data-method="mock">
+      <view class="method-left">
+        <text class="method-icon mock">M</text>
+        <text class="method-name">模拟支付</text>
+        <text class="method-desc">(开发测试)</text>
+      </view>
+      <view class="method-right">
+        <view class="radio {{payMethod === 'mock' ? 'checked' : ''}}"></view>
       </view>
     </view>
   </view>
 
   <view class="bottom-bar">
-    <view class="btn-pay" bindtap="confirmPay">纭鏀粯 楼{{amount}}</view>
+    <view class="btn-pay" bindtap="confirmPay">确认支付 ¥{{amount}}</view>
+  </view>
+
+  <!-- 支付宝跳转确认弹窗 -->
+  <view class="alipay-overlay" wx:if="{{showAlipay}}">
+    <view class="alipay-card">
+      <text class="alipay-title">即将跳转到支付宝</text>
+      <text class="alipay-desc">请在支付宝中完成支付，支付后返回本页面查看结果</text>
+      <view class="alipay-btns">
+        <view class="btn-cancel" bindtap="closeAlipay">取消</view>
+        <view class="btn-go" bindtap="openAlipay">去支付</view>
+      </view>
+    </view>
   </view>
 </view>

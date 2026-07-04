@@ -22,7 +22,7 @@ Page({
       var defaultAddr = list.find(function(a) { return a.defaulted === 1; }) || list[0] || null;
       t.setData({ address: defaultAddr });
     }).catch(function(err) {
-      console.error("加载地址失败", err);
+      console.error("load address fail", err);
     });
   },
 
@@ -40,7 +40,7 @@ Page({
       });
       t.setData({ items: checkedItems, totalAmount: total.toFixed(2) });
     }).catch(function(err) {
-      console.error("加载购物车失败", err);
+      console.error("load cart fail", err);
     });
   },
 
@@ -57,15 +57,16 @@ Page({
   },
 
   submitOrder: function() {
+    var that = this;
     if (!this.data.address) {
-      wx.showToast({ title: "请选择收货地址", icon: "none" });
+      wx.showToast({ title: "please choose address", icon: "none" });
       return;
     }
     if (this.data.items.length === 0) {
-      wx.showToast({ title: "没有选中的商品", icon: "none" });
+      wx.showToast({ title: "no items selected", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "提交中..." });
+    wx.showLoading({ title: "submitting..." });
     var dto = {
       addressId: this.data.address.id,
       items: this.data.items.map(function(i) {
@@ -76,15 +77,19 @@ Page({
       }),
       remark: this.data.remark
     };
+    var amount = that.data.totalAmount;
     orderApi.create(dto).then(function(res) {
       wx.hideLoading();
-      wx.showToast({ title: "下单成功", icon: "success" });
-      setTimeout(function() {
-        wx.redirectTo({ url: "/subpages/order/detail/detail?id=" + (res.orderId || res.id || res) });
-      }, 1000);
+      var oid = res.orderId || res.id || res;
+      wx.showToast({ title: "order created", icon: "success" });
+      orderApi.detail(oid).then(function(order) {
+        wx.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=" + (order.orderNo || "") + "&amount=" + (order.payAmount || amount) });
+      }).catch(function() {
+        wx.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=&amount=" + amount });
+      });
     }).catch(function(err) {
       wx.hideLoading();
-      wx.showToast({ title: (err && err.message) || "下单失败，请重试", icon: "none" });
+      wx.showToast({ title: (err && err.message) || "order create fail", icon: "none" });
     });
   }
 });

@@ -1,4 +1,4 @@
-﻿package com.pat.payment.service.impl;
+package com.pat.payment.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;

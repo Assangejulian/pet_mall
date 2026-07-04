@@ -1,4 +1,4 @@
-﻿package com.pat.order.domain.vo;
+package com.pat.order.domain.vo;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;

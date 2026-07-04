@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <view class="order-header" v-if="order">
       <text class="order-no">订单号 {{order.orderNo}}</text>
@@ -74,7 +74,7 @@ export default {
         this.order = order; this.items = normalizedItems; this.addressParsed = addressParsed; this.addressText = addressText; this.loading = false;
       }).catch(() => { this.loading = false; uni.showToast({title:"加载失败",icon:"none"}); });
     },
-    payOrder() { if (!this.order?.orderNo) return; orderApi.pay(this.order.orderNo).then(() => { uni.showToast({title:"支付成功",icon:"success"}); this.loadOrder(this.order.id); }).catch(() => { uni.showToast({title:"支付失败",icon:"none"}); }); },
+    payOrder() { if (!this.order?.orderNo) return; uni.navigateTo({ url: '/subpages/order/pay?orderId=' + this.order.id + '&orderNo=' + this.order.orderNo + '&amount=' + (this.order.payAmount || '0.00') }); },
     confirmReceive() {
       uni.showModal({title:"确认收货",content:"确定已收到商品吗？",success:(r) => { if(r.confirm) orderApi.receive(this.order.id).then(() => { uni.showToast({title:"已确认收货",icon:"success"}); this.loadOrder(this.order.id); }); }});
     },
@@ -109,3 +109,4 @@ export default {
 .hint-icon{font-size:48rpx;flex-shrink:0}.hint-text{flex:1}.hint-title{display:block;font-size:28rpx;font-weight:600;color:#1565c0;margin-bottom:4rpx}
 .hint-desc{display:block;font-size:22rpx;color:#5a8ab5}.empty-tip{text-align:center;padding:120rpx 0;font-size:28rpx;color:#bbb}
 </style>
+

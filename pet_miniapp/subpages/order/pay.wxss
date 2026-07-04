@@ -12,7 +12,8 @@
 .method-left { display: flex; align-items: center; gap: 20rpx; }
 .method-icon { width: 60rpx; height: 60rpx; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 32rpx; }
 .method-icon.wechat { background: #07c160; }
-.method-icon.balance { background: #e8927c; }
+.method-icon.alipay { background: #1677ff; }
+.method-icon.mock { background: #999; }
 .method-name { font-size: 28rpx; color: #333; }
 .method-desc { font-size: 24rpx; color: #999; }
 .radio { width: 36rpx; height: 36rpx; border: 2rpx solid #ccc; border-radius: 50%; box-sizing: border-box; }
@@ -20,3 +21,12 @@
 
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx 40rpx; background: #fff; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.05); }
 .btn-pay { background: #e8927c; color: #fff; text-align: center; height: 88rpx; line-height: 88rpx; border-radius: 44rpx; font-size: 32rpx; font-weight: 600; }
+
+.alipay-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.alipay-card { background: #fff; border-radius: 16rpx; padding: 48rpx 40rpx; width: 600rpx; text-align: center; }
+.alipay-title { font-size: 32rpx; font-weight: 700; color: #333; display: block; margin-bottom: 16rpx; }
+.alipay-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 40rpx; line-height: 1.6; }
+.alipay-btns { display: flex; gap: 24rpx; }
+.btn-cancel, .btn-go { flex: 1; height: 80rpx; line-height: 80rpx; border-radius: 12rpx; font-size: 28rpx; }
+.btn-cancel { background: #f5f5f5; color: #666; }
+.btn-go { background: #1677ff; color: #fff; }

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <view class="section address-sec" v-if="address" @tap="goAddAddress">
       <view class="addr-info">
@@ -55,9 +55,15 @@ export default {
       if (!this.address) { uni.showToast({ title: "请选择收货地址", icon: "none" }); return; }
       if (!this.items.length) { uni.showToast({ title: "没有选中的商品", icon: "none" }); return; }
       const dto = { addressId: this.address.id, items: this.items.map(i => ({ productId: i.productId || i.productInfo?.id || i.id, quantity: i.quantity })), remark: this.remark };
+      const amount = this.totalAmount;
       orderApi.create(dto).then(res => {
+        const oid = res.orderId || res.id || res;
         uni.showToast({ title: "下单成功", icon: "success" });
-        setTimeout(() => { uni.redirectTo({ url: "/subpages/order/detail/detail?id=" + (res.orderId || res.id || res) }); }, 1000);
+        orderApi.detail(oid).then(order => {
+          uni.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=" + (order.orderNo || "") + "&amount=" + (order.payAmount || amount) });
+        }).catch(() => {
+          uni.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=&amount=" + amount });
+        });
       }).catch(err => { uni.showToast({ title: (err && err.message) || "下单失败", icon: "none" }); });
     }
   }

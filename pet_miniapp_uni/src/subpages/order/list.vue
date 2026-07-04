@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page">
     <scroll-view class="tabs" scroll-x>
       <view v-for="tab in tabList" :key="tab.v" class="tab" :class="{on:active===tab.v}" @tap="switchTab" :data-v="tab.v">{{tab.l}}</view>
@@ -43,7 +43,7 @@ export default {
     payOrder(e) {
       const id = e.currentTarget.dataset.id;
       const order = this.orders.find(o => o.id === id); if (!order) return;
-      orderApi.pay(order.orderNo).then(() => { uni.showToast({title:"支付成功",icon:"success"}); this.loadOrders(); }).catch(() => { uni.showToast({title:"支付失败",icon:"none"}); });
+      uni.navigateTo({ url: "/subpages/order/pay?orderId=" + order.id + "&orderNo=" + order.orderNo + "&amount=" + (order.payAmount || order.totalAmount || "0.00") });
     },
     goDetail(e) { uni.navigateTo({ url: "/subpages/order/detail/detail?id=" + e.currentTarget.dataset.id }); }
   }

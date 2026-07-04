@@ -19,6 +19,7 @@
         "order/pay",
         "order/evaluate",
         "order/refund/refund",
+        "order/webview/webview",
         "address/list",
         "login/login",
         "login/face_capture",
@@ -38,38 +39,17 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "视频"
-      },
-      {
-        "pagePath": "pages/store/list",
-        "text": "门店"
-      },
-      {
-        "pagePath": "pages/chat/chat",
-        "iconPath": "images/tab-chart.png",
-        "selectedIconPath": "images/tab-chart-active.png",
-        "text": "消息"
-      },
-      {
-        "pagePath": "pages/cart/cart",
-        "text": "购物车"
-      },
-      {
-        "pagePath": "pages/user/user",
-        "text": "我的"
-      }
+      { "pagePath": "pages/index/index", "text": "视频" },
+      { "pagePath": "pages/store/list", "text": "门店" },
+      { "pagePath": "pages/chat/chat", "iconPath": "images/tab-chart.png", "selectedIconPath": "images/tab-chart-active.png", "text": "消息" },
+      { "pagePath": "pages/cart/cart", "text": "购物车" },
+      { "pagePath": "pages/user/user", "text": "我的" }
     ]
   },
   "permission": {
-    "scope.userLocation": {
-      "desc": "用于展示附近营业门店和导航到店"
-    }
+    "scope.userLocation": { "desc": "用于展示附近营业门店和导航到店" }
   },
-  "requiredPrivateInfos": [
-    "getLocation"
-  ],
+  "requiredPrivateInfos": ["getLocation"],
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

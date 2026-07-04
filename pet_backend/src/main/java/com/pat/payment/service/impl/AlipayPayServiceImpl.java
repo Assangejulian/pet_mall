@@ -1,4 +1,4 @@
-﻿package com.pat.payment.service.impl;
+package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.DefaultAlipayClient;

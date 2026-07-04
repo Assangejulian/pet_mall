@@ -13,8 +13,8 @@ module.exports = {
     return request.get("/api/order/" + id);
   },
 
-  pay: function(orderNo) {
-    return request.post("/api/order/pay", { orderNo: orderNo });
+  pay: function(orderNo, payMethod) {
+    return request.post("/api/order/pay", { orderNo: orderNo, payMethod: payMethod });
   },
 
   receive: function(id) {

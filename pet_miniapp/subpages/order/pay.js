@@ -5,8 +5,10 @@ Page({
     orderId: "",
     orderNo: "",
     amount: "0.00",
-    payMethod: "WECHAT",
-    paying: false
+    payMethod: "mock",
+    paying: false,
+    alipayUrl: "",
+    showAlipay: false
   },
 
   onLoad: function(options) {
@@ -15,6 +17,10 @@ Page({
       orderNo: options.orderNo || "",
       amount: options.amount || "0.00"
     });
+  },
+
+  selectMethod: function(e) {
+    this.setData({ payMethod: e.currentTarget.dataset.method });
   },
 
   confirmPay: function() {
@@ -27,13 +33,17 @@ Page({
     that.setData({ paying: true });
     wx.showLoading({ title: "支付中...", mask: true });
 
-    orderApi.pay(that.data.orderNo, that.data.payMethod).then(function(res) {
+    var methodMap = { wechat: "WECHAT", alipay: "ALIPAY", mock: "mock" };
+    var payMethod = methodMap[that.data.payMethod] || "mock";
+
+    orderApi.pay(that.data.orderNo, payMethod).then(function(res) {
       wx.hideLoading();
 
-      // 微信小程序支付：调用 wx.requestPayment
-      if (that.data.payMethod === "WECHAT" && res && res.payUrl) {
-        var params;
-        try { params = JSON.parse(res.payUrl); } catch (e) { params = null; }
+      if (that.data.payMethod === "wechat") {
+        var params = null;
+        if (res && res.payParams) {
+          try { params = JSON.parse(res.payParams); } catch (e) {}
+        }
         if (params && params.paySign) {
           wx.requestPayment({
             timeStamp: params.timeStamp,
@@ -43,28 +53,53 @@ Page({
             paySign: params.paySign,
             success: function() {
               wx.showToast({ title: "支付成功", icon: "success" });
-              setTimeout(function() {
-                wx.redirectTo({ url: "/subpages/order/list?tab=1" });
-              }, 1500);
+              setTimeout(function() { wx.redirectTo({ url: "/subpages/order/list" }); }, 1500);
             },
-            fail: function(err) {
-              wx.showToast({ title: (err && err.errMsg) || "支付取消", icon: "none" });
+            fail: function() {
+              wx.showToast({ title: "支付取消", icon: "none" });
               that.setData({ paying: false });
             }
           });
-          return;
+        } else {
+          wx.showToast({ title: "微信支付暂不可用", icon: "none" });
+          that.setData({ paying: false });
         }
+        return;
       }
 
-      // Mock / Alipay：直接跳转成功
-      wx.showToast({ title: "支付成功", icon: "success" });
-      setTimeout(function() {
-        wx.redirectTo({ url: "/subpages/order/list?tab=1" });
-      }, 1500);
+      if (that.data.payMethod === "alipay") {
+        if (res && res.payUrl) {
+          that.setData({ alipayUrl: res.payUrl, showAlipay: true });
+        } else if (res && res.form) {
+          that.setData({ alipayUrl: res.form, showAlipay: true });
+        } else {
+          wx.showToast({ title: "支付宝支付暂不可用，请稍后重试", icon: "none" });
+          that.setData({ paying: false });
+        }
+        return;
+      }
+
+      // 模拟支付
+      if (that.data.payMethod === "mock") {
+        wx.showToast({ title: "模拟支付成功", icon: "success" });
+        setTimeout(function() { wx.redirectTo({ url: "/subpages/order/list" }); }, 1500);
+        return;
+      }
     }).catch(function(err) {
       wx.hideLoading();
       that.setData({ paying: false });
-      wx.showToast({ title: (err && err.message) || "支付失败，请重试", icon: "none" });
+      wx.showToast({ title: (err && err.message) || "支付失败", icon: "none" });
     });
+  },
+
+  closeAlipay: function() {
+    this.setData({ showAlipay: false, paying: false });
+  },
+
+  openAlipay: function() {
+    var url = this.data.alipayUrl;
+    this.setData({ showAlipay: false, paying: false });
+    if (!url) return;
+    wx.navigateTo({ url: "/subpages/order/webview/webview?url=" + encodeURIComponent(url) });
   }
 });
