@@ -1,4 +1,4 @@
-package com.pat.payment.service.impl;
+﻿package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.pat.order.domain.dto.PayNotifyDTO;
@@ -28,12 +28,16 @@ public class AliPaymentServiceImpl implements PaymentService {
         String subject = "宠铺 - " + order.getOrderNo();
 
         try {
+            // form: PC/H5 使用的自动提交表单
             String form = alipayPayService.createWapPayPage(
+                    order.getOrderNo(), subject, "", total);
+            // payUrl: 小程序 webview 可用的跳转链接
+            String payUrl = alipayPayService.createWapPayUrl(
                     order.getOrderNo(), subject, "", total);
 
             log.info("支付宝手机网站支付下单 orderNo={}, total={}", order.getOrderNo(), total);
             return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                    OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), form, null);
+                    OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), form, null, payUrl);
         } catch (AlipayApiException e) {
             log.error("支付宝下单异常 orderNo={}", order.getOrderNo(), e);
             throw new RuntimeException("支付宝支付下单失败: " + e.getErrMsg());

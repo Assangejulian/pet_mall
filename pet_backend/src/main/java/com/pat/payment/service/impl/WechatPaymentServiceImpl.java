@@ -1,4 +1,4 @@
-package com.pat.payment.service.impl;
+﻿package com.pat.payment.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
@@ -73,7 +73,7 @@ public class WechatPaymentServiceImpl implements PaymentService {
         log.info("微信小程序支付下单成功 orderNo={}, prepayId={}", order.getOrderNo(), prepayId);
         return new OrderPaymentVO(order.getId(), order.getOrderNo(),
                 OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), null,
-                JSONUtil.toJsonStr(payParams));
+                JSONUtil.toJsonStr(payParams), null);
     }
 
     /**

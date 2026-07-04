@@ -1,4 +1,4 @@
-package com.pat.payment.service.impl;
+﻿package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.DefaultAlipayClient;
@@ -29,6 +29,9 @@ public class AlipayPayServiceImpl {
         this.baseService = baseService;
     }
 
+    /**
+     * 创建支付宝手机网站支付表单（POST 方式，返回 HTML 表单）
+     */
     public String createWapPayPage(String outTradeNo,
                                    String subject,
                                    String body,
@@ -38,7 +41,30 @@ public class AlipayPayServiceImpl {
             return "<form data-mock=\"alipay\" data-order-no=\"" + outTradeNo + "\"></form>";
         }
 
-        DefaultAlipayClient client = new DefaultAlipayClient(
+        DefaultAlipayClient client = buildClient();
+        AlipayTradeWapPayRequest request = buildWapPayRequest(outTradeNo, subject, body, totalAmount);
+        return client.pageExecute(request).getBody();
+    }
+
+    /**
+     * 创建支付宝手机网站支付跳转 URL（GET 方式，适合小程序 webview 打开）
+     */
+    public String createWapPayUrl(String outTradeNo,
+                                  String subject,
+                                  String body,
+                                  String totalAmount) throws AlipayApiException {
+        if (isBlank(alipayConfig.getAppId()) || isBlank(alipayConfig.getPrivateKey())) {
+            log.warn("Alipay config is incomplete, returning mock URL orderNo={}", outTradeNo);
+            return "#";
+        }
+
+        DefaultAlipayClient client = buildClient();
+        AlipayTradeWapPayRequest request = buildWapPayRequest(outTradeNo, subject, body, totalAmount);
+        return client.pageExecute(request, "GET").getBody();
+    }
+
+    private DefaultAlipayClient buildClient() {
+        return new DefaultAlipayClient(
                 alipayConfig.getGateway(),
                 alipayConfig.getAppId(),
                 alipayConfig.getPrivateKey(),
@@ -46,7 +72,12 @@ public class AlipayPayServiceImpl {
                 alipayConfig.getCharset(),
                 alipayConfig.getAlipayPublicKey(),
                 alipayConfig.getSignType());
+    }
 
+    private AlipayTradeWapPayRequest buildWapPayRequest(String outTradeNo,
+                                                         String subject,
+                                                         String body,
+                                                         String totalAmount) {
         AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
         model.setOutTradeNo(outTradeNo);
         model.setSubject(subject);
@@ -58,7 +89,7 @@ public class AlipayPayServiceImpl {
         request.setBizModel(model);
         request.setNotifyUrl(alipayConfig.getNotifyUrl());
         request.setReturnUrl(alipayConfig.getReturnUrl());
-        return client.pageExecute(request).getBody();
+        return request;
     }
 
     @Transactional(rollbackFor = Exception.class)

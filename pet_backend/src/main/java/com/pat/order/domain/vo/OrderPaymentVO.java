@@ -1,4 +1,4 @@
-package com.pat.order.domain.vo;
+﻿package com.pat.order.domain.vo;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
@@ -30,4 +30,7 @@ public class OrderPaymentVO {
 
     @Schema(description = "支付参数（微信 JSAPI 支付调起参数 JSON）")
     private String payParams;
+
+    @Schema(description = "支付跳转链接（支付宝跳转 URL）")
+    private String payUrl;
 }

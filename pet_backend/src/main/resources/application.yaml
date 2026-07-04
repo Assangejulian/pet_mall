@@ -91,7 +91,7 @@ alipay:
   app-id: ${ALIPAY_APPID:}
   private-key: ${ALIPAY_PRIVATE_KEY:}
   alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
-  gateway: https://openapi.alipaydev.com/gateway.do
+  gateway: ${ALIPAY_GATEWAY:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
   notify-url: ${ALIPAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/alipay}
   return-url: ${ALIPAY_RETURN_URL:http://127.0.0.1:8080/#/order/result}
   sign-type: RSA2
