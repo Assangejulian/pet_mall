@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.domain.Result;
+import com.pat.common.util.StatusDisplayUtil;
 import com.pat.common.exception.BusinessException;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
@@ -72,7 +73,7 @@ public class StoreController {
     private StoreVO toVO(Store entity) {
         StoreVO vo = new StoreVO();
         BeanUtil.copyProperties(entity, vo);
-        vo.setStatusText(statusText(entity.getStatus()));
+        vo.setStatusText(StatusDisplayUtil.storeStatus(entity.getStatus()));
         vo.setProductCount(storeService.countActiveProducts(entity.getId()));
         return vo;
     }
@@ -80,14 +81,4 @@ public class StoreController {
 
 
 
-    private String statusText(Integer status) {
-        if (status == null) return null;
-        return switch (status) {
-            case 0 -> "待审核";
-            case 1 -> "营业中";
-            case 2 -> "已关闭";
-            case 3 -> "审核驳回";
-            default -> String.valueOf(status);
-        };
-    }
 }

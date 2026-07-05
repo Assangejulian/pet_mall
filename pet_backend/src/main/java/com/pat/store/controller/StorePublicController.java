@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import cn.hutool.core.bean.BeanUtil;
 import com.pat.common.domain.Result;
+import com.pat.common.util.StatusDisplayUtil;
 import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.domain.vo.ProductVO;
@@ -163,34 +164,16 @@ public class StorePublicController {
         vo.setStock(product.getStock());
         vo.setMainImage(product.getMainImage());
         vo.setImages(product.getImages());
-        vo.setStatus(statusText(product.getStatus()));
+        vo.setStatus(StatusDisplayUtil.productStatus(product.getStatus()));
         vo.setStatusCode(product.getStatus());
         vo.setVideoId(product.getVideoId());
         vo.setCreateTime(product.getCreateTime());
         vo.setUpdateTime(product.getUpdateTime());
         vo.setName(product.getProductName());
-        vo.setType(productTypeText(product.getProductType()));
+        vo.setType(StatusDisplayUtil.productType(product.getProductType()));
         vo.setDetail(product.getProductDesc());
         vo.setImage(product.getMainImage());
         return vo;
     }
 
-    private String statusText(Integer status) {
-        if (status == null) {
-            return null;
-        }
-        return switch (status) {
-            case 0 -> "下架";
-            case 1 -> "上架";
-            case 2 -> "已售出";
-            default -> String.valueOf(status);
-        };
-    }
-
-    private String productTypeText(Integer productType) {
-        if (productType == null) {
-            return null;
-        }
-        return productType == 1 ? "活体宠物" : "宠物用品/周边";
-    }
 }

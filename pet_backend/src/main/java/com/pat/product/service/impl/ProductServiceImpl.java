@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.product.helper.ProductStateMachine;
 import com.pat.common.exception.BusinessException;
+import com.pat.common.util.StatusDisplayUtil;
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
@@ -94,20 +95,33 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         boolean soldProduct = oldProduct.getStatus() == STATUS_SOLD;
 
-        Long storeId = resolveUpdateStoreId(oldProduct, dto, soldProduct);
-        Integer productType = resolveUpdateProductType(oldProduct, dto, soldProduct);
-        Integer stock = resolveUpdateStock(oldProduct, dto, soldProduct);
-        BigDecimal price = resolveUpdatePrice(oldProduct, dto);
-        Integer status = resolveUpdateStatus(oldProduct, dto, soldProduct);
-        String images = resolveUpdateImages(oldProduct, dto);
-        validateBusinessRules(productType, stock, price, status, soldProduct);
-
-        Product product = buildUpdateProduct(oldProduct, dto, storeId, productType, stock, price, status, images);
+        Product product = mergeUpdateFields(oldProduct, dto, soldProduct);
 
         if (!updateById(product)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品修改失败");
         }
         return toVO(getActiveProduct(id));
+    }
+
+    /**
+     * Merge updated fields: sold products keep immutable identity fields.
+     */
+    private Product mergeUpdateFields(Product old, ProductUpdateDTO dto, boolean sold) {
+        boolean soldPet = sold && old.getProductType() == TYPE_PET;
+        Long storeId = sold ? old.getStoreId()
+                : (dto.getStoreId() != null ? checkUpdateStore(dto.getStoreId(), old.getStoreId()) : old.getStoreId());
+        Integer productType = (soldPet || dto.getProductType() == null) ? old.getProductType() : dto.getProductType();
+        Integer stock = soldPet ? 0 : (dto.getStock() == null ? old.getStock() : dto.getStock());
+        BigDecimal price = dto.getPrice() == null ? old.getPrice() : dto.getPrice();
+        Integer status = sold ? STATUS_SOLD : parseEditableStatus(dto.getStatus(), old.getStatus());
+        String images = dto.getImages() == null ? old.getImages() : normalizeImages(dto.getImages());
+        validateBusinessRules(productType, stock, price, status, sold);
+        return Product.mergeFrom(old, dto, storeId, productType, stock, price, status, images);
+    }
+
+    private Long checkUpdateStore(Long newStoreId, Long oldStoreId) {
+        if (!newStoreId.equals(oldStoreId)) checkOperatingStore(newStoreId);
+        return newStoreId;
     }
 
     @Override
@@ -171,14 +185,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .eq(Product::getStatus, STATUS_ONLINE)
                 .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1");
-        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
+        return convertPage(page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper));
     }
     @Override
     public ProductPageVO pageAdminProducts(ProductQueryDTO query) {
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
-        Page<Product> result = page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper);
+        Page<Product> result = page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper);
         Map<Long, Store> storeMap = loadStoreMap(result.getRecords());
         return new ProductPageVO(result.getRecords().stream().map(product -> toVO(product, storeMap)).toList(),
                 result.getTotal(), result.getCurrent(), result.getSize());
@@ -207,12 +221,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
         if (storeIds.isEmpty()) {
-            return convertPage(new Page<>(resolvePageNum(query), resolvePageSize(query)));
+            return convertPage(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))));
         }
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .in(Product::getStoreId, storeIds)
                 .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
-        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
+        return convertPage(page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper));
     }
     @Override
     public Product requireOwnedProduct(Long productId, Long merchantUserId) {
@@ -416,99 +430,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
-     * 解析更新时的店铺 ID。已售出商品不可换店。
-     *
-     * @param oldProduct 原商品
-     * @param dto        更新参数
-     * @param soldProduct 是否已售出
-     * @return 最终的店铺 ID
-     */
-    private Long resolveUpdateStoreId(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        if (soldProduct) return oldProduct.getStoreId();
-        Long storeId = dto.getStoreId() != null ? dto.getStoreId() : oldProduct.getStoreId();
-        if (!storeId.equals(oldProduct.getStoreId())) {
-            checkOperatingStore(storeId);
-        }
-        return storeId;
-    }
-
-    /**
-     * 解析更新时的商品类型。已售出宠物的类型不可变更。
-     *
-     * @param oldProduct  原商品
-     * @param dto         更新参数
-     * @param soldProduct 是否已售出
-     * @return 商品类型
-     */
-    private Integer resolveUpdateProductType(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
-        return (soldPet || dto.getProductType() == null) ? oldProduct.getProductType() : dto.getProductType();
-    }
-
-    /**
-     * 解析更新时的库存。已售出宠物库存强制为 0。
-     *
-     * @param oldProduct  原商品
-     * @param dto         更新参数
-     * @param soldProduct 是否已售出
-     * @return 库存数量
-     */
-    private Integer resolveUpdateStock(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        boolean soldPet = soldProduct && oldProduct.getProductType() == TYPE_PET;
-        return soldPet ? 0 : (dto.getStock() == null ? oldProduct.getStock() : dto.getStock());
-    }
-
-    /**
-     * 解析更新时的价格，未传则保留原价。
-     *
-     * @param oldProduct 原商品
-     * @param dto        更新参数
-     * @return 价格
-     */
-    private BigDecimal resolveUpdatePrice(Product oldProduct, ProductUpdateDTO dto) {
-        return dto.getPrice() == null ? oldProduct.getPrice() : dto.getPrice();
-    }
-
-    /**
-     * 解析更新时的状态，已售出商品保持售出状态不变。
-     *
-     * @param oldProduct  原商品
-     * @param dto         更新参数
-     * @param soldProduct 是否已售出
-     * @return 状态码
-     */
-    private Integer resolveUpdateStatus(Product oldProduct, ProductUpdateDTO dto, boolean soldProduct) {
-        return soldProduct ? STATUS_SOLD : parseEditableStatus(dto.getStatus(), oldProduct.getStatus());
-    }
-
-    /**
-     * 解析更新时的图片 JSON，未传则保留原图。
-     *
-     * @param oldProduct 原商品
-     * @param dto        更新参数
-     * @return 图片 JSON 串
-     */
-    private String resolveUpdateImages(Product oldProduct, ProductUpdateDTO dto) {
-        return dto.getImages() == null ? oldProduct.getImages() : normalizeImages(dto.getImages());
-    }
-
-    /**
-     * 构造更新后的商品对象，委托给 {@link Product#mergeFrom}。
-     *
-     * @param oldProduct  原商品
-     * @param dto         更新参数
-     * @param storeId     店铺 ID
-     * @param productType 商品类型
-     * @param stock       库存
-     * @param price       价格
-     * @param status      状态
-     * @param images      图片 JSON
-     * @return 待保存的商品实体
-     */
-    private Product buildUpdateProduct(Product oldProduct, ProductUpdateDTO dto, Long storeId, Integer productType, Integer stock, BigDecimal price, Integer status, String images) {
-        return Product.mergeFrom(oldProduct, dto, storeId, productType, stock, price, status, images);
-    }
-    /**
      * 构建商品分页查询的公共查询条件（模糊搜索、店铺/类型/类目过滤）。
      * 各分页方法在此基础上追加自身差异化条件（如状态过滤、数据范围）。
      *
@@ -516,8 +437,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return 基础查询构造器
      */
     private LambdaQueryWrapper<Product> buildBaseWrapper(ProductQueryDTO query) {
-        String keyword = resolveKeyword(query);
-        Integer productType = resolveProductType(query);
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword().trim() : null;
+        Integer productType = query.getProductType();
         return new LambdaQueryWrapper<Product>()
                 .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
                 .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
@@ -565,7 +486,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setStock(product.getStock());
         vo.setMainImage(product.getMainImage());
         vo.setImages(product.getImages());
-        vo.setStatus(statusText(product.getStatus()));
+        vo.setStatus(StatusDisplayUtil.productStatus(product.getStatus()));
         vo.setStatusCode(product.getStatus());
         vo.setVideoId(product.getVideoId());
         vo.setOfflineReason(product.getOfflineReason());
@@ -575,7 +496,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setCreateTime(product.getCreateTime());
         vo.setUpdateTime(product.getUpdateTime());
         vo.setName(product.getProductName());
-        vo.setType(productTypeText(product.getProductType()));
+        vo.setType(StatusDisplayUtil.productType(product.getProductType()));
         vo.setDetail(product.getProductDesc());
         vo.setImage(product.getMainImage());
         vo.setStore(toStoreVO(storeMap.get(product.getStoreId())));
@@ -596,21 +517,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setDistrict(store.getDistrict());
         vo.setAddress(store.getAddress());
         vo.setStatus(store.getStatus());
-        vo.setStatusText(storeStatusText(store.getStatus()));
+        vo.setStatusText(StatusDisplayUtil.storeStatus(store.getStatus()));
         return vo;
-    }
-
-    private String storeStatusText(Integer status) {
-        if (status == null) {
-            return "--";
-        }
-        return switch (status) {
-            case 0 -> "待审核";
-            case 1 -> "营业中";
-            case 2 -> "已关闭";
-            case 3 -> "审核驳回";
-            default -> String.valueOf(status);
-        };
     }
 
     private Integer parseEditableStatus(String status, Integer defaultStatus) {
@@ -625,46 +533,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品状态只能为0、1或上架、下架");
         };
     }
-
-    private String statusText(Integer status) {
-        if (status == null) {
-            return "--";
-        }
-        return switch (status) {
-            case STATUS_OFFLINE -> "下架";
-            case STATUS_ONLINE -> "上架";
-            case STATUS_SOLD -> "已售出";
-            default -> String.valueOf(status);
-        };
-    }
-
-    private String productTypeText(Integer productType) {
-        if (productType == null) {
-            return "--";
-        }
-        return productType == TYPE_PET ? "活体宠物" : "宠物用品/周边";
-    }
-
-    /**
-     * 解析查询参数中的商品类型，支持数字/中文入参。
-     *
-     * @param query 查询参数
-     * @return 商品类型编码（1活体宠物/2宠物用品），null 表示不限制
-     */
-    private Integer resolveProductType(ProductQueryDTO query) {
-        if (query.getProductType() != null) {
-            return query.getProductType();
-        }
-        if (!StringUtils.hasText(query.getType())) {
-            return null;
-        }
-        return switch (query.getType().trim()) {
-            case "1", "宠物", "活体宠物" -> TYPE_PET;
-            case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> TYPE_GOODS;
-            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品类型只能为1、2、活体宠物或宠物用品/周边");
-        };
-    }
-
     private boolean requestsOnline(String status) {
         return StringUtils.hasText(status) && ("1".equals(status.trim()) || "上架".equals(status.trim()));
     }
@@ -680,39 +548,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
-    /**
-     * 解析查询关键词，兼容 keyword 和 productName 两个字段。
-     *
-     * @param query 查询参数
-     * @return 去掉首尾空白的搜索词，null 表示不搜索
-     */
-    private String resolveKeyword(ProductQueryDTO query) {
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
-        return StringUtils.hasText(keyword) ? keyword.trim() : null;
-    }
-
-
-
-    /**
-     * 解析分页页码，兼容 page 和 pageNum 两个字段。
-     *
-     * @param query 查询参数
-     * @return 页码（默认 1）
-     */
-    private long resolvePageNum(ProductQueryDTO query) {
-        return query.getPage() != null ? query.getPage() : (query.getPageNum() == null ? 1L : query.getPageNum());
-    }
-
-    /**
-     * 解析分页大小，兼容 size 和 pageSize 两个字段，上限 100。
-     *
-     * @param query 查询参数
-     * @return 每页条数（默认 10，最大 100）
-     */
-    private long resolvePageSize(ProductQueryDTO query) {
-        Long size = query.getSize() != null ? query.getSize() : query.getPageSize();
-        return size == null ? 10L : Math.min(size, 100L);
-    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

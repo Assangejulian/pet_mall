@@ -19,17 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements IStoreService {
-
-    private static final double EARTH_RADIUS_KM = 6371.0088;
 
     private record StoreStatusChange(
             Integer targetStatus,
@@ -132,7 +127,12 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public List<Long> getStoreIdsByUserId(Long userId) {
-        return getStoresByUserId(userId).stream().map(Store::getId).collect(Collectors.toList());
+        List<Store> stores = getStoresByUserId(userId);
+        List<Long> ids = new java.util.ArrayList<>(stores.size());
+        for (Store s : stores) {
+            ids.add(s.getId());
+        }
+        return ids;
     }
 
     @Override
@@ -153,63 +153,27 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "附近门店查询参数不能为空");
         }
         query.validate();
-        BigDecimal radiusKm = query.resolvedRadiusKm();
+        double lat = query.getLatitude().doubleValue();
+        double lng = query.getLongitude().doubleValue();
+        double radiusKm = query.resolvedRadiusKm().doubleValue();
         long current = query.resolvedCurrent();
         long size = query.resolvedSize();
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : null;
+        String city = StringUtils.hasText(query.getCity()) ? query.getCity() : null;
 
-        List<NearbyStoreRow> allStores = baseMapper.selectAllActiveStores();
-        if (allStores == null || allStores.isEmpty()) {
+        long total = baseMapper.countNearby(lat, lng, radiusKm, keyword, city);
+        if (total == 0) {
             Page<NearbyStoreRow> empty = new Page<>(current, size, 0);
             empty.setRecords(Collections.emptyList());
             return empty;
         }
 
-        List<NearbyStoreRow> filtered = allStores.stream()
-                .filter(s -> s.getLatitude() != null && s.getLongitude() != null)
-                .filter(s -> {
-                    if (StringUtils.hasText(query.getKeyword())) {
-                        return s.getStoreName() != null && s.getStoreName().contains(query.getKeyword());
-                    }
-                    return true;
-                })
-                .filter(s -> {
-                    if (StringUtils.hasText(query.getCity())) {
-                        return query.getCity().equals(s.getCity());
-                    }
-                    return true;
-                })
-                .map(s -> {
-                    double dist = haversineKm(
-                            query.getLongitude().doubleValue(),
-                            query.getLatitude().doubleValue(),
-                            s.getLongitude().doubleValue(),
-                            s.getLatitude().doubleValue());
-                    s.setDistanceKm(BigDecimal.valueOf(dist));
-                    return s;
-                })
-                .filter(s -> s.getDistanceKm().compareTo(radiusKm) <= 0)
-                .sorted(Comparator.comparingDouble(
-                        s -> s.getDistanceKm() != null ? s.getDistanceKm().doubleValue() : Double.MAX_VALUE))
-                .collect(Collectors.toList());
-
-        long total = filtered.size();
-        long from = (current - 1) * size;
-        long to = Math.min(from + size, total);
-        List<NearbyStoreRow> pageRows = (from < total) ? filtered.subList((int) from, (int) to) : Collections.emptyList();
+        long offset = (current - 1) * size;
+        List<NearbyStoreRow> rows = baseMapper.searchNearbyPage(lat, lng, radiusKm, keyword, city, offset, size);
 
         Page<NearbyStoreRow> result = new Page<>(current, size, total);
-        result.setRecords(pageRows);
+        result.setRecords(rows);
         return result;
-    }
-
-    private double haversineKm(double lng1, double lat1, double lng2, double lat2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLng = Math.toRadians(lng2 - lng1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-        double c = 2 * Math.atan2(Math.sqrt(Math.min(1.0, a)), Math.sqrt(Math.max(0.0, 1.0 - a)));
-        return EARTH_RADIUS_KM * c;
     }
 
     @Override

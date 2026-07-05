@@ -104,6 +104,8 @@ wechat-pay:
   private-key: ${WECHAT_PAY_PRIVATE_KEY:}
   api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
   notify-url: ${WECHAT_PAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/wechat}
+
+oss:
   endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
   access-key-id: ${OSS_ACCESS_KEY_ID:}
   access-key-secret: ${OSS_ACCESS_KEY_SECRET:}

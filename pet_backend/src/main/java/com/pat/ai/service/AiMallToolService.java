@@ -74,13 +74,10 @@ public class AiMallToolService {
                                      @P(value = "Page size, default 5", required = false) Integer size) {
             ProductQueryDTO query = new ProductQueryDTO();
             query.setKeyword(keyword);
-            query.setProductName(keyword);
             query.setCategory(category);
             query.setProductType(productType);
             query.setPage(page == null ? 1L : page.longValue());
             query.setSize(size == null ? 5L : Math.min(size.longValue(), 10L));
-            query.setPageNum(query.getPage());
-            query.setPageSize(query.getSize());
             IPage<ProductVO> result = productService.pagePublicProducts(query);
             return json(Map.of(
                     "total", result.getTotal(),

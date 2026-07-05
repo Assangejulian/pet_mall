@@ -451,3 +451,44 @@ public class SmsHelper {
 ---
 
 > **使用方式**：本文件放项目根目录 specs/base-rules.md，AI 生成代码时自动读取。各模块 Spec 只写差异化内容，不重复本文件已覆盖的规则。
+
+---
+
+## 14. Stream 与循环规范
+
+### 14.1 原则
+
+Stream 和 for 循环是**等价的工具**，选择可读性更好的那个，不为纳秒级性能差异牺牲代码清晰度。
+
+### 14.2 禁止的行为
+
+| 行为 | 示例 | 替代方案 |
+|------|------|---------|
+| Lambda 体内超过 3 行业务逻辑 | \.filter(s -> { if (...) return ...; if (...) ... })\ | 抽为独立方法 \yCondition(s)\ |
+| Stream 内抛出受检异常 | \.map(s -> { throw new Exception() })\ | 封装为 RuntimeException |
+| \.forEach()\ 内调用远程服务/DB | \.forEach(item -> svc.update(item))\ | 批量接口或 for 循环 + 事务 |
+
+### 14.3 推荐使用 Stream
+
+- **DTO → VO 转换**：\list.stream().map(this::toVO).toList()\
+- **聚合统计**：\groupingBy\、\ilter + count\、\summarizingInt\
+- **List → Map 索引**：\Collectors.toMap(Entity::getId, Func.identity())\
+- **多级过滤 + 映射**：\ilter → map → sorted → collect\
+
+### 14.4 推荐使用 for 循环
+
+- 循环体内有超过 3 行的复杂分支逻辑
+- 需要 \reak\ / \eturn\ 提前终止
+- 循环体内修改外部变量（Stream 要求无副作用）
+
+### 14.5 判断流程
+
+\\\
+逻辑是否超过 3 行？      → 是 → 抽方法，for/Stream 皆可
+lambda 体内有 try-catch？ → 是 → 用 for
+需要提前 break？         → 是 → 用 for
+是 DTO→VO 转换？         → 是 → 用 Stream（一行搞定）
+纯提取 ID 列表？          → 两者均可，选顺手的
+\\\
+
+> **性能提醒**：优化重心在 SQL（附近门店计算下沉到数据库）和缓存层，不在 Stream vs for 的纳秒级差异。

@@ -1,8 +1,9 @@
 package com.pat.user.controller;
-import cn.hutool.core.bean.BeanUtil;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.pat.common.controller.BaseController;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.Result;
 import com.pat.user.domain.dto.UserQueryParam;
 import com.pat.user.domain.entity.User;
@@ -10,25 +11,87 @@ import com.pat.user.service.UserService;
 import com.pat.user.domain.vo.UserVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/user")
 @Tag(name = "用户管理（后台）")
-public class UserAdminController extends BaseController<User, UserQueryParam, UserVO> {
+public class UserAdminController {
+
+    private final UserService userService;
 
     public UserAdminController(UserService userService) {
-        super(userService);
+        this.userService = userService;
     }
 
-    @Override
-    protected UserVO toVO(User entity) {
+    @GetMapping("/{id}")
+    public Result<UserVO> getById(@PathVariable Long id) {
+        User entity = userService.getById(id);
+        return entity == null ? Result.error("数据不存在") : Result.success(toVO(entity));
+    }
+
+    @PostMapping
+    public Result<Boolean> save(@RequestBody @Valid UserQueryParam param) {
+        User entity = toDO(param);
+        return Result.success(userService.save(entity));
+    }
+
+    @PutMapping("/{id}")
+    public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid UserQueryParam param) {
+        User entity = toDO(param);
+        entity.setId(id);
+        return Result.success(userService.updateById(entity));
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<Boolean> remove(@PathVariable Long id) {
+        return Result.success(userService.removeById(id));
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
+        return Result.success(userService.removeByIds(ids));
+    }
+
+    @GetMapping("/search")
+    public Result<IPage<UserVO>> search(UserQueryParam param, Page<User> page) {
+        Page<User> result = userService.page(page, buildQueryWrapper(param));
+        return Result.success(result.convert(this::toVO));
+    }
+
+    @GetMapping("/list")
+    public Result<List<UserVO>> getList(UserQueryParam param) {
+        List<User> list = userService.list(buildQueryWrapper(param));
+        return Result.success(list.stream().map(this::toVO).toList());
+    }
+
+    @GetMapping("/by-ids")
+    public Result<List<UserVO>> getByIds(@RequestParam List<Long> ids) {
+        List<User> list = userService.listByIds(ids);
+        return Result.success(list.stream().map(this::toVO).toList());
+    }
+
+    @PostMapping("/batch")
+    public Result<Boolean> saveBatch(@RequestBody @Valid List<UserQueryParam> paramList) {
+        List<User> entities = paramList.stream().map(this::toDO).toList();
+        return Result.success(userService.saveBatch(entities));
+    }
+
+    @PutMapping("/batch")
+    public Result<Boolean> updateBatch(@RequestBody @Valid List<UserQueryParam> paramList) {
+        List<User> entities = paramList.stream().map(this::toDO).toList();
+        return Result.success(userService.updateBatchById(entities));
+    }
+
+    private UserVO toVO(User entity) {
         UserVO vo = new UserVO();
         BeanUtil.copyProperties(entity, vo);
         return vo;
     }
 
-    @Override
-    protected User toDO(UserQueryParam param) {
+    private User toDO(UserQueryParam param) {
         User user = new User();
         if (param != null) {
             user.setUsername(param.getKeyword());
@@ -37,8 +100,7 @@ public class UserAdminController extends BaseController<User, UserQueryParam, Us
         return user;
     }
 
-    @Override
-    protected QueryWrapper<User> buildQueryWrapper(UserQueryParam param) {
+    private QueryWrapper<User> buildQueryWrapper(UserQueryParam param) {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("create_time");
         if (param == null) return wrapper;

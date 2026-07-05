@@ -66,9 +66,10 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         }
 
         // 批量查询商品信息
-        List<Long> productIds = carts.stream()
-                .map(Cart::getProductId)
-                .collect(Collectors.toList());
+        List<Long> productIds = new ArrayList<>(carts.size());
+        for (Cart cart : carts) {
+            productIds.add(cart.getProductId());
+        }
         List<Product> products = productService.listByIds(productIds);
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
