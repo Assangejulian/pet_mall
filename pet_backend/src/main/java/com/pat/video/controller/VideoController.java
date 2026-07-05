@@ -1,9 +1,12 @@
 package com.pat.video.controller;
 
+import com.aliyun.oss.ClientException;
+import com.aliyun.oss.OSSException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.Result;
+import com.pat.common.util.OssUploadUtil;
 import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
 import com.pat.video.domain.entity.Comment;
@@ -14,6 +17,7 @@ import com.pat.video.domain.entity.Video;
 import com.pat.video.service.ICommentService;
 import com.pat.video.service.IVideoService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,6 +35,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
+@Slf4j
 @Tag(name = "视频管理", description = "视频 Feed/播放/点赞/评论")
 @RequestMapping("/api/video")
 public class VideoController {
@@ -47,6 +51,9 @@ public class VideoController {
 
     @Resource
     private OrderQueryMapper orderQueryMapper;
+
+    @Resource
+    private OssUploadUtil ossUploadUtil;
 
     @Operation(summary = "视频分页搜索")
     @GetMapping("/search")
@@ -177,19 +184,12 @@ public class VideoController {
             return Result.error(400, "文件不能为空");
         }
         try {
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
-            File dir = new File(uploadDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-            String originalFilename = file.getOriginalFilename();
-            String extension = originalFilename != null && originalFilename.contains(".")
-                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                    : ".mp4";
-            String newFilename = UUID.randomUUID().toString().replace("-", "") + extension;
-            file.transferTo(new File(uploadDir + newFilename));
-            return Result.success("/uploads/" + newFilename);
-        } catch (IOException e) {
+            return Result.success(ossUploadUtil.upload(file));
+        } catch (IllegalStateException ex) {
+            log.warn("OSS 视频上传配置不可用: {}", ex.getMessage());
+            return Result.error(500, ex.getMessage());
+        } catch (OSSException | ClientException | IOException ex) {
+            log.error("OSS 视频上传失败", ex);
             return Result.error(500, "文件上传失败");
         }
     }

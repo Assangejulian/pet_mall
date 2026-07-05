@@ -78,16 +78,24 @@ function closeDetail() {
   selectedStore.value = null
 }
 
+function getGaodeUrl(store: NearbyStore) {
+  const storeName = encodeURIComponent(store.storeName)
+  return `https://uri.amap.com/navigation?to=${store.longitude},${store.latitude},${storeName}&mode=car&coordinate=gaode`
+}
+
+function getBaiduUrl(store: NearbyStore) {
+  const storeName = encodeURIComponent(store.storeName)
+  return `https://api.map.baidu.com/direction?destination=latlng:${store.latitude},${store.longitude}|name:${storeName}&coord_type=gcj02&mode=driving&output=html&src=petStoreApp`
+}
+
 /** 高德地图导航 */
 function navigateWithGaode(store: NearbyStore) {
-  const url = https://uri.amap.com/navigation?to=,,&mode=car&coordinate=gaode
-  window.open(url, '_blank')
+  window.open(getGaodeUrl(store), '_blank')
 }
 
 /** 百度地图导航 */
 function navigateWithBaidu(store: NearbyStore) {
-  const url = https://api.map.baidu.com/direction?destination=latlng:,|name:&coord_type=gcj02&mode=driving&output=html&src=petStoreApp
-  window.open(url, '_blank')
+  window.open(getBaiduUrl(store), '_blank')
 }
 
 function formatDistance(d: number | undefined): string {
@@ -204,10 +212,10 @@ function changeRadius(delta: number) {
         </div>
       </div>
       <div class="panel-actions">
-        <a class="nav-btn gaode" :href="https://uri.amap.com/navigation?to=,,&mode=car&coordinate=gaode" target="_blank">
+        <a class="nav-btn gaode" :href="getGaodeUrl(selectedStore)" target="_blank">
           🗺️ 高德导航
         </a>
-        <a class="nav-btn baidu" :href="https://api.map.baidu.com/direction?destination=latlng:,|name:&coord_type=gcj02&mode=driving&output=html&src=petStoreApp" target="_blank">
+        <a class="nav-btn baidu" :href="getBaiduUrl(selectedStore)" target="_blank">
           🗺️ 百度导航
         </a>
       </div>

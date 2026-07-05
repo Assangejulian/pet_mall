@@ -196,7 +196,8 @@ public class AiMallToolService {
 
         @Tool(name = "request_create_order", value = "Prepare creating an order. This only creates a pending action and requires user confirmation. itemsJson must be a JSON array with productId and quantity.")
         public String requestCreateOrder(@P("Address id") Long addressId,
-                                         @P("JSON array, e.g. [{\"productId\":1,\"quantity\":2}]") String itemsJson) {
+                                         @P("JSON array, e.g. [{\"productId\":1,\"quantity\":2}]") String itemsJson,
+                                         @P(value = "Order remark, optional", required = false) String remark) {
             List<Map<String, Object>> items;
             try {
                 items = objectMapper.readValue(itemsJson, new TypeReference<>() {});
@@ -206,6 +207,9 @@ public class AiMallToolService {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("addressId", addressId);
             payload.put("items", items);
+            if (StringUtils.hasText(remark)) {
+                payload.put("remark", remark);
+            }
             return pending(PendingAiActionService.CREATE_ORDER, "Create order",
                     "Create order with " + items.size() + " item(s)", payload);
         }

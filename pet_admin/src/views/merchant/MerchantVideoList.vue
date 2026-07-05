@@ -255,16 +255,94 @@ async function loadProducts() {
   } catch {}
 }
 
+type VideoSnapshot = {
+  blob: Blob
+  duration: number
+}
+
 function triggerVideoUpload() { uploadVideoRef.value?.click() }
 function triggerCoverUpload() { uploadCoverRef.value?.click() }
 
-async function uploadFile(file: File): Promise<string> {
+async function uploadFile(file: Blob, filename?: string): Promise<string> {
   const formData = new FormData()
-  formData.append("file", file)
+  const uploadFilename = filename || (file instanceof File ? file.name : "upload.bin")
+  formData.append("file", file, uploadFilename)
   const res = await publicHttp.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" }
+  }) as { data?: string } | string
+  const url = typeof res === "string" ? res : (res.data || "")
+  if (!url) {
+    throw new Error("Upload response is empty")
+  }
+  return url
+}
+
+function buildCoverFilename(filename: string) {
+  const dotIndex = filename.lastIndexOf(".")
+  const baseName = dotIndex > 0 ? filename.substring(0, dotIndex) : filename
+  return baseName + "-cover.jpg"
+}
+
+function captureFirstFrame(file: File): Promise<VideoSnapshot> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const video = document.createElement("video")
+    let settled = false
+    let timeoutId = 0
+
+    const finish = (callback: () => void) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeoutId)
+      URL.revokeObjectURL(objectUrl)
+      callback()
+    }
+
+    const capture = () => {
+      const width = video.videoWidth || 720
+      const height = video.videoHeight || 1280
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext("2d")
+      if (!context) {
+        finish(() => reject(new Error("Canvas is not supported")))
+        return
+      }
+
+      context.drawImage(video, 0, 0, width, height)
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          finish(() => reject(new Error("Failed to create cover image")))
+          return
+        }
+        const duration = Number.isFinite(video.duration) ? Math.round(video.duration) : 0
+        finish(() => resolve({ blob, duration }))
+      }, "image/jpeg", 0.86)
+    }
+
+    video.preload = "metadata"
+    video.muted = true
+    video.playsInline = true
+    video.onerror = () => finish(() => reject(new Error("Failed to load video")))
+    video.onseeked = capture
+    video.onloadeddata = () => {
+      if (video.currentTime === 0) {
+        capture()
+      }
+    }
+    video.onloadedmetadata = () => {
+      if (Number.isFinite(video.duration)) {
+        form.value.duration = Math.round(video.duration)
+      }
+      video.currentTime = video.duration && video.duration > 0.2 ? 0.1 : 0
+    }
+    timeoutId = window.setTimeout(() => {
+      finish(() => reject(new Error("Timed out while reading video")))
+    }, 10000)
+    video.src = objectUrl
+    video.load()
   })
-  return res.data || res
 }
 
 async function handleVideoUpload(e: Event) {
@@ -274,7 +352,16 @@ async function handleVideoUpload(e: Event) {
   uploading.value = true
   try {
     form.value.url = await uploadFile(file)
-    notify("视频上传成功")
+    try {
+      const snapshot = await captureFirstFrame(file)
+      if (snapshot.duration) {
+        form.value.duration = snapshot.duration
+      }
+      form.value.cover = await uploadFile(snapshot.blob, buildCoverFilename(file.name))
+      notify("视频和封面上传成功")
+    } catch {
+      notify("视频上传成功，封面生成失败，请手动上传封面", "error")
+    }
   } catch {
     notify("视频上传失败", "error")
   } finally {
