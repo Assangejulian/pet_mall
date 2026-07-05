@@ -164,7 +164,14 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue"
-import { deleteAiSession, sendAiMessage, streamAiMessage, type AiRecommendation } from "../api/ai"
+import {
+  confirmAiAction,
+  deleteAiSession,
+  sendAiMessage,
+  streamAiMessage,
+  type AiRecommendation,
+  type PendingAction,
+} from "../api/ai"
 import "../styles/AiAssistantPage.css"
 
 type Message = {
@@ -457,8 +464,13 @@ const confirmAction = async (action: PendingAction) => {
     const result = await confirmAiAction(action.id) as unknown as { data: number }
     if (action.type === 'CREATE_ORDER') {
       const orderId = result.data
-      window.open(/order/, '_blank')
+      alert('Order created, id: ' + orderId)
     }
+    messages.value.forEach((message) => {
+      if (message.pendingActions) {
+        message.pendingActions = message.pendingActions.filter(item => item.id !== action.id)
+      }
+    })
   } catch {
     alert('操作失败，请重试')
   } finally {

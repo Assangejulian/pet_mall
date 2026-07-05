@@ -41,7 +41,7 @@ export async function sendAiMessage(payload: AiChatRequest): Promise<AiChatRespo
 
 export async function confirmAiAction(actionId: string): Promise<{ data: unknown }> {
   const result = await http.post<unknown, { data: unknown }>("/ai/action/confirm", { actionId })
-  return result.data
+  return result as { data: unknown }
 }
 
 export async function streamAiMessage(

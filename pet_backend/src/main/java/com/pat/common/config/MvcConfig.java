@@ -85,6 +85,7 @@ public class MvcConfig implements WebMvcConfigurer {
                     "/api/user/address/**",
                     "/api/ai/**",
                     "/api/comment/**",
+                    "/api/upload",
                     "/api/upload/**",
                     "/api/video/**"
                 )

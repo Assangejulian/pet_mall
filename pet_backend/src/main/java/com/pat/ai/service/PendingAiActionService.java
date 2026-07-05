@@ -90,7 +90,7 @@ public class PendingAiActionService {
             case ADD_CART -> Result.success(addCart(userId, payload));
             case UPDATE_CART -> Result.success(updateCart(userId, payload));
             case DELETE_CART -> Result.success(deleteCart(userId, payload));
-            case CREATE_ORDER -> Result.success(createOrderFromAi(userId, payload));
+            case CREATE_ORDER -> Result.success(orderUserService.createOrder(buildOrderCreateDTO(payload)));
             default -> Result.error(400, "Unsupported action type: " + action.getType());
         };
     }
@@ -142,7 +142,7 @@ public class PendingAiActionService {
     }
 
     @SuppressWarnings("unchecked")
-    private Long createOrderFromAi(Long userId, Map<String, Object> payload) {
+    private OrderCreateDTO buildOrderCreateDTO(Map<String, Object> payload) {
         Long addressId = longValue(payload.get("addressId"));
         List<Map<String, Object>> aiItems = (List<Map<String, Object>>) payload.get("items");
         if (aiItems == null || aiItems.isEmpty()) {
@@ -151,6 +151,9 @@ public class PendingAiActionService {
 
         OrderCreateDTO dto = new OrderCreateDTO();
         dto.setAddressId(addressId);
+        if (payload.containsKey("remark")) {
+            dto.setRemark(String.valueOf(payload.get("remark")));
+        }
         List<OrderCreateDTO.OrderItemDTO> itemDTOs = new ArrayList<>();
         for (Map<String, Object> aiItem : aiItems) {
             OrderCreateDTO.OrderItemDTO item = new OrderCreateDTO.OrderItemDTO();
@@ -160,7 +163,7 @@ public class PendingAiActionService {
         }
         dto.setItems(itemDTOs);
 
-        return orderUserService.createOrder(dto);
+        return dto;
     }
 
     private Product requireProduct(Long productId) {

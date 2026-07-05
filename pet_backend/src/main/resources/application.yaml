@@ -106,8 +106,8 @@ wechat-pay:
   notify-url: ${WECHAT_PAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/wechat}
 
 oss:
-  endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
+  endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
   access-key-id: ${OSS_ACCESS_KEY_ID:}
   access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
-  bucket-name: ${OSS_BUCKET_NAME:pet-store-videos}
-  domain: ${OSS_DOMAIN:https://pet-store-videos.oss-cn-hangzhou.aliyuncs.com}
+  bucket-name: ${OSS_BUCKET_NAME:pet-mall-20260702}
+  domain: ${OSS_DOMAIN:https://pet-mall-20260702.oss-cn-beijing.aliyuncs.com}
