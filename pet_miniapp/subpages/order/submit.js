@@ -59,14 +59,14 @@ Page({
   submitOrder: function() {
     var that = this;
     if (!this.data.address) {
-      wx.showToast({ title: "please choose address", icon: "none" });
+      wx.showToast({ title: "请选择收货地址", icon: "none" });
       return;
     }
     if (this.data.items.length === 0) {
-      wx.showToast({ title: "no items selected", icon: "none" });
+      wx.showToast({ title: "未选择商品", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "submitting..." });
+    wx.showLoading({ title: "提交中..." });
     var dto = {
       addressId: this.data.address.id,
       items: this.data.items.map(function(i) {
@@ -81,7 +81,7 @@ Page({
     orderApi.create(dto).then(function(res) {
       wx.hideLoading();
       var oid = res.orderId || res.id || res;
-      wx.showToast({ title: "order created", icon: "success" });
+      wx.showToast({ title: "下单成功", icon: "success" });
       orderApi.detail(oid).then(function(order) {
         wx.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=" + (order.orderNo || "") + "&amount=" + (order.payAmount || amount) });
       }).catch(function() {
@@ -89,7 +89,7 @@ Page({
       });
     }).catch(function(err) {
       wx.hideLoading();
-      wx.showToast({ title: (err && err.message) || "order create fail", icon: "none" });
+      wx.showToast({ title: (err && err.message) || "下单失败", icon: "none" });
     });
   }
 });

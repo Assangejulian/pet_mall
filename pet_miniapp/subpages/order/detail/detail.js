@@ -14,11 +14,11 @@ function normalizeItem(item) {
 Page({
   data: {
     order: null, items: [], loading: true, addressParsed: null, addressText: "",
-    statusLabels: {"0":"pending","1":"paid","2":"shipped","3":"received","4":"rated","-1":"cancelled","-2":"refunding","-3":"refunded"}
+    statusLabels: {"0":"待付款","1":"已支付","2":"已发货","3":"已收货","4":"已评价","-1":"已取消","-2":"退款中","-3":"已退款"}
   },
   onLoad: function(options) {
     var id = options && options.id;
-    if (!id) { wx.showToast({ title: "no order id", icon: "none" }); wx.navigateBack(); return; }
+    if (!id) { wx.showToast({ title: "订单ID缺失", icon: "none" }); wx.navigateBack(); return; }
     this.loadOrder(id);
   },
   loadOrder: function(id) {
@@ -40,15 +40,15 @@ Page({
   },
   confirmReceive: function() {
     var that = this; var order = this.data.order; if (!order || !order.id) return;
-    wx.showModal({ title: "confirm", content: "received?", success: function(r) {
-      if (r.confirm) { orderApi.receive(order.id).then(function() { wx.showToast({ title: "received", icon: "success" }); that.loadOrder(order.id); }); }
+    wx.showModal({ title: "确认收货", content: "确认收到商品？", success: function(r) {
+      if (r.confirm) { orderApi.receive(order.id).then(function() { wx.showToast({ title: "已确认收货", icon: "success" }); that.loadOrder(order.id); }); }
     }});
   },
   evaluateOrder: function() { var id = this.data.order && this.data.order.id; if (id) wx.navigateTo({ url: "/subpages/order/evaluate?id=" + id }); },
   directRefund: function() {
     var that = this; var id = this.data.order && this.data.order.id; if (!id) return;
-    wx.showModal({ title: "refund", content: "confirm?", success: function(res) {
-      if (res.confirm) { orderApi.refundDirect(id).then(function() { wx.showToast({ title: "refunded" }); that.loadOrder(id); }); }
+    wx.showModal({ title: "申请退款", content: "确认申请退款？", success: function(res) {
+      if (res.confirm) { orderApi.refundDirect(id).then(function() { wx.showToast({ title: "退款申请已提交" }); that.loadOrder(id); }); }
     }});
   },
   applyRefund: function() { var id = this.data.order && this.data.order.id; if (id) wx.navigateTo({ url: "/subpages/order/refund/refund?id=" + id }); },

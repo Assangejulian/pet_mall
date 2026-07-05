@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pat.report.mapper.ReportMapper">
 
-    <!-- 查询销量排名 Top10 -->
+    <!-- 查询销量排名 Top10（admin）-->
     <select id="selectSalesTop10" resultType="java.util.Map">
         SELECT od.product_name AS name, SUM(od.quantity) AS number
         FROM order_item od
@@ -14,6 +14,35 @@
         </if>
         <if test="endTime != null">
             AND o.pay_time &lt;= #{endTime}
+        </if>
+        <if test="storeIds != null and !storeIds.isEmpty()">
+            AND EXISTS (
+                SELECT 1 FROM product p WHERE p.id = od.product_id AND p.store_id IN
+                <foreach collection="storeIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            )
+        </if>
+        GROUP BY od.product_name
+        ORDER BY number DESC
+        LIMIT 0, 10
+    </select>
+
+    <!-- 查询指定商家的销量排名 Top10 -->
+    <select id="selectMerchantSalesTop10" resultType="java.util.Map">
+        SELECT od.product_name AS name, SUM(od.quantity) AS number
+        FROM order_item od
+        INNER JOIN purchase_order o ON od.order_id = o.id
+        WHERE o.order_status IN (3, 4)
+        <if test="beginTime != null">
+            AND o.pay_time &gt;= #{beginTime}
+        </if>
+        <if test="endTime != null">
+            AND o.pay_time &lt;= #{endTime}
+        </if>
+        <if test="storeIds != null and !storeIds.isEmpty()">
+            AND EXISTS (
+                SELECT 1 FROM product p WHERE p.id = od.product_id AND p.store_id IN
+                <foreach collection="storeIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            )
         </if>
         GROUP BY od.product_name
         ORDER BY number DESC

@@ -1,11 +1,19 @@
 package com.pat.report.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.pat.order.domain.entity.PurchaseOrder;
+import com.pat.order.mapper.PurchaseOrderMapper;
+import com.pat.order.service.base.PurchaseOrderBaseService;
+import com.pat.product.domain.entity.Product;
+import com.pat.product.service.IProductService;
 import com.pat.report.domain.vo.OrderReportVO;
 import com.pat.report.domain.vo.SalesTop10ReportVO;
 import com.pat.report.domain.vo.TurnoverReportVO;
 import com.pat.report.domain.vo.UserReportVO;
 import com.pat.report.mapper.ReportMapper;
 import com.pat.report.service.ReportService;
+import com.pat.store.service.IStoreService;
+import com.pat.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +22,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,27 +33,34 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReportServiceImpl implements ReportService {
 
+    private final IProductService productService;
+    private final IStoreService storeService;
+    private final UserService userService;
+    private final PurchaseOrderBaseService orderBaseService;
+    private final PurchaseOrderMapper orderMapper;
     private final ReportMapper reportMapper;
 
     @Override
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {
-        LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        // 查询每日营业额
-        List<Map<String, Object>> list = reportMapper.selectDailyTurnover(beginTime, endTime);
-
-        // 转成 Map：date -> turnover
-        Map<String, Object> map = list.stream()
-                .collect(Collectors.toMap(m -> m.get("date").toString(), m -> m.get("turnover")));
-
-        // 遍历日期，无数据补 0
+        List<Map<String, Object>> rows = reportMapper.selectDailyTurnover(beginTime, endTime);
         List<String> dateList = new ArrayList<>();
         List<String> turnoverList = new ArrayList<>();
-        for (LocalDate cur = begin; !cur.isAfter(end); cur = cur.plusDays(1)) {
-            String ds = cur.toString();
-            dateList.add(ds);
-            turnoverList.add(map.getOrDefault(ds, BigDecimal.ZERO).toString());
+
+        Map<String, BigDecimal> map = rows.stream()
+                .collect(Collectors.toMap(
+                        r -> r.get("date").toString(),
+                        r -> (BigDecimal) r.get("turnover"),
+                        (a, b) -> a
+                ));
+
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            String dateStr = d.toString();
+            dateList.add(dateStr);
+            BigDecimal turnover = map.getOrDefault(dateStr, BigDecimal.ZERO);
+            turnoverList.add(turnover.setScale(2, BigDecimal.ROUND_HALF_UP).toString());
         }
 
         return TurnoverReportVO.builder()
@@ -53,83 +71,102 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
-        LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        // 每日新增用户
-        List<Map<String, Object>> newUsers = reportMapper.selectDailyNewUsers(beginTime, endTime);
-        Map<String, Object> newMap = newUsers.stream()
-                .collect(Collectors.toMap(m -> m.get("date").toString(), m -> m.get("cnt")));
+        List<Map<String, Object>> newUserRows = reportMapper.selectDailyNewUsers(beginTime, endTime);
+        Long totalUserCount = reportMapper.selectTotalUserCount(endTime);
 
-        // 截止到 begin 前的总用户数
-        long total = reportMapper.selectTotalUserCount(beginTime);
-
-        // 遍历日期
         List<String> dateList = new ArrayList<>();
-        List<String> newList = new ArrayList<>();
-        List<String> totalList = new ArrayList<>();
-        for (LocalDate cur = begin; !cur.isAfter(end); cur = cur.plusDays(1)) {
-            String ds = cur.toString();
-            dateList.add(ds);
+        List<String> newUserList = new ArrayList<>();
+        List<String> totalUserList = new ArrayList<>();
 
-            long daily = Long.parseLong(newMap.getOrDefault(ds, 0L).toString());
-            total += daily;
+        Map<String, Long> newUserMap = newUserRows.stream()
+                .collect(Collectors.toMap(
+                        r -> r.get("date").toString(),
+                        r -> ((Number) r.get("cnt")).longValue(),
+                        (a, b) -> a
+                ));
 
-            newList.add(String.valueOf(daily));
-            totalList.add(String.valueOf(total));
+        long runningTotal = totalUserCount;
+        // Iterate from end to begin for running total
+        List<LocalDate> dates = new ArrayList<>();
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            dates.add(d);
+        }
+        // Calculate running total backwards
+        for (int i = dates.size() - 1; i >= 0; i--) {
+            String dateStr = dates.get(i).toString();
+            long newUsers = newUserMap.getOrDefault(dateStr, 0L);
+            runningTotal -= newUsers;
+        }
+        // Now iterate forward
+        for (LocalDate d : dates) {
+            String dateStr = d.toString();
+            long newUsers = newUserMap.getOrDefault(dateStr, 0L);
+            runningTotal += newUsers;
+            dateList.add(dateStr);
+            newUserList.add(String.valueOf(newUsers));
+            totalUserList.add(String.valueOf(runningTotal));
         }
 
         return UserReportVO.builder()
                 .dateList(String.join(",", dateList))
-                .newUserList(String.join(",", newList))
-                .totalUserList(String.join(",", totalList))
+                .newUserList(String.join(",", newUserList))
+                .totalUserList(String.join(",", totalUserList))
                 .build();
     }
 
     @Override
     public OrderReportVO getOrderStatistics(LocalDate begin, LocalDate end) {
-        LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        // 分别查询三类订单数
-        Map<String, Long> totalMap = toCountMap(reportMapper.selectDailyOrderCount(beginTime, endTime));
-        Map<String, Long> validMap = toCountMap(reportMapper.selectDailyValidOrderCount(beginTime, endTime));
-        Map<String, Long> completedMap = toCountMap(reportMapper.selectDailyCompletedOrderCount(beginTime, endTime));
+        List<Map<String, Object>> totalRows = reportMapper.selectDailyOrderCount(beginTime, endTime);
+        List<Map<String, Object>> validRows = reportMapper.selectDailyValidOrderCount(beginTime, endTime);
+        List<Map<String, Object>> completedRows = reportMapper.selectDailyCompletedOrderCount(beginTime, endTime);
+
+        Map<String, Long> totalMap = totalRows.stream()
+                .collect(Collectors.toMap(r -> r.get("date").toString(), r -> ((Number) r.get("cnt")).longValue(), (a, b) -> a));
+        Map<String, Long> validMap = validRows.stream()
+                .collect(Collectors.toMap(r -> r.get("date").toString(), r -> ((Number) r.get("cnt")).longValue(), (a, b) -> a));
+        Map<String, Long> completedMap = completedRows.stream()
+                .collect(Collectors.toMap(r -> r.get("date").toString(), r -> ((Number) r.get("cnt")).longValue(), (a, b) -> a));
 
         List<String> dateList = new ArrayList<>();
-        List<String> totalCount = new ArrayList<>();
-        List<String> validCount = new ArrayList<>();
-        List<String> completedCount = new ArrayList<>();
-        for (LocalDate cur = begin; !cur.isAfter(end); cur = cur.plusDays(1)) {
-            String ds = cur.toString();
-            dateList.add(ds);
-            totalCount.add(String.valueOf(totalMap.getOrDefault(ds, 0L)));
-            validCount.add(String.valueOf(validMap.getOrDefault(ds, 0L)));
-            completedCount.add(String.valueOf(completedMap.getOrDefault(ds, 0L)));
+        List<String> orderCountList = new ArrayList<>();
+        List<String> validOrderCountList = new ArrayList<>();
+        List<String> completedOrderCountList = new ArrayList<>();
+
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            String dateStr = d.toString();
+            dateList.add(dateStr);
+            orderCountList.add(String.valueOf(totalMap.getOrDefault(dateStr, 0L)));
+            validOrderCountList.add(String.valueOf(validMap.getOrDefault(dateStr, 0L)));
+            completedOrderCountList.add(String.valueOf(completedMap.getOrDefault(dateStr, 0L)));
         }
 
         return OrderReportVO.builder()
                 .dateList(String.join(",", dateList))
-                .orderCountList(String.join(",", totalCount))
-                .validOrderCountList(String.join(",", validCount))
-                .completedOrderCountList(String.join(",", completedCount))
+                .orderCountList(String.join(",", orderCountList))
+                .validOrderCountList(String.join(",", validOrderCountList))
+                .completedOrderCountList(String.join(",", completedOrderCountList))
                 .build();
     }
 
     @Override
     public SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end) {
-        LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        // 查询销量排行
-        List<Map<String, Object>> list = reportMapper.selectSalesTop10(beginTime, endTime);
+        List<Map<String, Object>> rows = reportMapper.selectSalesTop10(beginTime, endTime, null);
 
-        List<String> nameList = list.stream()
-                .map(m -> m.get("name").toString())
-                .collect(Collectors.toList());
-        List<String> numberList = list.stream()
-                .map(m -> m.get("number").toString())
-                .collect(Collectors.toList());
+        List<String> nameList = new ArrayList<>();
+        List<String> numberList = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            nameList.add((String) row.get("name"));
+            numberList.add(((Number) row.get("number")).toString());
+        }
 
         return SalesTop10ReportVO.builder()
                 .nameList(String.join(",", nameList))
@@ -137,11 +174,134 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    /** 把 List<Map> 转成 Map<date, count> */
-    private Map<String, Long> toCountMap(List<Map<String, Object>> list) {
-        return list.stream().collect(Collectors.toMap(
-                m -> m.get("date").toString(),
-                m -> ((Number) m.get("cnt")).longValue()
-        ));
+    @Override
+    public Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin) {
+        long productCount;
+        if (storeIds == null || storeIds.isEmpty()) {
+            productCount = productService.count();
+        } else {
+            productCount = productService.lambdaQuery().in(Product::getStoreId, storeIds).count();
+        }
+
+        long todayOrders = 0L;
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        Map<String, Integer> statusCount = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+
+        if (storeIds == null || storeIds.isEmpty()) {
+            LambdaQueryWrapper<PurchaseOrder> qw = new LambdaQueryWrapper<>();
+            qw.ge(PurchaseOrder::getCreateTime, today.atStartOfDay());
+            todayOrders = orderBaseService.count(qw);
+            totalRevenue = orderMapper.selectTotalRevenue();
+            orderMapper.selectOrderStatusCount()
+                    .forEach(row -> statusCount.put(String.valueOf(row.get("order_status")), ((Number) row.get("cnt")).intValue()));
+        } else {
+            for (Long storeId : storeIds) {
+                todayOrders += reportMapper.selectMerchantTodayOrders(storeId,
+                        LocalDateTime.of(today, LocalTime.MIN));
+                totalRevenue = totalRevenue.add(reportMapper.selectMerchantRevenue(storeId));
+                reportMapper.selectMerchantOrderStatusCount(storeId).forEach(row ->
+                        statusCount.merge(String.valueOf(row.get("order_status")),
+                                ((Number) row.get("cnt")).intValue(), Integer::sum));
+            }
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("userCount", isAdmin ? userService.count() : 0);
+        data.put("storeCount", storeIds != null ? (long) storeIds.size() : storeService.count());
+        data.put("productCount", productCount);
+        data.put("todayOrders", todayOrders);
+        data.put("totalRevenue", totalRevenue);
+        data.put("orderStatusCount", statusCount);
+        return data;
+    }
+
+    // ===== Merchant report methods =====
+
+    public TurnoverReportVO getMerchantTurnoverStatistics(LocalDate begin, LocalDate end, List<Long> storeIds) {
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
+
+        List<Map<String, Object>> rows = reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds);
+        Map<String, BigDecimal> map = rows.stream()
+                .collect(Collectors.toMap(
+                        r -> r.get("date").toString(),
+                        r -> (BigDecimal) r.get("turnover"),
+                        (a, b) -> a
+                ));
+
+        List<String> dateList = new ArrayList<>();
+        List<String> turnoverList = new ArrayList<>();
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            String dateStr = d.toString();
+            dateList.add(dateStr);
+            turnoverList.add(map.getOrDefault(dateStr, BigDecimal.ZERO).setScale(2, BigDecimal.ROUND_HALF_UP).toString());
+        }
+        return TurnoverReportVO.builder()
+                .dateList(String.join(",", dateList))
+                .turnoverList(String.join(",", turnoverList))
+                .build();
+    }
+
+    public UserReportVO getMerchantUserStatistics(LocalDate begin, LocalDate end) {
+        // 商家用户统计复用全平台数据
+        return getUserStatistics(begin, end);
+    }
+
+    public OrderReportVO getMerchantOrderStatistics(LocalDate begin, LocalDate end, List<Long> storeIds) {
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
+
+        List<Map<String, Object>> totalRows = reportMapper.selectMerchantDailyOrderCount(beginTime, endTime, storeIds);
+        List<Map<String, Object>> validRows = reportMapper.selectMerchantDailyValidOrderCount(beginTime, endTime, storeIds);
+        List<Map<String, Object>> completedRows = reportMapper.selectMerchantDailyCompletedOrderCount(beginTime, endTime, storeIds);
+
+        Map<String, Long> totalMap = toMap(totalRows);
+        Map<String, Long> validMap = toMap(validRows);
+        Map<String, Long> completedMap = toMap(completedRows);
+
+        List<String> dateList = new ArrayList<>();
+        List<String> orderCountList = new ArrayList<>();
+        List<String> validOrderCountList = new ArrayList<>();
+        List<String> completedOrderCountList = new ArrayList<>();
+
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            String dateStr = d.toString();
+            dateList.add(dateStr);
+            orderCountList.add(String.valueOf(totalMap.getOrDefault(dateStr, 0L)));
+            validOrderCountList.add(String.valueOf(validMap.getOrDefault(dateStr, 0L)));
+            completedOrderCountList.add(String.valueOf(completedMap.getOrDefault(dateStr, 0L)));
+        }
+        return OrderReportVO.builder()
+                .dateList(String.join(",", dateList))
+                .orderCountList(String.join(",", orderCountList))
+                .validOrderCountList(String.join(",", validOrderCountList))
+                .completedOrderCountList(String.join(",", completedOrderCountList))
+                .build();
+    }
+
+    public SalesTop10ReportVO getMerchantSalesTop10(LocalDate begin, LocalDate end, List<Long> storeIds) {
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
+
+        List<Map<String, Object>> rows = reportMapper.selectMerchantSalesTop10(beginTime, endTime, storeIds);
+        List<String> nameList = new ArrayList<>();
+        List<String> numberList = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            nameList.add((String) row.get("name"));
+            numberList.add(((Number) row.get("number")).toString());
+        }
+        return SalesTop10ReportVO.builder()
+                .nameList(String.join(",", nameList))
+                .numberList(String.join(",", numberList))
+                .build();
+    }
+
+    private Map<String, Long> toMap(List<Map<String, Object>> rows) {
+        return rows.stream()
+                .collect(Collectors.toMap(
+                        r -> r.get("date").toString(),
+                        r -> ((Number) r.get("cnt")).longValue(),
+                        (a, b) -> a));
     }
 }

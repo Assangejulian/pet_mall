@@ -2,9 +2,9 @@ var orderApi = require("../../utils/api/order");
 Page({
   data: {
     orders: [], active: "",
-    sl: {"0":"pending","1":"paid","2":"shipped","3":"received","4":"rated","-1":"cancelled","-2":"refunding","-3":"refunded","-4":"rejected"},
+    sl: {"0":"待付款","1":"已支付","2":"已发货","3":"已收货","4":"已评价","-1":"已取消","-2":"退款中","-3":"已退款","-4":"已拒绝"},
     sc: {"0":"#e65100","1":"#1565c0","2":"#547b68","3":"#547b68","4":"#8f7366","-1":"#8f7366","-2":"#c0392b","-3":"#547b68","-4":"#8f7366"},
-    tabList: [{l:"all",v:""},{l:"pending",v:"0"},{l:"paid",v:"1"},{l:"shipping",v:"2"},{l:"unrated",v:"3"},{l:"rated",v:"4"},{l:"refund",v:"-99"}]
+    tabList: [{l:"全部",v:""},{l:"待付款",v:"0"},{l:"已支付",v:"1"},{l:"已发货",v:"2"},{l:"待评价",v:"3"},{l:"已评价",v:"4"},{l:"退款",v:"-99"}]
   },
   onLoad(options) { if (options.status) this.setData({ active: options.status }); },
   onShow() {

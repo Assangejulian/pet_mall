@@ -4,7 +4,7 @@ import type { PageResult } from "../types/api"
 import type { Order, OrderStatus } from "../types/order"
 
 export function listOrders(params: {
-  page: number
+  current: number
   size: number
   orderStatus?: string
 }): Promise<PageResult<Order>> {

@@ -31,7 +31,7 @@
     <view class="history-btn" bindtap="openHistory">☰</view>
     <view class="hero-dot">AI</view>
     <view class="hero-copy">
-      <text class="eyebrow">PETNEST SERVICE</text>
+      <text class="eyebrow">暖窝客服</text>
       <text class="title">{{title}}</text>
       <text class="subtitle">{{subtitle}}</text>
     </view>

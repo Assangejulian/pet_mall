@@ -12,7 +12,7 @@ export const useOrderStore = defineStore('admin_order', () => {
     list.value.filter(o => o.status === '-2').length
   )
 
-  async function fetch(params: { page: number; size: number; orderStatus?: string }) {
+  async function fetch(params: { current: number; size: number; orderStatus?: string }) {
     loading.value = true
     try {
       const r = await listOrders(params)

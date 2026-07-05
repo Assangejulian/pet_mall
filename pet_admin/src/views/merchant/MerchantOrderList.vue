@@ -168,7 +168,7 @@ function statusBadge(s: OrderStatus) { return badgeMap[s] || 'badge-gray' }
 
 async function fetchData() {
   const r = await listMerchantOrders({
-    page: currentPage.value, size: pageSize,
+    current: currentPage.value, size: pageSize,
     orderStatus: statusFilter.value || undefined
   })
   list.value = r.records
@@ -182,7 +182,7 @@ function goPage(p: number) { currentPage.value = p; fetchData() }
 async function shipOrder(item: Order) {
   if (!confirm("确认发货？")) return
   await shipMerchantOrder(item.id)
-  item.status = '2' as OrderStatus
+  item.status = '2' as OrderStatus; await fetchData()
 }
 
 function showDetail(item: Order) {

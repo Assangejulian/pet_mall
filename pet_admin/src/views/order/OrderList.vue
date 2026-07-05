@@ -165,7 +165,7 @@ function canCancel(o: Order) { const s = String(o.status); return s === '0' || s
 
 async function fetchData() {
   await store.fetch({
-    page: currentPage.value, size: pageSize,
+    current: currentPage.value, size: pageSize,
     orderStatus: statusFilter.value || undefined
   })
 }
@@ -177,7 +177,7 @@ function goPage(p: number) { currentPage.value = p; fetchData() }
 async function cancelOrder(item: Order) {
   const reason = prompt("请输入取消原因（选填）：") || ""
   await cancelOrderAdmin(item.id, reason)
-  store.updateLocalStatus(item.id, '-1', { cancelReason: reason, cancelType: 'user' })
+  store.updateLocalStatus(item.id, '-1', { cancelReason: reason, cancelType: 'user' }); await fetchData()
 }
 
 function showReason(item: Order) {
@@ -186,7 +186,7 @@ function showReason(item: Order) {
 
 async function shipOrder(item: Order) {
   await shipOrderAdmin(item.id)
-  store.updateLocalStatus(item.id, '2')
+  store.updateLocalStatus(item.id, '2'); await fetchData()
 }
 
 
@@ -195,13 +195,13 @@ async function shipOrder(item: Order) {
 
 async function approveReturn(item: Order) {
   await reviewReturn(item.id, true, "审核通过")
-  store.updateLocalStatus(item.id, '-3')
+  store.updateLocalStatus(item.id, '-3'); await fetchData()
 }
 
 async function rejectReturn(item: Order) {
   const reason = prompt("请输入拒绝理由：") || "审核不通过"
   await reviewReturn(item.id, false, reason)
-  store.updateLocalStatus(item.id, '3' as OrderStatus)
+  store.updateLocalStatus(item.id, '3' as OrderStatus); await fetchData()
 }
 
 function showDetail(item: Order) {
