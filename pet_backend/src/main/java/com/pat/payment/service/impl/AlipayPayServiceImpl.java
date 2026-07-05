@@ -4,16 +4,13 @@ import com.alipay.api.AlipayApiException;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.AlipayTradeWapPayModel;
 import com.alipay.api.request.AlipayTradeWapPayRequest;
-import com.pat.order.domain.dto.PayNotifyDTO;
-import com.pat.order.domain.entity.PurchaseOrder;
-import com.pat.order.domain.enums.OrderStatus;
-import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.payment.config.AlipayConfig;
+import com.pat.payment.domain.dto.PaymentNotify;
+import com.pat.payment.service.PaymentCallback;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -21,12 +18,9 @@ import java.time.LocalDateTime;
 public class AlipayPayServiceImpl {
 
     private final AlipayConfig alipayConfig;
-    private final PurchaseOrderBaseService baseService;
 
-    public AlipayPayServiceImpl(AlipayConfig alipayConfig,
-                                PurchaseOrderBaseService baseService) {
+    public AlipayPayServiceImpl(AlipayConfig alipayConfig) {
         this.alipayConfig = alipayConfig;
-        this.baseService = baseService;
     }
 
     /**
@@ -92,25 +86,9 @@ public class AlipayPayServiceImpl {
         return request;
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void handleNotify(PayNotifyDTO dto) {
-        PurchaseOrder order = baseService.lambdaQuery()
-                .eq(PurchaseOrder::getOrderNo, dto.getOutTradeNo())
-                .one();
-        if (order == null) {
-            log.warn("Alipay notify ignored, order not found orderNo={}", dto.getOutTradeNo());
-            return;
-        }
-        if (order.getOrderStatus() != null && order.getOrderStatus() == OrderStatus.PAID.getCode()) {
-            log.info("Alipay notify ignored, order already paid orderNo={}", dto.getOutTradeNo());
-            return;
-        }
-
-        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-        order.setOrderStatus(OrderStatus.PAID.getCode());
-        order.setPayTime(LocalDateTime.now());
-        baseService.updateById(order);
-        log.info("Alipay notify handled orderNo={}", dto.getOutTradeNo());
+    public void handleNotify(PaymentNotify notify, PaymentCallback callback) {
+        log.info("支付宝支付回调 orderNo={}", notify.getOutTradeNo());
+        callback.onPaymentSuccess(notify.getOutTradeNo(), null, LocalDateTime.now());
     }
 
     private boolean isBlank(String value) {

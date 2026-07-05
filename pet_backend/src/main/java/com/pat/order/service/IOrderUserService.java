@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
 import com.pat.order.domain.dto.OrderEvaluateDTO;
-import com.pat.order.domain.vo.OrderPaymentVO;
+import com.pat.payment.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 

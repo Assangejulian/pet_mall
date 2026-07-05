@@ -2,14 +2,12 @@ package com.pat.payment.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
-import com.pat.common.exception.BusinessException;
-import com.pat.order.domain.dto.PayNotifyDTO;
-import com.pat.order.domain.entity.PurchaseOrder;
-import com.pat.order.domain.enums.OrderStatus;
-import com.pat.order.domain.vo.OrderPaymentVO;
-import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.payment.config.WechatPayConfig;
+import com.pat.payment.domain.PaymentStatus;
+import com.pat.payment.domain.dto.PaymentContext;
+import com.pat.payment.domain.dto.PaymentNotify;
+import com.pat.payment.domain.vo.OrderPaymentVO;
+import com.pat.payment.service.PaymentCallback;
 import com.pat.payment.service.PaymentService;
 import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.RSAAutoCertificateConfig;
@@ -21,10 +19,8 @@ import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -33,21 +29,16 @@ import java.util.Map;
 public class WechatPaymentServiceImpl implements PaymentService {
 
     private final WechatPayConfig payConfig;
-    private final PurchaseOrderBaseService baseService;
 
-    public WechatPaymentServiceImpl(WechatPayConfig payConfig,
-                                    PurchaseOrderBaseService baseService) {
+    public WechatPaymentServiceImpl(WechatPayConfig payConfig) {
         this.payConfig = payConfig;
-        this.baseService = baseService;
     }
 
     @Override
-    public OrderPaymentVO pay(PurchaseOrder order) {
-        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-
+    public OrderPaymentVO pay(PaymentContext context) {
         if (isBlank(payConfig.getMchId()) || isBlank(payConfig.getPrivateKey())) {
-            log.warn("微信支付未配置完整，使用 mock prepay_id orderNo={}", order.getOrderNo());
-            return mockResult(order);
+            log.warn("微信支付未配置完整，使用 mock prepay_id orderNo={}", context.getOrderNo());
+            return mockResult(context);
         }
 
         try {
@@ -60,27 +51,25 @@ public class WechatPaymentServiceImpl implements PaymentService {
 
             JsapiService service = new JsapiService.Builder().config(config).build();
 
-            // 组装下单请求
             PrepayRequest request = new PrepayRequest();
             request.setAppid(payConfig.getAppid());
             request.setMchid(payConfig.getMchId());
-            request.setOutTradeNo(order.getOrderNo());
-            request.setDescription("宠铺 - " + order.getOrderNo());
+            request.setOutTradeNo(context.getOrderNo());
+            request.setDescription("宠物商城 - " + context.getOrderNo());
             request.setNotifyUrl(payConfig.getNotifyUrl());
 
             Amount amount = new Amount();
-            amount.setTotal(order.getPayAmount().multiply(new BigDecimal("100")).intValue());
+            amount.setTotal(context.getTotalAmount().multiply(new BigDecimal("100")).intValue());
             amount.setCurrency("CNY");
             request.setAmount(amount);
 
             Payer payer = new Payer();
-            payer.setOpenid("");
+            payer.setOpenid(context.getOpenid() != null ? context.getOpenid() : "");
             request.setPayer(payer);
 
             PrepayResponse resp = service.prepay(request);
             String prepayId = resp.getPrepayId();
 
-            // JSAPI 调起支付签名
             long timestamp = System.currentTimeMillis() / 1000;
             String nonceStr = IdUtil.fastSimpleUUID();
             String packageStr = "prepay_id=" + prepayId;
@@ -97,44 +86,35 @@ public class WechatPaymentServiceImpl implements PaymentService {
             params.put("signType", "RSA");
             params.put("paySign", paySign);
 
-            log.info("微信小程序支付下单成功 orderNo={}, prepayId={}", order.getOrderNo(), prepayId);
-            return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                    OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), null,
+            log.info("微信小程序支付下单成功 orderNo={}, prepayId={}", context.getOrderNo(), prepayId);
+            return new OrderPaymentVO(null, context.getOrderNo(),
+                    PaymentStatus.PENDING_PAY, context.getTotalAmount(), null,
                     JSONUtil.toJsonStr(params), null);
 
         } catch (Exception e) {
-            log.error("微信支付下单异常 orderNo={}", order.getOrderNo(), e);
-            throw new BusinessException(500, "微信支付下单失败: " + e.getMessage(), null);
+            log.error("微信支付下单异常 orderNo={}", context.getOrderNo(), e);
+            throw new RuntimeException("微信支付下单失败: " + e.getMessage());
         }
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void handleNotify(PayNotifyDTO dto) {
-        PurchaseOrder order = baseService.lambdaQuery()
-                .eq(PurchaseOrder::getOrderNo, dto.getOutTradeNo())
-                .one();
-        if (order == null) { return; }
-        if (order.getOrderStatus() != null && order.getOrderStatus() == OrderStatus.PAID.getCode()) { return; }
-
-        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-        order.setOrderStatus(OrderStatus.PAID.getCode());
-        order.setPayTime(LocalDateTime.now());
-        baseService.updateById(order);
+    public void handleNotify(PaymentNotify notify, PaymentCallback callback) {
+        log.info("微信支付回调 orderNo={}", notify.getOutTradeNo());
+        callback.onPaymentSuccess(notify.getOutTradeNo(), null, java.time.LocalDateTime.now());
     }
 
-    private OrderPaymentVO mockResult(PurchaseOrder order) {
+    private OrderPaymentVO mockResult(PaymentContext context) {
         long ts = System.currentTimeMillis() / 1000;
         String nonce = IdUtil.fastSimpleUUID();
         Map<String, String> params = new LinkedHashMap<>();
         params.put("appId", payConfig.getAppid());
         params.put("timeStamp", String.valueOf(ts));
         params.put("nonceStr", nonce);
-        params.put("package", "prepay_id=mock_" + order.getOrderNo());
+        params.put("package", "prepay_id=mock_" + context.getOrderNo());
         params.put("signType", "RSA");
         params.put("paySign", "mock_sign");
-        return new OrderPaymentVO(order.getId(), order.getOrderNo(),
-                OrderStatus.PENDING_PAY.getCode(), order.getPayAmount(), null,
+        return new OrderPaymentVO(null, context.getOrderNo(),
+                PaymentStatus.PENDING_PAY, context.getTotalAmount(), null,
                 JSONUtil.toJsonStr(params), null);
     }
 

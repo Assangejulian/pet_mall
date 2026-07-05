@@ -7,10 +7,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
+import lombok.extern.slf4j.Slf4j;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.dto.OrderPaymentDTO;
 import com.pat.order.domain.dto.OrderEvaluateDTO;
-import com.pat.order.domain.vo.OrderPaymentVO;
+import com.pat.payment.domain.vo.OrderPaymentVO;
 import com.pat.order.domain.entity.Cart;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
@@ -20,11 +21,16 @@ import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
+import com.pat.payment.domain.dto.PaymentContext;
+import com.pat.payment.domain.dto.PaymentNotify;
+import com.pat.payment.service.PaymentCallback;
+import com.pat.payment.service.PaymentService;
 import com.pat.payment.service.impl.PaymentServiceRouter;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
 import com.pat.user.domain.entity.UserAddress;
 import com.pat.user.mapper.UserAddressMapper;
+import com.pat.user.service.UserService;
 import com.pat.common.util.UserHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +41,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /** 用户端订单操作：下单、查询 */
+@Slf4j
 @Service
-public class OrderUserServiceImpl implements IOrderUserService {
+public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback {
 
     private final PurchaseOrderBaseService baseService;
         private final ProductService productService;
+    private final UserService userService;
     private final UserAddressMapper addressMapper;
     private final ICartService cartService;
     private final OrderItemMapper orderItemMapper;
@@ -50,13 +58,15 @@ public class OrderUserServiceImpl implements IOrderUserService {
                                 UserAddressMapper addressMapper,
                                 ICartService cartService,
                                 OrderItemMapper orderItemMapper,
-                                PaymentServiceRouter paymentServiceRouter) {
+                                PaymentServiceRouter paymentServiceRouter,
+                                UserService userService) {
         this.baseService = baseService;
                 this.productService = productService;
         this.addressMapper = addressMapper;
         this.cartService = cartService;
         this.orderItemMapper = orderItemMapper;
         this.paymentServiceRouter = paymentServiceRouter;
+        this.userService = userService;
     }
 
     private static Long requireUserId() {
@@ -84,13 +94,32 @@ public class OrderUserServiceImpl implements IOrderUserService {
     public Long createOrder(OrderCreateDTO dto) {
         Long userId = requireUserId();
         List<OrderCreateDTO.OrderItemDTO> items = dto.getItems();
+
+        // 1. 验证商品并扣库存
+        OrderItemsResult itemsResult = buildOrderItems(items);
+
+        // 2. 地址快照
+        String addressSnapshot = buildAddressSnapshot(dto.getAddressId());
+
+        // 3. 保存订单 + 明细
+        Long orderId = saveOrder(userId, dto, itemsResult.getOrderItems(), itemsResult.getTotal(), addressSnapshot);
+
+        // 4. 清购物车
+        clearCart(userId, items);
+
+        return orderId;
+    }
+
+    // ==================== createOrder 辅助方法 ====================
+
+    private OrderItemsResult buildOrderItems(List<OrderCreateDTO.OrderItemDTO> items) {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
-
         for (OrderCreateDTO.OrderItemDTO item : items) {
             Product product = productService.getById(item.getProductId());
             if (product == null) throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
-            if (product.getStatus() == null || product.getStatus() != 1) throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架: " + product.getProductName());
+            if (product.getStatus() == null || product.getStatus() != 1)
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架: " + product.getProductName());
             boolean stockOk = productService.deductStock(product.getId(), item.getQuantity());
             if (!stockOk) throw new BusinessException(500, "商品库存不足或已下架: " + product.getProductName(), null);
             OrderItem oi = new OrderItem();
@@ -102,9 +131,11 @@ public class OrderUserServiceImpl implements IOrderUserService {
             orderItems.add(oi);
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
+        return new OrderItemsResult(orderItems, total);
+    }
 
-        // 地址快照
-        UserAddress addr = addressMapper.selectById(dto.getAddressId());
+    private String buildAddressSnapshot(Long addressId) {
+        UserAddress addr = addressMapper.selectById(addressId);
         if (addr == null) throw new BusinessException(ErrorCode.NOT_FOUND, "收货地址不存在");
         LinkedHashMap<String, String> snapshot = new LinkedHashMap<>();
         snapshot.put("receiverName", addr.getReceiverName());
@@ -113,33 +144,41 @@ public class OrderUserServiceImpl implements IOrderUserService {
         snapshot.put("city", addr.getCity());
         snapshot.put("district", addr.getDistrict());
         snapshot.put("detail", addr.getDetail());
+        return JSONUtil.toJsonStr(snapshot);
+    }
 
-        // 创建订单
+    private Long saveOrder(Long userId, OrderCreateDTO dto, List<OrderItem> orderItems, BigDecimal total, String addressSnapshot) {
         PurchaseOrder order = new PurchaseOrder();
         order.setOrderNo(IdUtil.fastSimpleUUID());
         order.setUserId(userId);
         order.setAddressId(dto.getAddressId());
-        order.setAddressSnapshot(JSONUtil.toJsonStr(snapshot));
+        order.setAddressSnapshot(addressSnapshot);
         order.setTotalAmount(total);
         order.setPayAmount(total);
         order.setRemark(dto.getRemark());
         order.setOrderStatus(OrderStatus.PENDING_PAY.getCode());
         baseService.save(order);
-
         Long orderId = order.getId();
         for (OrderItem oi : orderItems) {
             oi.setOrderId(orderId);
             orderItemMapper.insert(oi);
         }
+        return orderId;
+    }
 
-        // 清购物车（已购商品）
+    private void clearCart(Long userId, List<OrderCreateDTO.OrderItemDTO> items) {
         cartService.lambdaUpdate()
                 .eq(Cart::getUserId, userId)
                 .in(Cart::getProductId,
                         items.stream().map(OrderCreateDTO.OrderItemDTO::getProductId).collect(Collectors.toList()))
                 .remove();
+    }
 
-        return orderId;
+    @lombok.AllArgsConstructor
+    @lombok.Getter
+    private static class OrderItemsResult {
+        private List<OrderItem> orderItems;
+        private BigDecimal total;
     }
 
     @Override
@@ -203,8 +242,28 @@ public class OrderUserServiceImpl implements IOrderUserService {
         Long userId = requireUserId();
         if (!userId.equals(order.getUserId())) throw new BusinessException(ErrorCode.FARAMS_ERROR, "无权操作");
 
-        // 通过支付工厂路由到对应支付策略（mock / ALIPAY / WECHAT）
-        return paymentServiceRouter.getService(dto.getPayMethod()).pay(order);
+        // 构建支付上下文，传给支付模块
+        PaymentContext ctx = new PaymentContext();
+        ctx.setOrderNo(order.getOrderNo());
+        ctx.setTotalAmount(order.getPayAmount());
+        ctx.setSubject("宠物商城 - " + order.getOrderNo());
+        ctx.setDescription("宠物商城订单支付");
+        // 微信支付需要 openid，从当前用户中获取
+        com.pat.user.domain.entity.User currentUser = userService.getById(UserHolder.getUserId());
+        ctx.setOpenid(currentUser != null ? currentUser.getOpenid() : null);
+
+        PaymentService svc = paymentServiceRouter.getService(dto.getPayMethod());
+        OrderPaymentVO vo = svc.pay(ctx);
+
+        // 模拟支付同步回调确认支付
+        if ("mock".equals(dto.getPayMethod())) {
+            PaymentNotify notify = new PaymentNotify();
+            notify.setOutTradeNo(order.getOrderNo());
+            svc.handleNotify(notify, this);
+            vo.setStatus(OrderStatus.PAID.getCode());
+        }
+
+        return vo;
     }
 
     @Override
@@ -295,9 +354,43 @@ public class OrderUserServiceImpl implements IOrderUserService {
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
 
+        restoreOrderStock(order.getId());
         order.setOrderStatus(OrderStatus.REJECTED.getCode());
         order.setCancelReason(reason);
         order.setCancelTime(LocalDateTime.now());
         baseService.updateById(order);
     }
+
+    private void restoreOrderStock(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", orderId));
+        for (OrderItem item : items) {
+            productService.restoreStock(item.getProductId(), item.getQuantity());
+            log.info("恢复库存 productId={}, quantity={}, orderId={}",
+                    item.getProductId(), item.getQuantity(), orderId);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void onPaymentSuccess(String orderNo, java.math.BigDecimal amount, java.time.LocalDateTime payTime) {
+        PurchaseOrder order = baseService.lambdaQuery()
+                .eq(PurchaseOrder::getOrderNo, orderNo)
+                .one();
+        if (order == null) {
+            log.warn("支付回调订单不存在: {}", orderNo);
+            return;
+        }
+        // 已支付则直接返回（防止第三方重复回调导致异常）
+        if (OrderStatus.PAID.getCode() == order.getOrderStatus()) {
+            log.info("支付回调忽略，订单已支付 orderNo={}", orderNo);
+            return;
+        }
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
+        order.setOrderStatus(OrderStatus.PAID.getCode());
+        order.setPayTime(payTime != null ? payTime : java.time.LocalDateTime.now());
+        baseService.updateById(order);
+        log.info("支付回调更新订单状态成功 orderNo={}", orderNo);
+    }
+
 }

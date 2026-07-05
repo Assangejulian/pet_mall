@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 /**
  * 高德地图地理编码 Helper — 地址转 GCJ-02 坐标
  *
- * <p>文档：https://lbs.amap.com/api/webservice/guide/api/georegeo</p>
+ * <p>文档：<a href="https://lbs.amap.com/api/webservice/guide/api/georegeo">...</a></p>
  */
 @Slf4j
 @Component
@@ -26,7 +26,7 @@ public class MapHelper {
     private final String apiKey;
 
     public MapHelper(RestTemplate restTemplate,
-                     @Value("\u0024{amap.api-key:}") String apiKey) {
+                     @Value("${amap.api-key:}") String apiKey) {
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
     }
@@ -89,10 +89,18 @@ public class MapHelper {
     /** 拼接完整地址 */
     private String buildAddress(String province, String city, String district, String address) {
         StringBuilder sb = new StringBuilder();
-        if (province != null) sb.append(province);
-        if (city != null) sb.append(city);
-        if (district != null) sb.append(district);
-        if (address != null) sb.append(address);
+        if (province != null) {
+            sb.append(province);
+        }
+        if (city != null) {
+            sb.append(city);
+        }
+        if (district != null) {
+            sb.append(district);
+        }
+        if (address != null) {
+            sb.append(address);
+        }
         return sb.toString();
     }
 }

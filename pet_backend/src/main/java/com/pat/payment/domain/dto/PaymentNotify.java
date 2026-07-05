@@ -1,13 +1,10 @@
-package com.pat.order.domain.dto;
+package com.pat.payment.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-/**
- * 支付回调通知 DTO
- */
 @Data
-public class PayNotifyDTO {
+public class PaymentNotify {
     @NotBlank(message = "商户订单号不能为空")
     private String outTradeNo;
 }

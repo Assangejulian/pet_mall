@@ -11,6 +11,8 @@ import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderAdminMapper;
+import com.pat.order.mapper.OrderItemMapper;
+import com.pat.product.service.ProductService;
 import com.pat.order.service.IOrderAdminService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import org.springframework.stereotype.Service;
@@ -25,11 +27,17 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderAdminMapper orderAdminMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final ProductService productService;
 
     public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
-                                 OrderAdminMapper orderAdminMapper) {
+                                 OrderAdminMapper orderAdminMapper,
+                                 OrderItemMapper orderItemMapper,
+                                 ProductService productService) {
         this.baseService = baseService;
         this.orderAdminMapper = orderAdminMapper;
+        this.orderItemMapper = orderItemMapper;
+        this.productService = productService;
     }
 
     @Override
@@ -48,6 +56,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
+        restoreOrderStock(order.getId());
         order.setOrderStatus(OrderStatus.CANCELLED.getCode());
         order.setCancelReason(dto.getCancelReason());
         order.setCancelTime(LocalDateTime.now());
@@ -73,6 +82,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
         if (dto.getApproved()) {
             OrderStateMachine.validate(current, OrderStatus.REFUNDED.getCode());
+            restoreOrderStock(order.getId());
             order.setOrderStatus(OrderStatus.REFUNDED.getCode());
         } else {
             OrderStateMachine.validate(current, OrderStatus.RECEIVED.getCode());
@@ -100,6 +110,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
 
+        restoreOrderStock(order.getId());
         order.setOrderStatus(OrderStatus.REJECTED.getCode());
         order.setCancelReason(dto.getCancelReason());
         order.setRefundAuditTime(LocalDateTime.now());
@@ -140,5 +151,15 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         PurchaseOrder order = baseService.getById(id);
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
         return order;
+    }
+
+    private void restoreOrderStock(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", orderId));
+        for (OrderItem item : items) {
+            productService.restoreStock(item.getProductId(), item.getQuantity());
+            log.info("恢复库存 productId={}, quantity={}, orderId={}",
+                    item.getProductId(), item.getQuantity(), orderId);
+        }
     }
 }

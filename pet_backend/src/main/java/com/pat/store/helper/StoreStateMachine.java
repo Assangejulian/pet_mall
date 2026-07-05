@@ -48,7 +48,9 @@ public final class StoreStateMachine {
     }
 
     private static String statusText(Integer code) {
-        if (code == null) return "null";
+        if (code == null) {
+            return "null";
+        }
         return switch (code) {
             case 0 -> "待审核";
             case 1 -> "营业中";
