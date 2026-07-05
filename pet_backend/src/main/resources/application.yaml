@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: pet-store
   datasource:
@@ -89,8 +89,8 @@ wx:
 
 alipay:
   app-id: ${ALIPAY_APPID:9021000165632109}
-  private-key: ${ALIPAY_PRIVATE_KEY:}
-  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  private-key-path: payment/alipay_private.pem
+  alipay-public-key-path: payment/alipay_public.pem
   gateway: ${ALIPAY_GATEWAY:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
   notify-url: ${ALIPAY_NOTIFY_URL:http://127.0.0.1:8080/api/notify/alipay}
   return-url: ${ALIPAY_RETURN_URL:http://127.0.0.1:8080/#/order/result}

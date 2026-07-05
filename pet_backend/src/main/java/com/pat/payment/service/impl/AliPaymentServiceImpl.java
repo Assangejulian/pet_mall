@@ -22,20 +22,17 @@ public class AliPaymentServiceImpl implements PaymentService {
 
     @Override
     public OrderPaymentVO pay(PaymentContext context) {
-        String total = context.getTotalAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString();
         String subject = "宠物商城 - " + context.getOrderNo();
 
         try {
-            String form = alipayPayService.createWapPayPage(
-                    context.getOrderNo(), subject, "", total);
-            String payUrl = alipayPayService.createWapPayUrl(
-                    context.getOrderNo(), subject, "", total);
+            String qrCode = alipayPayService.createQrPayUrl(
+                    context.getOrderNo(), subject, "", context.getTotalAmount());
 
-            log.info("支付宝手机网站支付下单 orderNo={}, total={}", context.getOrderNo(), total);
+            log.info("支付宝扫码支付下单 orderNo={}, amount={}", context.getOrderNo(), context.getTotalAmount());
             return new OrderPaymentVO(null, context.getOrderNo(),
-                    PaymentStatus.PENDING_PAY, context.getTotalAmount(), form, null, payUrl);
+                    PaymentStatus.PENDING_PAY, context.getTotalAmount(), null, null, qrCode);
         } catch (AlipayApiException e) {
-            log.error("支付宝下单异常 orderNo={}", context.getOrderNo(), e);
+            log.error("支付宝扫码下单异常 orderNo={}", context.getOrderNo(), e);
             throw new RuntimeException("支付宝支付下单失败: " + e.getErrMsg());
         }
     }

@@ -2,8 +2,9 @@ package com.pat.payment.service.impl;
 
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.DefaultAlipayClient;
-import com.alipay.api.domain.AlipayTradeWapPayModel;
-import com.alipay.api.request.AlipayTradeWapPayRequest;
+import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.response.AlipayTradePrecreateResponse;
 import com.pat.payment.config.AlipayConfig;
 import com.pat.payment.domain.dto.PaymentNotify;
 import com.pat.payment.service.PaymentCallback;
@@ -24,37 +25,43 @@ public class AlipayPayServiceImpl {
     }
 
     /**
-     * 创建支付宝手机网站支付表单（POST 方式，返回 HTML 表单）
+     * 创建支付宝扫码支付（当面付），返回 qr_code 链接
      */
-    public String createWapPayPage(String outTradeNo,
-                                   String subject,
-                                   String body,
-                                   String totalAmount) throws AlipayApiException {
+    public String createQrPayUrl(String outTradeNo,
+                                 String subject,
+                                 String body,
+                                 BigDecimal totalAmount) throws AlipayApiException {
         if (isBlank(alipayConfig.getAppId()) || isBlank(alipayConfig.getPrivateKey())) {
-            log.warn("Alipay config is incomplete, returning mock pay form orderNo={}", outTradeNo);
-            return "<form data-mock=\"alipay\" data-order-no=\"" + outTradeNo + "\"></form>";
+            log.warn("Alipay config is incomplete, returning mock QR URL orderNo={}", outTradeNo);
+            return "alipay-mock://qr?orderNo=" + outTradeNo;
         }
 
         DefaultAlipayClient client = buildClient();
-        AlipayTradeWapPayRequest request = buildWapPayRequest(outTradeNo, subject, body, totalAmount);
-        return client.pageExecute(request).getBody();
-    }
 
-    /**
-     * 创建支付宝手机网站支付跳转 URL（GET 方式，适合小程序 webview 打开）
-     */
-    public String createWapPayUrl(String outTradeNo,
-                                  String subject,
-                                  String body,
-                                  String totalAmount) throws AlipayApiException {
-        if (isBlank(alipayConfig.getAppId()) || isBlank(alipayConfig.getPrivateKey())) {
-            log.warn("Alipay config is incomplete, returning mock URL orderNo={}", outTradeNo);
-            return "#";
+        AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
+        model.setOutTradeNo(outTradeNo);
+        model.setSubject(subject);
+        model.setBody(body);
+        model.setTotalAmount(totalAmount.setScale(2, java.math.RoundingMode.HALF_UP).toString());
+
+        AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+        request.setBizModel(model);
+        request.setNotifyUrl(alipayConfig.getNotifyUrl());
+
+        AlipayTradePrecreateResponse response = client.execute(request);
+        log.info("支付宝扫码下单响应 orderNo={}, code={}, msg={}, subCode={}, subMsg={}",
+                outTradeNo, response.getCode(), response.getMsg(),
+                response.getSubCode(), response.getSubMsg());
+        if (!response.isSuccess()) {
+            String errMsg = response.getSubMsg() != null ? response.getSubMsg() : response.getMsg();
+            log.error("支付宝扫码下单失败 orderNo={}, code={}, msg={}, subCode={}, subMsg={}, body={}",
+                    outTradeNo, response.getCode(), response.getMsg(),
+                    response.getSubCode(), response.getSubMsg(), response.getBody());
+            throw new RuntimeException("支付宝支付下单失败: " + (errMsg != null ? errMsg : response.getCode()));
         }
 
-        DefaultAlipayClient client = buildClient();
-        AlipayTradeWapPayRequest request = buildWapPayRequest(outTradeNo, subject, body, totalAmount);
-        return client.pageExecute(request, "GET").getBody();
+        log.info("支付宝扫码下单成功 orderNo={}, qrCode={}", outTradeNo, response.getQrCode());
+        return response.getQrCode();
     }
 
     private DefaultAlipayClient buildClient() {
@@ -66,24 +73,6 @@ public class AlipayPayServiceImpl {
                 alipayConfig.getCharset(),
                 alipayConfig.getAlipayPublicKey(),
                 alipayConfig.getSignType());
-    }
-
-    private AlipayTradeWapPayRequest buildWapPayRequest(String outTradeNo,
-                                                         String subject,
-                                                         String body,
-                                                         String totalAmount) {
-        AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
-        model.setOutTradeNo(outTradeNo);
-        model.setSubject(subject);
-        model.setBody(body);
-        model.setTotalAmount(totalAmount);
-        model.setProductCode("QUICK_WAP_WAY");
-
-        AlipayTradeWapPayRequest request = new AlipayTradeWapPayRequest();
-        request.setBizModel(model);
-        request.setNotifyUrl(alipayConfig.getNotifyUrl());
-        request.setReturnUrl(alipayConfig.getReturnUrl());
-        return request;
     }
 
     public void handleNotify(PaymentNotify notify, PaymentCallback callback) {
