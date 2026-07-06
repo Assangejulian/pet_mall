@@ -13,6 +13,7 @@ import com.pat.report.domain.vo.UserReportVO;
 import com.pat.report.mapper.ReportMapper;
 import com.pat.report.service.ReportService;
 import com.pat.store.service.IStoreService;
+import com.pat.video.service.IVideoService;
 import com.pat.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class ReportServiceImpl implements ReportService {
 
     private final IProductService productService;
     private final IStoreService storeService;
+    private final IVideoService videoService;
     private final UserService userService;
     private final PurchaseOrderBaseService orderBaseService;
     private final PurchaseOrderMapper orderMapper;
@@ -175,7 +177,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin) {
+    public Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin, LocalDate begin, LocalDate end) {
         long productCount;
         if (storeIds == null || storeIds.isEmpty()) {
             productCount = productService.count();
@@ -207,11 +209,38 @@ public class ReportServiceImpl implements ReportService {
         }
 
         Map<String, Object> data = new LinkedHashMap<>();
+        // video count
+        long videoCount;
+        if (isAdmin) {
+            videoCount = videoService.count();
+        } else if (storeIds != null && !storeIds.isEmpty()) {
+            videoCount = reportMapper.selectMerchantVideoCount(storeIds);
+        } else {
+            videoCount = 0L;
+        }
+
+        // period revenue
+        if (begin == null) begin = LocalDate.now().withDayOfMonth(1);
+        if (end == null) end = LocalDate.now();
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
+        BigDecimal periodRevenue;
+        if (storeIds == null || storeIds.isEmpty()) {
+            periodRevenue = reportMapper.selectPeriodTurnover(beginTime, endTime);
+        } else {
+            periodRevenue = reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds).stream()
+                .map(r -> (BigDecimal) r.get("turnover"))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        if (periodRevenue == null) periodRevenue = BigDecimal.ZERO;
+
         data.put("userCount", isAdmin ? userService.count() : 0);
         data.put("storeCount", storeIds != null ? (long) storeIds.size() : storeService.count());
         data.put("productCount", productCount);
+        data.put("videoCount", videoCount);
         data.put("todayOrders", todayOrders);
         data.put("totalRevenue", totalRevenue);
+        data.put("periodRevenue", periodRevenue);
         data.put("orderStatusCount", statusCount);
         return data;
     }

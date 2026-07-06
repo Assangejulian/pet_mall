@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -23,7 +25,9 @@ public class DashboardController {
 
     @Operation(summary = "获取概览统计")
     @GetMapping("/stats")
-    public Result<Map<String, Object>> stats() {
-        return Result.success(reportService.getDashboardStats(null, true));
+    public Result<Map<String, Object>> stats(
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        return Result.success(reportService.getDashboardStats(null, true, begin, end));
     }
 }

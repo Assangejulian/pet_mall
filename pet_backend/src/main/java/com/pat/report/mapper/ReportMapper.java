@@ -157,4 +157,11 @@ public interface ReportMapper {
     List<Map<String, Object>> selectMerchantSalesTop10(@Param("beginTime") LocalDateTime beginTime,
                                                        @Param("endTime") LocalDateTime endTime,
                                                        @Param("storeIds") List<Long> storeIds);
+
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM video v " +
+            "WHERE EXISTS (SELECT 1 FROM product p WHERE p.id = v.product_id AND p.store_id IN " +
+            "<foreach collection='storeIds' item='sid' open='(' separator=',' close=')'>#{sid}</foreach>) " +
+            "</script>")
+    long selectMerchantVideoCount(@Param("storeIds") List<Long> storeIds);
 }

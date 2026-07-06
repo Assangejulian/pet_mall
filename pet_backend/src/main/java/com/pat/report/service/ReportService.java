@@ -19,7 +19,7 @@ public interface ReportService {
 
     SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end);
 
-    Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin);
+    Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin, LocalDate begin, LocalDate end);
 
     // ===== Merchant report methods =====
 

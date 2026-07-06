@@ -34,10 +34,12 @@ public class MerchantReportController {
 
     @Operation(summary = "获取商家概览统计")
     @GetMapping("/stats")
-    public Result<Map<String, Object>> stats() {
+    public Result<Map<String, Object>> stats(
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
         Long userId = UserHolder.getUserId();
         List<Long> storeIds = storeService.getStoreIdsByUserId(userId);
-        return Result.success(reportService.getDashboardStats(storeIds, false));
+        return Result.success(reportService.getDashboardStats(storeIds, false, begin, end));
     }
 
     @Operation(summary = "商家营业额统计")

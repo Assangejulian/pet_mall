@@ -67,10 +67,11 @@ import { getMerchantTurnover, getMerchantUsers, getMerchantOrders, getMerchantTo
 interface AdminStats {
   userCount: number; storeCount: number; productCount: number
   todayOrders: number; totalRevenue: number
+  videoCount: number; periodRevenue: number
 }
 
 const admin = useAdminStore()
-const stats = ref<AdminStats>({ userCount: 0, storeCount: 0, productCount: 0, todayOrders: 0, totalRevenue: 0 })
+const stats = ref<AdminStats>({ userCount: 0, storeCount: 0, productCount: 0, todayOrders: 0, totalRevenue: 0, videoCount: 0, periodRevenue: 0 })
 const scopedCounts = ref({ stores: 0, products: 0 })
 
 // 日期
@@ -87,11 +88,14 @@ const cards = computed(() => admin.hasRole("admin") ? [
   { label: "用户总数", value: stats.value.userCount, unit: "人", path: "" },
   { label: "门店总数", value: stats.value.storeCount, unit: "家", path: "" },
   { label: "商品总数", value: stats.value.productCount, unit: "件", path: "" },
+  { label: "视频总数", value: stats.value.videoCount, unit: "个", path: "" },
   { label: "今日订单", value: stats.value.todayOrders, unit: "笔", path: "" },
-  { label: "总营收", value: stats.value.totalRevenue, unit: "元", path: "" },
+  { label: "期间营收", value: stats.value.periodRevenue, unit: "元", path: "" },
 ] : admin.hasRole("merchant") ? [
   { label: "我的门店", value: stats.value.storeCount, unit: "家", path: "/merchant/store" },
   { label: "我的商品", value: stats.value.productCount, unit: "件", path: "/merchant/product" },
+  { label: "视频总数", value: stats.value.videoCount, unit: "个", path: "" },
+  { label: "期间营收", value: stats.value.periodRevenue, unit: "元", path: "" },
 ] : [
   { label: "平台门店", value: scopedCounts.value.stores, unit: "家", path: "/auditor/store" },
   { label: "平台商品", value: scopedCounts.value.products, unit: "件", path: "/auditor/product" },
@@ -184,6 +188,11 @@ async function loadSales() {
 
 function disposeCharts() { charts.forEach(c => c.dispose()); charts = [] }
 
+async function loadStats() {
+  const http_ = admin.hasRole("merchant") ? merchantHttp : http
+  stats.value = await unwrap<AdminStats>(http_.get("/report/stats", { params: { begin: begin.value, end: end.value } }))
+}
+
 async function refreshCharts() {
   if (!admin.hasRole("admin") && !admin.hasRole("merchant")) return
   disposeCharts()
@@ -193,7 +202,7 @@ async function refreshCharts() {
 
 onMounted(async () => {
   if (admin.hasRole("admin") || admin.hasRole("merchant")) {
-    stats.value = await unwrap<AdminStats>((admin.hasRole("merchant") ? merchantHttp : http).get("/report/stats"))
+    await loadStats()
     await nextTick()
     await refreshCharts()
     return

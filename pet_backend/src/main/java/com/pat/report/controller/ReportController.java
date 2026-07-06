@@ -60,8 +60,10 @@ public class ReportController {
 
     @GetMapping("/stats")
     @Operation(summary = "获取管理员概览统计")
-    public Result<Map<String, Object>> stats() {
-        return Result.success(reportService.getDashboardStats(null, true));
+    public Result<Map<String, Object>> stats(
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        return Result.success(reportService.getDashboardStats(null, true, begin, end));
     }
 
 }

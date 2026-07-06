@@ -30,6 +30,9 @@ import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
 import com.pat.user.domain.entity.UserAddress;
 import com.pat.user.mapper.UserAddressMapper;
+import com.pat.member.calculator.MemberDiscountCalculator;
+import com.pat.member.model.DiscountResult;
+import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
 import com.pat.common.util.UserHolder;
 import org.springframework.stereotype.Service;
@@ -52,6 +55,7 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
     private final ICartService cartService;
     private final OrderItemMapper orderItemMapper;
     private final PaymentServiceRouter paymentServiceRouter;
+    private final MemberDiscountCalculator memberDiscountCalculator;
 
     public OrderUserServiceImpl(PurchaseOrderBaseService baseService,
                                                                  ProductService productService,
@@ -59,6 +63,7 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
                                 ICartService cartService,
                                 OrderItemMapper orderItemMapper,
                                 PaymentServiceRouter paymentServiceRouter,
+                                MemberDiscountCalculator memberDiscountCalculator,
                                 UserService userService) {
         this.baseService = baseService;
                 this.productService = productService;
@@ -67,6 +72,7 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
         this.orderItemMapper = orderItemMapper;
         this.paymentServiceRouter = paymentServiceRouter;
         this.userService = userService;
+        this.memberDiscountCalculator = memberDiscountCalculator;
     }
 
     private static Long requireUserId() {
@@ -154,7 +160,11 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
         order.setAddressId(dto.getAddressId());
         order.setAddressSnapshot(addressSnapshot);
         order.setTotalAmount(total);
-        order.setPayAmount(total);
+                // 会员折扣计算
+        User user = userService.getById(userId);
+        DiscountResult dr = memberDiscountCalculator.calculate(total, user.getMemberLevel());
+        order.setDiscountAmount(dr.getDiscountAmount());
+        order.setPayAmount(dr.getPayAmount());
         order.setRemark(dto.getRemark());
         order.setOrderStatus(OrderStatus.PENDING_PAY.getCode());
         baseService.save(order);
