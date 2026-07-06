@@ -1,4 +1,4 @@
-package com.pat.user.controller;
+﻿package com.pat.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -10,6 +10,7 @@ import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
 import com.pat.user.domain.vo.UserVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -27,11 +28,13 @@ public class UserAdminController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "根据ID获取用户")
     public Result<UserVO> getById(@PathVariable Long id) {
         User entity = userService.getById(id);
         return entity == null ? Result.error("数据不存在") : Result.success(toVO(entity));
     }
 
+    @Operation(summary = "新增用户")
     @PostMapping
     public Result<Boolean> save(@RequestBody @Valid UserQueryParam param) {
         User entity = toDO(param);
@@ -39,6 +42,7 @@ public class UserAdminController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "更新用户")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid UserQueryParam param) {
         User entity = toDO(param);
         entity.setId(id);
@@ -46,40 +50,47 @@ public class UserAdminController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "删除用户")
     public Result<Boolean> remove(@PathVariable Long id) {
         return Result.success(userService.removeById(id));
     }
 
     @DeleteMapping("/batch")
+    @Operation(summary = "批量删除用户")
     public Result<Boolean> removeBatch(@RequestBody List<Long> ids) {
         return Result.success(userService.removeByIds(ids));
     }
 
     @GetMapping("/search")
+    @Operation(summary = "分页搜索用户")
     public Result<IPage<UserVO>> search(UserQueryParam param, Page<User> page) {
         Page<User> result = userService.page(page, buildQueryWrapper(param));
         return Result.success(result.convert(this::toVO));
     }
 
     @GetMapping("/list")
+    @Operation(summary = "获取用户列表")
     public Result<List<UserVO>> getList(UserQueryParam param) {
         List<User> list = userService.list(buildQueryWrapper(param));
         return Result.success(list.stream().map(this::toVO).toList());
     }
 
     @GetMapping("/by-ids")
+    @Operation(summary = "根据ID列表批量获取用户")
     public Result<List<UserVO>> getByIds(@RequestParam List<Long> ids) {
         List<User> list = userService.listByIds(ids);
         return Result.success(list.stream().map(this::toVO).toList());
     }
 
     @PostMapping("/batch")
+    @Operation(summary = "批量新增用户")
     public Result<Boolean> saveBatch(@RequestBody @Valid List<UserQueryParam> paramList) {
         List<User> entities = paramList.stream().map(this::toDO).toList();
         return Result.success(userService.saveBatch(entities));
     }
 
     @PutMapping("/batch")
+    @Operation(summary = "批量更新用户")
     public Result<Boolean> updateBatch(@RequestBody @Valid List<UserQueryParam> paramList) {
         List<User> entities = paramList.stream().map(this::toDO).toList();
         return Result.success(userService.updateBatchById(entities));
