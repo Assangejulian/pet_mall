@@ -13,13 +13,14 @@ import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
-import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.ICartService;
+import com.pat.order.service.IOrderItemService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.order.service.support.OrderAmountCalculator;
 import com.pat.order.service.support.OrderPersistenceService;
 import com.pat.order.service.support.OrderProductService;
+import com.pat.order.service.support.OrderEvaluateService;
 import com.pat.order.service.support.OrderStateService;
 import com.pat.payment.domain.dto.PaymentContext;
 import com.pat.payment.domain.vo.OrderPaymentVO;
@@ -32,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -46,31 +46,34 @@ import java.util.stream.Collectors;
 public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.service.PaymentCallback {
 
     private final OrderProductService orderProductService;
+    private final IOrderItemService orderItemService;
     private final OrderAmountCalculator amountCalculator;
     private final OrderPersistenceService orderPersistenceService;
+    private final OrderEvaluateService orderEvaluateService;
     private final OrderStateService orderStateService;
     private final UserService userService;
     private final ICartService cartService;
-    private final OrderItemMapper orderItemMapper;
     private final PurchaseOrderBaseService baseService;
     private final PaymentServiceRouter paymentServiceRouter;
 
     public OrderUserServiceImpl(OrderProductService orderProductService,
+                                IOrderItemService orderItemService,
                                 OrderAmountCalculator amountCalculator,
                                 OrderPersistenceService orderPersistenceService,
                                 OrderStateService orderStateService,
+                                OrderEvaluateService orderEvaluateService,
                                 UserService userService,
                                 ICartService cartService,
-                                OrderItemMapper orderItemMapper,
                                 PurchaseOrderBaseService baseService,
                                 PaymentServiceRouter paymentServiceRouter) {
         this.orderProductService = orderProductService;
+        this.orderItemService = orderItemService;
         this.amountCalculator = amountCalculator;
         this.orderPersistenceService = orderPersistenceService;
         this.orderStateService = orderStateService;
+        this.orderEvaluateService = orderEvaluateService;
         this.userService = userService;
         this.cartService = cartService;
-        this.orderItemMapper = orderItemMapper;
         this.baseService = baseService;
         this.paymentServiceRouter = paymentServiceRouter;
     }
@@ -133,16 +136,16 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
     @Override
     public PurchaseOrder getUserOrderDetail(Long id) {
         PurchaseOrder order = getOwnedOrder(id);
-        order.setItems(orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId())));
+        order.setItems(orderItemService.lambdaQuery()
+                .eq(OrderItem::getOrderId, order.getId()).list());
         return order;
     }
 
     @Override
     public List<OrderItem> getUserOrderItems(Long orderId) {
         PurchaseOrder order = getOwnedOrder(orderId);
-        return orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
+        return orderItemService.lambdaQuery()
+                .eq(OrderItem::getOrderId, order.getId()).list();
     }
 
     // ===================== 支付 =====================
@@ -192,21 +195,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         PurchaseOrder order = getOwnedOrder(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.EVALUATED.getCode());
 
-        List<OrderItem> existingItems = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
-        Map<Long, OrderItem> itemMap = existingItems.stream()
-                .collect(Collectors.toMap(OrderItem::getId, item -> item));
-        LocalDateTime now = LocalDateTime.now();
-        if (dto.getItems() != null) {
-            for (OrderEvaluateDTO.ItemEvaluate ie : dto.getItems()) {
-                OrderItem item = itemMap.get(ie.getOrderItemId());
-                if (item != null) {
-                    item.setEvaluateContent(ie.getContent());
-                    item.setEvaluateTime(now);
-                    orderItemMapper.updateById(item);
-                }
-            }
-        }
+        LocalDateTime now = orderEvaluateService.updateEvaluations(order.getId(), dto.getItems());
         orderStateService.evaluate(order, now);
     }
 
@@ -221,9 +210,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         PurchaseOrder order = getOwnedOrder(orderId);
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", orderId));
-        orderProductService.restoreStock(items);
+        orderProductService.restoreStockByOrderId(orderId);
 
         orderStateService.cancel(order, reason, "user");
         log.info("用户取消订单 orderId={}, reason={}", orderId, reason);

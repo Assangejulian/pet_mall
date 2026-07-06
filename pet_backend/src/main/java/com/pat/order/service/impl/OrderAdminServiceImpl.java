@@ -1,20 +1,17 @@
 package com.pat.order.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCancelDTO;
 import com.pat.order.domain.dto.OrderRefundDTO;
-import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderAdminMapper;
-import com.pat.order.mapper.OrderItemMapper;
 import com.pat.order.service.IOrderAdminService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
+import com.pat.order.service.support.OrderProductService;
 import com.pat.order.service.support.OrderStateService;
-import com.pat.product.service.ProductService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,20 +31,17 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderAdminMapper orderAdminMapper;
-    private final OrderItemMapper orderItemMapper;
-    private final ProductService productService;
+        private final OrderProductService orderProductService;
     private final OrderStateService orderStateService;
 
     public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
                                  OrderAdminMapper orderAdminMapper,
-                                 OrderItemMapper orderItemMapper,
-                                 ProductService productService,
-                                 OrderStateService orderStateService) {
+                                 OrderStateService orderStateService,
+                                 OrderProductService orderProductService) {
         this.baseService = baseService;
         this.orderAdminMapper = orderAdminMapper;
-        this.orderItemMapper = orderItemMapper;
-        this.productService = productService;
         this.orderStateService = orderStateService;
+        this.orderProductService = orderProductService;
     }
 
     /**
@@ -61,7 +55,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
-        restoreOrderStock(order.getId());
+        orderProductService.restoreStockByOrderId(order.getId());
         orderStateService.cancel(order, dto.getCancelReason(), "admin");
         log.info("管理员取消订单 orderId={}, reason={}", dto.getOrderId(), dto.getCancelReason());
     }
@@ -80,7 +74,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
 
         if (dto.getApproved()) {
             OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REFUNDED.getCode());
-            restoreOrderStock(order.getId());
+            orderProductService.restoreStockByOrderId(order.getId());
             orderStateService.approveRefund(order);
         } else {
             Integer restoreStatus = order.getPreRefundStatus();
@@ -106,7 +100,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
 
-        restoreOrderStock(order.getId());
+        orderProductService.restoreStockByOrderId(order.getId());
         orderStateService.directRefund(order, dto.getCancelReason());
         log.info("直接退款 orderId={}, reason={}", dto.getOrderId(), dto.getCancelReason());
     }
@@ -136,16 +130,9 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     /** 按 ID 查询订单，不存在则抛异常。 */
     private PurchaseOrder getOrderById(Long id) {
         PurchaseOrder order = baseService.getById(id);
-        if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
-        return order;
-    }
-
-    /** 恢复订单相关商品的库存。 */
-    private void restoreOrderStock(Long orderId) {
-        List<OrderItem> items = orderItemMapper.selectList(
-                new QueryWrapper<OrderItem>().eq("order_id", orderId));
-        for (OrderItem item : items) {
-            productService.restoreStock(item.getProductId(), item.getQuantity());
+        if (order == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
         }
+        return order;
     }
 }

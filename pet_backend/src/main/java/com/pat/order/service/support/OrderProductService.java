@@ -4,6 +4,8 @@ import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.entity.OrderItem;
+import com.pat.order.mapper.OrderItemMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
 import org.springframework.stereotype.Service;
@@ -15,16 +17,18 @@ import java.util.List;
 /**
  * 商品校验与库存扣减。
  *
- * <p>负责验证商品是否存在/上架、扣减库存，以及取消订单时恢复库存。
+ * <p>负责验证商品是否存在/上架、扣减库存、以及取消订单时恢复库存。
  * 库存操作与订单流程紧密绑定，与 {@link com.pat.product.service.ProductService} 配合完成最终一致性。</p>
  */
 @Service
 public class OrderProductService {
 
     private final ProductService productService;
+    private final OrderItemMapper orderItemMapper;
 
-    public OrderProductService(ProductService productService) {
+    public OrderProductService(ProductService productService, OrderItemMapper orderItemMapper) {
         this.productService = productService;
+        this.orderItemMapper = orderItemMapper;
     }
 
     /**
@@ -47,7 +51,7 @@ public class OrderProductService {
                 throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
             }
             if (product.getStatus() == null || product.getStatus() != 1) {
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架: " + product.getProductName());
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架" + product.getProductName());
             }
             boolean stockOk = productService.deductStock(product.getId(), item.getQuantity());
             if (!stockOk) {
@@ -76,6 +80,19 @@ public class OrderProductService {
         for (OrderItem item : items) {
             productService.restoreStock(item.getProductId(), item.getQuantity());
         }
+    }
+
+    /**
+     * 根据订单 ID 恢复库存（取消订单、退款时调用）。
+     *
+     * <p>内部自动查询订单明细，然后恢复商品库存，避免编排层直接依赖 OrderItemMapper。</p>
+     *
+     * @param orderId 订单 ID
+     */
+    public void restoreStockByOrderId(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().eq("order_id", orderId));
+        restoreStock(items);
     }
 
     /** 商品校验结果。包含构建完成的 OrderItem 列表和原价合计金额。 */

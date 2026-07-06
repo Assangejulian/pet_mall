@@ -18,6 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 购物车服务实现。
+ *
+ * <p>管理当前用户的购物车商品，支持增删改查和下单后批量清理。
+ * 列表查询时批量关联商品信息，避免 N+1。</p>
+ */
 @Service
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
 
@@ -27,6 +33,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         this.productService = productService;
     }
 
+    /** 获取当前登录用户 ID。 */
     private Long requireUserId() {
         Long uid = UserHolder.getUserId();
         if (uid == null) {
@@ -35,6 +42,12 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return uid;
     }
 
+    /**
+     * 校验购物车记录的归属权。
+     *
+     * @param id 购物车记录 ID
+     * @return 归属当前用户的购物车记录
+     */
     private Cart requireOwnedCart(Long id) {
         Long userId = requireUserId();
         Cart cart = getById(id);
@@ -47,21 +60,22 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return cart;
     }
 
+    /**
+     * 获取当前用户的购物车列表。
+     *
+     * <p>批量查询关联商品信息，按创建时间倒序返回。</p>
+     *
+     * @return 含商品信息的购物车 VO 列表
+     */
     @Override
     public List<CartVO> getCurrentUserCart() {
         List<Cart> carts = lambdaQuery()
                 .eq(Cart::getUserId, requireUserId())
                 .orderByDesc(Cart::getCreateTime)
                 .list();
+        if (carts.isEmpty()) return new ArrayList<>();
 
-        if (carts.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Long> productIds = new ArrayList<>(carts.size());
-        for (Cart cart : carts) {
-            productIds.add(cart.getProductId());
-        }
+        List<Long> productIds = carts.stream().map(Cart::getProductId).collect(Collectors.toList());
         List<Product> products = productService.listByIds(productIds);
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
@@ -91,6 +105,13 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return result;
     }
 
+    /**
+     * 添加商品到购物车。
+     *
+     * <p>如果该商品已在购物车中，则累加数量而非重复添加。</p>
+     *
+     * @param cart 购物车参数（productId、quantity）
+     */
     @Override
     public void addToCart(Cart cart) {
         Long userId = requireUserId();
@@ -105,21 +126,18 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
                 .one();
         if (exist != null) {
             exist.setQuantity((exist.getQuantity() == null ? 0 : exist.getQuantity()) + quantity);
-            if (cart.getChecked() != null) {
-                exist.setChecked(cart.getChecked());
-            }
+            if (cart.getChecked() != null) exist.setChecked(cart.getChecked());
             updateById(exist);
             return;
         }
 
         cart.setUserId(userId);
         cart.setQuantity(quantity);
-        if (cart.getChecked() == null) {
-            cart.setChecked(1);
-        }
+        if (cart.getChecked() == null) cart.setChecked(1);
         save(cart);
     }
 
+    /** 更新购物车项（数量、选中状态）。 */
     @Override
     public void updateCartItem(Long id, Cart cart) {
         Long userId = requireUserId();
@@ -129,14 +147,21 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         updateById(cart);
     }
 
+    /** 删除购物车项。 */
     @Override
     public void removeCartItem(Long id) {
         requireOwnedCart(id);
         removeById(id);
     }
 
+    /**
+     * 下单后清理购物车中指定商品。
+     *
+     * @param userId     用户 ID
+     * @param productIds 已下单的商品 ID 列表
+     */
     @Override
-    public void cleanByProductIds(Long userId, java.util.List<Long> productIds) {
+    public void cleanByProductIds(Long userId, List<Long> productIds) {
         lambdaUpdate()
                 .eq(Cart::getUserId, userId)
                 .in(Cart::getProductId, productIds)
