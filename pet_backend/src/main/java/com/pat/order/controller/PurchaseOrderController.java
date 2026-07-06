@@ -74,11 +74,11 @@ public class PurchaseOrderController {
         return Result.success();
     }
 
-    @Operation(summary = "极速退款")
-    @PostMapping("/{id}/refund_direct")
-    public Result<Void> refundDirect(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String reason = body.getOrDefault("reason", "用户发起极速退款");
-        orderUserService.directRefund(id, reason);
+    @Operation(summary = "取消订单（待支付/已支付可取消）")
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String reason = body.getOrDefault("reason", "用户取消订单");
+        orderUserService.cancelOrder(id, reason);
         return Result.success();
     }
 

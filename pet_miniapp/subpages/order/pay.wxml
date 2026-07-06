@@ -48,7 +48,6 @@
   <view class="alipay-overlay" wx:if="{{showAlipay}}">
     <view class="alipay-card">
       <text class="alipay-title">支付宝扫码支付</text>
-      <text class="alipay-desc">请使用支付宝扫一扫完成支付</text>
       <image class="alipay-qr" src="{{alipayUrl}}" mode="widthFix"></image>
       <view class="alipay-btns">
         <view class="btn-cancel" bindtap="closeAlipay">关闭</view>

@@ -20,6 +20,6 @@ public interface IOrderUserService {
     OrderPaymentVO payOrder(OrderPaymentDTO dto);
     PurchaseOrder confirmReceive(Long id);
     void evaluateOrder(OrderEvaluateDTO dto);
+    void cancelOrder(Long orderId, String reason);
     void applyRefund(Long orderId, String reason);
-    void directRefund(Long orderId, String reason);
 }

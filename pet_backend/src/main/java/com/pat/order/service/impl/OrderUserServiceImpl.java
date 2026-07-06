@@ -338,6 +338,8 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REFUNDING.getCode());
 
+        // 保存退款前的状态，用于管理员驳回时恢复到正确状态
+        order.setPreRefundStatus(order.getOrderStatus());
         order.setOrderStatus(OrderStatus.REFUNDING.getCode());
         order.setCancelReason(reason);
         order.setRefundApplyTime(LocalDateTime.now());
@@ -346,21 +348,20 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void directRefund(Long orderId, String reason) {
-        Long userId = requireUserId();
-        PurchaseOrder order = baseService.getById(orderId);
-        if (order == null || !order.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
-        }
-        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
+    public void cancelOrder(Long orderId, String reason) {
+        PurchaseOrder order = getOwnedOrder(orderId);
+        OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
+        // 取消时恢复库存（订单创建时已扣减库存）
         restoreOrderStock(order.getId());
-        order.setOrderStatus(OrderStatus.REJECTED.getCode());
+
+        order.setOrderStatus(OrderStatus.CANCELLED.getCode());
         order.setCancelReason(reason);
+        order.setCancelType("user");
         order.setCancelTime(LocalDateTime.now());
         baseService.updateById(order);
+        log.info("用户取消订单 orderId={}, reason={}", orderId, reason);
     }
-
     private void restoreOrderStock(Long orderId) {
         List<OrderItem> items = orderItemMapper.selectList(
                 new QueryWrapper<OrderItem>().eq("order_id", orderId));

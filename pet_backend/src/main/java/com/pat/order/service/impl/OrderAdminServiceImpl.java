@@ -43,21 +43,17 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     /**
-
      * 取消订单（管理端）。校验状态机后执行取消，记录取消原因和时间。
-
      *
-
      * @param dto 取消参数（订单 ID + 原因）
-
      */
-
     public void cancelOrder(OrderCancelDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
         restoreOrderStock(order.getId());
         order.setOrderStatus(OrderStatus.CANCELLED.getCode());
+        order.setCancelType("admin");
         order.setCancelReason(dto.getCancelReason());
         order.setCancelTime(LocalDateTime.now());
         baseService.updateById(order);
@@ -67,15 +63,10 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     /**
-
-     * 退款审核（通过/驳回）。通过则置为已退款，驳回则恢复已收货状态。
-
+     * 退款审核（通过/驳回）。通过则置为已退款，驳回则恢复到退款前的状态。
      *
-
      * @param dto 退款审核参数
-
      */
-
     public void refundApprove(OrderRefundDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         Integer current = order.getOrderStatus();
@@ -85,8 +76,15 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
             restoreOrderStock(order.getId());
             order.setOrderStatus(OrderStatus.REFUNDED.getCode());
         } else {
-            OrderStateMachine.validate(current, OrderStatus.RECEIVED.getCode());
-            order.setOrderStatus(OrderStatus.RECEIVED.getCode());
+            // 驳回时恢复到退款前的状态（preRefundStatus），或根据时间戳推断
+            Integer restoreStatus = order.getPreRefundStatus();
+            if (restoreStatus == null) {
+                restoreStatus = (order.getReceiveTime() != null)
+                        ? OrderStatus.RECEIVED.getCode()
+                        : OrderStatus.SHIPPED.getCode();
+            }
+            OrderStateMachine.validate(current, restoreStatus);
+            order.setOrderStatus(restoreStatus);
             order.setCancelReason(dto.getRejectReason());
         }
         order.setRefundAuditTime(LocalDateTime.now());
@@ -97,15 +95,10 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     /**
-
      * 直接退款（不经过申请流程）。用于管理端主动退款操作。
-
      *
-
      * @param dto 退款参数
-
      */
-
     public void refundDirect(OrderCancelDTO dto) {
         PurchaseOrder order = getOrderById(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
@@ -121,15 +114,10 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     /**
-
      * 支付成功回调。将订单置为已支付状态，并批量标记对应商品为已售出。
-
      *
-
      * @param orderNo 订单号
-
      */
-
     public void paySuccess(String orderNo) {
         PurchaseOrder order = baseService.lambdaQuery()
                 .eq(PurchaseOrder::getOrderNo, orderNo)

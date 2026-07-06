@@ -41,7 +41,7 @@
     </view>
     <view class="bottom-bar" v-if="order">
       <button class="btn-primary" @tap="payOrder" v-if="order.orderStatus == 0">去支付</button>
-      <button class="btn-outline" @tap="directRefund" v-if="order.orderStatus == 1">急速退款</button>
+      <button class="btn-outline" @tap="cancelOrder" v-if="order.orderStatus == 0 || order.orderStatus == 1">取消订单</button>
       <button class="btn-primary" @tap="confirmReceive" v-if="order.orderStatus == 2">确认收货</button>
       <button class="btn-primary" @tap="evaluateOrder" v-if="order.orderStatus == 3">去评价</button>
       <button class="btn-outline" @tap="applyRefund" v-if="order.orderStatus == 3 || order.orderStatus == 4">退款</button>
@@ -79,8 +79,8 @@ export default {
       uni.showModal({title:"确认收货",content:"确定已收到商品吗？",success:(r) => { if(r.confirm) orderApi.receive(this.order.id).then(() => { uni.showToast({title:"已确认收货",icon:"success"}); this.loadOrder(this.order.id); }); }});
     },
     evaluateOrder() { uni.navigateTo({ url: "/subpages/order/evaluate?id=" + this.order.id }); },
-    directRefund() {
-      uni.showModal({title:"急速退款",content:"确定要急速退款吗？",success:(r) => { if(r.confirm) orderApi.refundDirect(this.order.id).then(() => { uni.showToast({title:"退款成功",icon:"success"}); this.loadOrder(this.order.id); }); }});
+    cancelOrder() {
+      uni.showModal({title:"取消订单",content:"确定要取消订单吗？",success:(r) => { if(r.confirm) orderApi.cancel(this.order.id).then(() => { uni.showToast({title:"已取消",icon:"success"}); this.loadOrder(this.order.id); }); }});
     },
     applyRefund() { uni.navigateTo({ url: "/subpages/order/refund/refund?id=" + this.order.id }); },
     callService() { uni.showToast({title:"客服电话: 400-000-0000",icon:"none"}); }

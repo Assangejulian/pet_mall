@@ -24,6 +24,7 @@ public class PurchaseOrder extends BaseEntity {
     private Integer orderStatus;
     private String remark;
     private String cancelReason;
+    private String cancelType;
     private LocalDateTime cancelTime;
     private LocalDateTime payTime;
     private LocalDateTime shipTime;
@@ -31,6 +32,7 @@ public class PurchaseOrder extends BaseEntity {
     private LocalDateTime evaluateTime;
     private LocalDateTime refundApplyTime;
     private LocalDateTime refundAuditTime;
+    private Integer preRefundStatus;
 
     @TableField(exist = false)
     private List<OrderItem> items;

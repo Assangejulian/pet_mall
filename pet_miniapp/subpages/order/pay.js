@@ -70,18 +70,17 @@ Page({
 
       if (that.data.payMethod === "alipay") {
         if (res && res.payUrl) {
-          var baseUrl = getApp().globalData.baseUrl || "http://116cfb72.r31.cpolar.top";
+          var baseUrl = getApp().globalData.baseUrl || "http://2adef3fc.r31.cpolar.top";
           var qrSrc = baseUrl + "/api/qrcode?url=" + encodeURIComponent(res.payUrl);
           that.setData({ alipayUrl: qrSrc, showAlipay: true });
           that.startPoll();
         } else {
-          wx.showToast({ title: "支付宝支付暂不可用，请稍后重试", icon: "none" });
+          wx.showToast({ title: "支付宝支付暂不可用", icon: "none" });
           that.setData({ paying: false });
         }
         return;
       }
 
-      // 模拟支付
       if (that.data.payMethod === "mock") {
         wx.showToast({ title: "模拟支付成功", icon: "success" });
         setTimeout(function() { wx.redirectTo({ url: "/subpages/order/list" }); }, 1500);

@@ -1,4 +1,3 @@
-
 package com.pat.order.helper;
 
 import com.pat.common.domain.ErrorCode;
@@ -18,14 +17,11 @@ public class OrderStateMachine {
 
     private static final Map<OrderStatus, Set<OrderStatus>> STATE_MACHINE = Map.of(
             OrderStatus.PENDING_PAY, Set.of(OrderStatus.PAID, OrderStatus.CANCELLED),
-            OrderStatus.PAID,        Set.of(OrderStatus.SHIPPED, OrderStatus.REJECTED),
-            // 极速退款
-            OrderStatus.SHIPPED,     Set.of(OrderStatus.RECEIVED, OrderStatus.REFUNDING, OrderStatus.REJECTED),
-            OrderStatus.RECEIVED,    Set.of(OrderStatus.EVALUATED, OrderStatus.REFUNDING),
-            // 售后退款
+            OrderStatus.PAID,        Set.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
+            OrderStatus.SHIPPED,     Set.of(OrderStatus.RECEIVED, OrderStatus.REFUNDING),
+            OrderStatus.RECEIVED,    Set.of(OrderStatus.EVALUATED, OrderStatus.REFUNDING, OrderStatus.REJECTED),
             OrderStatus.EVALUATED,   Set.of(OrderStatus.REFUNDING),
-            // 售后退款
-            OrderStatus.REFUNDING,   Set.of(OrderStatus.REFUNDED, OrderStatus.RECEIVED)
+            OrderStatus.REFUNDING,   Set.of(OrderStatus.REFUNDED, OrderStatus.RECEIVED, OrderStatus.SHIPPED)
     );
 
     /** 校验 current → target 是否合法，不合法抛异常 */
