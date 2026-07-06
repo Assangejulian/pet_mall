@@ -26,7 +26,7 @@
     </view>
     <view class="action" bindtap="toggleComments">
       <text class="action-icon">评</text>
-      <text class="action-label">{{comments.length || post.commentCount}}</text>
+      <text class="action-label">{{commentTotal}}</text>
     </view>
     <view class="action" bindtap="goChat">
       <text class="action-icon">问</text>
@@ -57,7 +57,7 @@
   <view class="comment-panel {{showComments ? 'show' : ''}}" catchtap="noop">
     <view class="panel-handle"></view>
     <view class="panel-title">
-      <text>评论 {{comments.length}}</text>
+      <text>评论 {{commentTotal}}</text>
       <text class="panel-close" bindtap="closeComments">关闭</text>
     </view>
     <scroll-view class="comment-scroll" scroll-y>

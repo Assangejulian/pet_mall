@@ -51,7 +51,7 @@ function normalizePost(item, index) {
     author: source.author || source.userName || fallback.author || "暖窝用户",
     avatar: source.avatar || fallback.avatar || "/images/mock/cat-avatar.jpg",
     likes: formatCount(source.likes || source.likeCount || fallback.likes),
-    commentCount: source.commentCount || fallback.commentCount || 0,
+    commentCount: Number(source.commentCount || fallback.commentCount || 0),
     productId: source.productId || fallback.productId || ""
   };
 }
@@ -63,7 +63,8 @@ function normalizeComment(item) {
     user: item.user || item.userName || "暖窝用户",
     avatar: item.avatar || "/images/mock/cat-avatar.jpg",
     text: item.text || item.content || "",
-    time: item.time || "刚刚"
+    time: item.time || "刚刚",
+    isBuyer: !!item.isBuyer
   };
 }
 
@@ -74,6 +75,7 @@ Page({
     post: {},
     product: {},
     comments: [],
+    commentTotal: 0,
     inputText: "",
     loading: true,
     useMock: false,
@@ -131,6 +133,7 @@ Page({
       post: post,
       product: productMap[post.productId] || {},
       comments: [],
+      commentTotal: Number(post.commentCount || 0),
       inputText: "",
       showComments: false,
       liked: false,
@@ -180,9 +183,19 @@ Page({
     var that = this;
     videoApi.comments(id).then(function(data) {
       var list = Array.isArray(data) ? data.map(normalizeComment) : fallbackComments;
-      that.setData({ comments: list });
+      that.setCommentList(list);
     }).catch(function() {
-      that.setData({ comments: fallbackComments });
+      that.setCommentList(fallbackComments);
+    });
+  },
+
+  setCommentList: function(list) {
+    var post = Object.assign({}, this.data.post || {});
+    post.commentCount = list.length;
+    this.setData({
+      comments: list,
+      commentTotal: list.length,
+      post: post
     });
   },
 
@@ -246,11 +259,15 @@ Page({
     };
     this.setData({
       comments: [comment].concat(this.data.comments),
+      commentTotal: this.data.commentTotal + 1,
       inputText: "",
       showComments: true
     });
     if (this.data.post.id) {
-      videoApi.addComment(this.data.post.id, text);
+      var that = this;
+      videoApi.addComment(this.data.post.id, text).then(function() {
+        that.loadComments(that.data.post.id);
+      });
     }
   }
 });

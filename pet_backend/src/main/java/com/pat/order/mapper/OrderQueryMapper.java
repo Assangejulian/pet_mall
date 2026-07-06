@@ -29,4 +29,7 @@ public interface OrderQueryMapper {
             "WHERE oi.product_id = #{productId} AND oi.evaluate_content IS NOT NULL " +
             "ORDER BY oi.evaluate_time DESC")
     List<java.util.Map<String, Object>> selectProductReviews(@Param("productId") Long productId);
+
+    @Select("SELECT COUNT(*) FROM order_item WHERE product_id = #{productId} AND evaluate_content IS NOT NULL")
+    Long countProductReviews(@Param("productId") Long productId);
 }

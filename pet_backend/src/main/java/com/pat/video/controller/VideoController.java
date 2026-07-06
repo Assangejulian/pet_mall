@@ -102,7 +102,7 @@ public class VideoController {
         videoService.incrementPlayCount(id);
         Video updated = videoService.getById(id);
         if (updated != null) {
-            updated.setCommentCount(countComments(id));
+            updated.setCommentCount(countVisibleComments(updated));
         }
         return Result.success(updated);
     }
@@ -171,7 +171,7 @@ public class VideoController {
 
         Video video = videoService.getById(id);
         if (video != null) {
-            video.setCommentCount(countComments(id));
+            video.setCommentCount(countVisibleComments(video));
             videoService.updateById(video);
         }
         return Result.success(comment);
@@ -216,7 +216,7 @@ public class VideoController {
         item.put("cover", video.getCover());
         item.put("url", video.getUrl());
         item.put("likes", video.getLikes());
-        item.put("commentCount", countComments(video.getId()));
+        item.put("commentCount", countVisibleComments(video));
         item.put("playCount", video.getPlayCount());
         item.put("productId", video.getProductId());
         item.put("duration", video.getDuration());
@@ -235,5 +235,17 @@ public class VideoController {
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
         wrapper.eq("video_id", videoId);
         return Math.toIntExact(commentService.count(wrapper));
+    }
+
+    private Integer countVisibleComments(Video video) {
+        if (video == null) {
+            return 0;
+        }
+        int total = countComments(video.getId());
+        if (video.getProductId() != null) {
+            Long reviewCount = orderQueryMapper.countProductReviews(video.getProductId());
+            total += reviewCount == null ? 0 : Math.toIntExact(reviewCount);
+        }
+        return total;
     }
 }
