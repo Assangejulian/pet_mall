@@ -215,8 +215,8 @@ UPDATE video SET status = 0 WHERE id = 8;
 INSERT IGNORE INTO comment (id, video_id, user_id, content) VALUES
 (7, 6, 2, '太聪明了！想养一只'),
 (8, 6, 3, '这个价格含训练课程吗'),
-(9, 7, 2, '龙猫好圆啊！请问在哪里买的'),
-(10, 7, 4, '手感一定很棒吧'),
+(9, 7, 2, '橘猫趴在木桌上太放松了'),
+(10, 7, 4, '这个镜头很安静，适合循环看'),
 (11, 8, 2, '好漂亮的神仙鱼'),
 (12, 8, 5, '鱼缸造景也很好看');
 
@@ -228,8 +228,8 @@ UPDATE comment SET video_id = 6, user_id = 4, content = '户外跑跳这一段�
 UPDATE comment SET video_id = 6, user_id = 2, content = '习惯了就好，狗狗看起来很开心。' WHERE id = 6;
 UPDATE comment SET video_id = 6, user_id = 3, content = '我家猫看了表示很感兴趣。' WHERE id = 7;
 UPDATE comment SET video_id = 6, user_id = 3, content = '这个价格含训练课程吗' WHERE id = 8;
-UPDATE comment SET video_id = 7, user_id = 2, content = '龙猫好圆啊！请问在哪里买的' WHERE id = 9;
-UPDATE comment SET video_id = 7, user_id = 4, content = '手感一定很棒吧' WHERE id = 10;
+UPDATE comment SET video_id = 7, user_id = 2, content = '橘猫趴在木桌上太放松了' WHERE id = 9;
+UPDATE comment SET video_id = 7, user_id = 4, content = '这个镜头很安静，适合循环看' WHERE id = 10;
 UPDATE comment SET video_id = 8, user_id = 2, content = '好漂亮的神仙鱼' WHERE id = 11;
 UPDATE comment SET video_id = 8, user_id = 5, content = '鱼缸造景也很好看' WHERE id = 12;
 
@@ -287,6 +287,21 @@ UPDATE order_item SET evaluate_content = '仓鼠套餐很齐全，小朋友很�
 UPDATE order_item SET evaluate_content = '龙猫超级可爱！毛色漂亮', evaluate_star = 5, evaluate_time = '2026-06-22 09:05:00' WHERE id = 21;
 UPDATE order_item SET evaluate_content = '草很新鲜，兔子爱吃', evaluate_star = 4, evaluate_time = '2026-06-22 09:10:00' WHERE id = 22;
 UPDATE order_item SET evaluate_content = '小乌龟很健康，小朋友的宠物', evaluate_star = 4, evaluate_time = '2026-06-22 09:15:00' WHERE id = 23;
+
+UPDATE video v
+LEFT JOIN (
+    SELECT video_id, COUNT(*) AS cnt
+    FROM comment
+    WHERE deleted = 0 AND status = 1
+    GROUP BY video_id
+) c ON c.video_id = v.id
+LEFT JOIN (
+    SELECT product_id, COUNT(*) AS cnt
+    FROM order_item
+    WHERE evaluate_content IS NOT NULL
+    GROUP BY product_id
+) r ON r.product_id = v.product_id
+SET v.comment_count = COALESCE(c.cnt, 0) + COALESCE(r.cnt, 0);
 
 -- ========== 补充 addressSnapshot（所有订单的收货地址快照） ==========
 UPDATE purchase_order SET address_snapshot = '{"receiverName":"张三","phone":"13800138000","province":"福建省","city":"厦门市","district":"集美区","detail":"理工路600号"}' WHERE id IN (1,2,3,4,10,12,14);

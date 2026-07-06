@@ -338,7 +338,7 @@ INSERT IGNORE INTO product(id, store_id, product_name, product_type, category, p
 
 -- ========== 补充 video ==========
 INSERT IGNORE INTO video(id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
-(7, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '/video/7.mp4', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=800', 7, 6800, 1200, 89, 55, 1),
+(7, 2, '贵宾犬的才艺表演', '坐下趴下握手装死，样样精通的小机灵。', '/video/7.mp4', 'https://images.unsplash.com/photo-1615469031033-23db999e47ec?w=800', 7, 6800, 1200, 2, 55, 1),
 (8, 3, '神仙鱼群游好治愈', '看着它们在鱼缸里慢慢游，心情都平静了。', '/video/8.mp4', 'https://images.unsplash.com/photo-1520366498724-709889c0c685?w=800', 13, 3500, 680, 45, 30, 1);
 
 -- ========== 补充 comment ==========
@@ -387,6 +387,20 @@ UPDATE order_item SET evaluate_content = '泰迪犬很可爱，健康活泼，�
 UPDATE order_item SET evaluate_content = '仓鼠套餐很齐全，小朋友很喜欢', evaluate_star = 4, evaluate_time = '2026-06-25 10:05:00' WHERE id = 6;
 UPDATE order_item SET evaluate_content = '狗狗很健康，超级聪明！', evaluate_star = 5, evaluate_time = '2026-06-24 12:00:00' WHERE id = 7;
 UPDATE order_item SET evaluate_content = '猫抓板质量不错，猫咪很喜欢', evaluate_star = 4, evaluate_time = '2026-06-24 12:05:00' WHERE id = 8;
+
+UPDATE video v
+LEFT JOIN (
+    SELECT video_id, COUNT(*) AS cnt
+    FROM comment
+    GROUP BY video_id
+) c ON c.video_id = v.id
+LEFT JOIN (
+    SELECT product_id, COUNT(*) AS cnt
+    FROM order_item
+    WHERE evaluate_content IS NOT NULL
+    GROUP BY product_id
+) r ON r.product_id = v.product_id
+SET v.comment_count = COALESCE(c.cnt, 0) + COALESCE(r.cnt, 0);
 
 -- ========== 补充 addressSnapshot（所有订单的收货地址快照） ==========
 UPDATE purchase_order SET address_snapshot = '{"receiverName":"测试用户","phone":"13900139000","province":"福建省","city":"厦门市","district":"集美区","detail":"理工路600号"}' WHERE id IN (1,2,3,4,9,10);

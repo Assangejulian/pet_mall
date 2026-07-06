@@ -298,8 +298,8 @@ INSERT IGNORE INTO comment (id, video_id, user_id, content) VALUES
 (6, 6, 2, '习惯了就好，狗狗看起来很开心。'),
 (7, 6, 3, '我家猫看了表示很感兴趣。'),
 (8, 6, 3, '这个价格含训练课程吗'),
-(9, 7, 2, '龙猫好圆啊！请问在哪里买的'),
-(10, 7, 4, '手感一定很棒吧'),
+(9, 7, 2, '橘猫趴在木桌上太放松了'),
+(10, 7, 4, '这个镜头很安静，适合循环看'),
 (11, 8, 2, '好漂亮的神仙鱼'),
 (12, 8, 5, '鱼缸造景也很好看');
 
@@ -311,8 +311,8 @@ UPDATE comment SET video_id = 6, user_id = 4, content = '户外跑跳这一段�
 UPDATE comment SET video_id = 6, user_id = 2, content = '习惯了就好，狗狗看起来很开心。' WHERE id = 6;
 UPDATE comment SET video_id = 6, user_id = 3, content = '我家猫看了表示很感兴趣。' WHERE id = 7;
 UPDATE comment SET video_id = 6, user_id = 3, content = '这个价格含训练课程吗' WHERE id = 8;
-UPDATE comment SET video_id = 7, user_id = 2, content = '龙猫好圆啊！请问在哪里买的' WHERE id = 9;
-UPDATE comment SET video_id = 7, user_id = 4, content = '手感一定很棒吧' WHERE id = 10;
+UPDATE comment SET video_id = 7, user_id = 2, content = '橘猫趴在木桌上太放松了' WHERE id = 9;
+UPDATE comment SET video_id = 7, user_id = 4, content = '这个镜头很安静，适合循环看' WHERE id = 10;
 UPDATE comment SET video_id = 8, user_id = 2, content = '好漂亮的神仙鱼' WHERE id = 11;
 UPDATE comment SET video_id = 8, user_id = 5, content = '鱼缸造景也很好看' WHERE id = 12;
 
