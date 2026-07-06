@@ -3,6 +3,7 @@ package com.pat.order.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.exception.BusinessException;
+import com.pat.common.util.UserHolder;
 import com.pat.order.domain.entity.Cart;
 import com.pat.order.domain.vo.CartVO;
 import com.pat.order.mapper.CartMapper;
@@ -10,7 +11,6 @@ import com.pat.order.service.ICartService;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.domain.vo.ProductVO;
 import com.pat.product.service.IProductService;
-import com.pat.common.util.UserHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -35,13 +35,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return uid;
     }
 
-    /**
-     * 校验购物车记录归属当前用户，防止越权操作。
-     *
-     * @param id 购物车记录 ID
-     * @return 归属当前用户的购物车记录
-     * @throws BusinessException 记录不存在或无权限
-     */
     private Cart requireOwnedCart(Long id) {
         Long userId = requireUserId();
         Cart cart = getById(id);
@@ -65,7 +58,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
             return new ArrayList<>();
         }
 
-        // 批量查询商品信息
         List<Long> productIds = new ArrayList<>(carts.size());
         for (Cart cart : carts) {
             productIds.add(cart.getProductId());
@@ -74,7 +66,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
 
-        // 组装 CartVO
         List<CartVO> result = new ArrayList<>(carts.size());
         for (Cart cart : carts) {
             CartVO vo = new CartVO();
@@ -95,7 +86,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
                 productVO.setDetail(product.getProductDesc());
                 vo.setProductInfo(productVO);
             }
-
             result.add(vo);
         }
         return result;
@@ -143,5 +133,13 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     public void removeCartItem(Long id) {
         requireOwnedCart(id);
         removeById(id);
+    }
+
+    @Override
+    public void cleanByProductIds(Long userId, java.util.List<Long> productIds) {
+        lambdaUpdate()
+                .eq(Cart::getUserId, userId)
+                .in(Cart::getProductId, productIds)
+                .remove();
     }
 }

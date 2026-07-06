@@ -11,4 +11,5 @@ public interface ICartService extends IService<Cart> {
     void addToCart(Cart cart);
     void updateCartItem(Long id, Cart cart);
     void removeCartItem(Long id);
+    void cleanByProductIds(Long userId, List<Long> productIds);
 }
