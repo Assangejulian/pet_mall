@@ -1,4 +1,4 @@
-﻿var orderApi = require("../../../utils/api/order");
+var orderApi = require("../../../utils/api/order");
 
 function normalizeItem(item) {
   item = item || {};
@@ -52,5 +52,21 @@ Page({
     }});
   },
   applyRefund: function() { var id = this.data.order && this.data.order.id; if (id) wx.navigateTo({ url: "/subpages/order/refund/refund?id=" + id }); },
+  cancelOrder: function() {
+    var that = this; var order = this.data.order; if (!order || !order.id) return;
+    wx.showModal({ title: "取消订单", content: "确定取消该订单？", success: function(r) {
+      if (r.confirm) {
+        wx.showLoading({ title: "取消中..." });
+        orderApi.cancel(order.id).then(function() {
+          wx.hideLoading();
+          wx.showToast({ title: "已取消", icon: "success" });
+          that.loadOrder(order.id);
+        }).catch(function(err) {
+          wx.hideLoading();
+          wx.showToast({ title: (err && err.message) || "取消失败", icon: "none" });
+        });
+      }
+    }});
+  },
   callService: function() { wx.showToast({ title: "400-000-0000", icon: "none" }); }
 });

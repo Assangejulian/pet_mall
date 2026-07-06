@@ -7,7 +7,9 @@ Page({
     items: [],
     totalAmount: "0.00",
     address: null,
-    remark: ""
+    remark: "",
+    discount: null,
+    payAmount: "0.00"
   },
 
   onShow: function() {
@@ -39,8 +41,37 @@ Page({
         total += price * i.quantity;
       });
       t.setData({ items: checkedItems, totalAmount: total.toFixed(2) });
+      // load discount after items are ready
+      t.loadUserDiscount();
     }).catch(function(err) {
       console.error("load cart fail", err);
+    });
+  },
+
+  loadUserDiscount: function() {
+    var t = this;
+    userApi.getProfile().then(function(user) {
+      if (user && user.memberLevel && user.memberLevel > 0) {
+        var total = parseFloat(t.data.totalAmount);
+        var rates = [1, 0.95, 0.9, 0.85];
+        var rate = rates[user.memberLevel] || 1;
+        var names = ["", "\u94f6\u5361\u4f1a\u5458", "\u91d1\u5361\u4f1a\u5458", "\u94bb\u77f3\u4f1a\u5458"];
+        var descs = ["", "95\u6298", "9\u6298", "85\u6298"];
+        var pay = (total * rate).toFixed(2);
+        var disc = (total - parseFloat(pay)).toFixed(2);
+        t.setData({
+          discount: {
+            levelName: names[user.memberLevel] || "\u4f1a\u5458",
+            desc: descs[user.memberLevel] || ""
+          },
+          payAmount: pay,
+          discountAmount: disc
+        });
+      } else {
+        t.setData({ payAmount: t.data.totalAmount });
+      }
+    }).catch(function() {
+      t.setData({ payAmount: t.data.totalAmount });
     });
   },
 
@@ -59,14 +90,14 @@ Page({
   submitOrder: function() {
     var that = this;
     if (!this.data.address) {
-      wx.showToast({ title: "请选择收货地址", icon: "none" });
+      wx.showToast({ title: "\u8bf7\u9009\u62e9\u6536\u8d27\u5730\u5740", icon: "none" });
       return;
     }
     if (this.data.items.length === 0) {
-      wx.showToast({ title: "未选择商品", icon: "none" });
+      wx.showToast({ title: "\u672a\u9009\u62e9\u5546\u54c1", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "提交中..." });
+    wx.showLoading({ title: "\u63d0\u4ea4\u4e2d..." });
     var dto = {
       addressId: this.data.address.id,
       items: this.data.items.map(function(i) {
@@ -77,11 +108,11 @@ Page({
       }),
       remark: this.data.remark
     };
-    var amount = that.data.totalAmount;
+    var amount = that.data.payAmount || that.data.totalAmount;
     orderApi.create(dto).then(function(res) {
       wx.hideLoading();
       var oid = res.orderId || res.id || res;
-      wx.showToast({ title: "下单成功", icon: "success" });
+      wx.showToast({ title: "\u4e0b\u5355\u6210\u529f", icon: "success" });
       orderApi.detail(oid).then(function(order) {
         wx.redirectTo({ url: "/subpages/order/pay?orderId=" + oid + "&orderNo=" + (order.orderNo || "") + "&amount=" + (order.payAmount || amount) });
       }).catch(function() {
@@ -89,7 +120,7 @@ Page({
       });
     }).catch(function(err) {
       wx.hideLoading();
-      wx.showToast({ title: (err && err.message) || "下单失败", icon: "none" });
+      wx.showToast({ title: (err && err.message) || "\u4e0b\u5355\u5931\u8d25", icon: "none" });
     });
   }
 });

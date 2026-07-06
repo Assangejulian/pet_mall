@@ -96,6 +96,7 @@ public class UserAdminController {
         if (param != null) {
             user.setUsername(param.getKeyword());
             user.setStatus(param.getStatus());
+            user.setMemberLevel(param.getMemberLevel());
         }
         return user;
     }

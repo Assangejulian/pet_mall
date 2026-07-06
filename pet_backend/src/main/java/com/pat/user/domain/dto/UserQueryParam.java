@@ -5,5 +5,6 @@ import lombok.Data;
 @Data
 public class UserQueryParam {
     private String keyword;
+    private Integer memberLevel;
     private Integer status;
 }

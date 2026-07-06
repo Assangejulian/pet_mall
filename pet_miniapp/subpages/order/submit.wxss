@@ -20,3 +20,10 @@
 .b-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 100rpx; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 32rpx; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
 .sum { font-size: 28rpx; }
 .btn-submit { background: #547b68; color: #fff; padding: 16rpx 48rpx; border-radius: 40rpx; font-size: 30rpx; font-weight: 600; }
+
+.discount-sec { flex-direction: column; align-items: stretch; }
+.discount-sec .title { font-size: 30rpx; font-weight: 600; margin-bottom: 16rpx; border-bottom: 1px solid #eee; padding-bottom: 12rpx; }
+.d-row { display: flex; justify-content: space-between; align-items: center; padding: 6rpx 0; font-size: 26rpx; color: #333; }
+.level-tag { background: #f5e6d0; color: #b8860b; padding: 4rpx 16rpx; border-radius: 20rpx; font-size: 24rpx; font-weight: 600; }
+.d-desc { color: #e8927c; font-size: 26rpx; font-weight: 600; }
+.d-saving { color: #e8927c; }

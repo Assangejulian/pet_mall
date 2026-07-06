@@ -12,8 +12,10 @@ module.exports = {
   defaultAddress: function() {
     return request.get("/api/user/address/default");
   },
-
   delAddress: function(id) {
     return request.del("/api/user/address/" + id);
+  },
+  getProfile: function() {
+    return request.get("/api/user/profile");
   }
 };

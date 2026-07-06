@@ -1,4 +1,4 @@
-﻿var request = require("../request");
+var request = require("../request");
 
 module.exports = {
   create: function(data) {
@@ -27,6 +27,10 @@ module.exports = {
 
   refundDirect: function(id, reason) {
     return request.post("/api/order/" + id + "/refund_direct", { reason: reason || "" });
+  },
+
+  cancel: function(id, reason) {
+    return request.post("/api/order/" + id + "/cancel", { reason: reason || "用户取消订单" });
   },
 
   refundApply: function(id, reason) {
