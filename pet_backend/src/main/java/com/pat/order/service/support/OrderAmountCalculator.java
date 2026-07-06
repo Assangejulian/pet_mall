@@ -1,4 +1,4 @@
-package com.pat.order.service;
+package com.pat.order.service.support;
 
 import com.pat.member.calculator.MemberDiscountCalculator;
 import com.pat.member.model.DiscountResult;
