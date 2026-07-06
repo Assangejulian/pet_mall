@@ -8,8 +8,8 @@ import com.pat.order.domain.dto.OrderRefundDTO;
 import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.service.IOrderAdminService;
-import com.pat.order.service.OrderQueryService;
-import com.pat.order.service.OrderShipService;
+import com.pat.order.service.IOrderQueryService;
+import com.pat.order.service.IOrderShipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,12 +22,12 @@ import java.util.Map;
 @Tag(name = "订单管理（后台）", description = "管理端订单查看、发货、取消、退款审核")
 public class OrderAdminController {
 
-    private final OrderQueryService orderQueryService;
-    private final OrderShipService orderShipService;
+    private final IOrderQueryService orderQueryService;
+    private final IOrderShipService orderShipService;
     private final IOrderAdminService orderAdminService;
 
-    public OrderAdminController(OrderQueryService orderQueryService,
-                                OrderShipService orderShipService,
+    public OrderAdminController(IOrderQueryService orderQueryService,
+                                IOrderShipService orderShipService,
                                 IOrderAdminService orderAdminService) {
         this.orderQueryService = orderQueryService;
         this.orderShipService = orderShipService;

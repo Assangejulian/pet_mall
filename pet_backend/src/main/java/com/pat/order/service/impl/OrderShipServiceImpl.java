@@ -7,7 +7,7 @@ import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.domain.enums.OrderStatus;
 import com.pat.order.helper.OrderStateMachine;
 import com.pat.order.mapper.OrderQueryMapper;
-import com.pat.order.service.OrderShipService;
+import com.pat.order.service.IOrderShipService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.store.service.IStoreService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class OrderShipServiceImpl implements OrderShipService {
+public class OrderShipServiceImpl implements IOrderShipService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderQueryMapper orderQueryMapper;

@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
  * 合法性校验由 {@link com.pat.order.helper.OrderStateMachine} 负责。</p>
  */
 @Service
-public class OrderStateService {
+public class OrderStatusUpdater {
 
     private final PurchaseOrderBaseService baseService;
 
-    public OrderStateService(PurchaseOrderBaseService baseService) {
+    public OrderStatusUpdater(PurchaseOrderBaseService baseService) {
         this.baseService = baseService;
     }
 

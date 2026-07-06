@@ -1,4 +1,4 @@
-﻿package com.pat.user.controller;
+package com.pat.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;

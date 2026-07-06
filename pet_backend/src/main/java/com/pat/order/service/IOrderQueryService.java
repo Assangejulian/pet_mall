@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * 订单查询服务：商户/管理员共用，merchantUserId 控制数据范围。
  */
-public interface OrderQueryService {
+public interface IOrderQueryService {
 
     /** 分页查询订单 */
     IPage<Map<String, Object>> pageList(PurchaseOrder param, Page<?> page, Long merchantUserId);

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.ErrorCode;
 import com.pat.common.util.StatusDisplayUtil;
 import com.pat.common.exception.BusinessException;
+import com.pat.common.service.StockDeductionService;
 
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
@@ -56,11 +57,16 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final ProductStoreLookupMapper productStoreLookupMapper;
     private final IStoreService storeService;
     private final ObjectMapper objectMapper;
+    private final StockDeductionService stockDeductionService;
 
-    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper, IStoreService storeService, ObjectMapper objectMapper) {
+    public ProductServiceImpl(ProductStoreLookupMapper productStoreLookupMapper,
+                             IStoreService storeService,
+                             ObjectMapper objectMapper,
+                             StockDeductionService stockDeductionService) {
         this.productStoreLookupMapper = productStoreLookupMapper;
         this.storeService = storeService;
         this.objectMapper = objectMapper;
+        this.stockDeductionService = stockDeductionService;
     }
 
     @Override
@@ -83,6 +89,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!save(product)) {
             throw new BusinessException(ErrorCode.SAVE_FAILED, "商品新增失败");
         }
+        stockDeductionService.syncStock(product.getId(), product.getStock());
         return toVO(product);
     }
 
@@ -103,6 +110,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!updateById(product)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品修改失败");
         }
+        stockDeductionService.syncStock(product.getId(), product.getStock());
         return toVO(getActiveProduct(id));
     }
 
@@ -134,6 +142,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!removeById(id)) {
             throw new BusinessException(ErrorCode.DELETE_FAILED, "商品删除失败");
         }
+        stockDeductionService.removeStock(id);
         return true;
     }
 
@@ -158,7 +167,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .ne(Product::getStatus, STATUS_SOLD)
                 .ne(Product::getStatus, STATUS_ONLINE));
         if (rows == 1) {
-            return toVO(getActiveProduct(id));
+            Product p = getActiveProduct(id);
+            stockDeductionService.syncStock(p.getId(), p.getStock());
+            return toVO(p);
         }
         throwOnlineFailure(id);
         throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品上架失败");
@@ -179,6 +190,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!updateById(update)) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "商品下架失败");
         }
+        stockDeductionService.removeStock(id);
         return toVO(getActiveProduct(id));
     }
 
@@ -291,6 +303,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setOfflineReason(update.getOfflineReason());
         product.setOfflineUserId(update.getOfflineUserId());
         product.setOfflineTime(update.getOfflineTime());
+        stockDeductionService.removeStock(id);
         return toVO(product);
     }
 
@@ -312,6 +325,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setOfflineReason(null);
         product.setOfflineUserId(null);
         product.setOfflineTime(null);
+        stockDeductionService.syncStock(product.getId(), product.getStock());
         return toVO(product);
     }
 

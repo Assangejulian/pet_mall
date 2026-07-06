@@ -11,43 +11,42 @@ import com.pat.order.mapper.OrderAdminMapper;
 import com.pat.order.service.IOrderAdminService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.order.service.support.OrderProductService;
-import com.pat.order.service.support.OrderStateService;
+import com.pat.order.service.support.OrderStatusUpdater;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 管理端订单操作 —— 编排层。
  *
  * <p>提供管理员视角的订单管理能力：取消订单、退款审核、直接退款、支付回调等。
- * 与 {@link OrderUserServiceImpl} 共享底层领域 Service。</p>
+ * 与 {@link CustomerOrderServiceImpl} 共享底层领域 Service。</p>
  */
 @Slf4j
 @Service
-public class OrderAdminServiceImpl implements IOrderAdminService {
+public class AdminOrderServiceImpl implements IOrderAdminService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderAdminMapper orderAdminMapper;
         private final OrderProductService orderProductService;
-    private final OrderStateService orderStateService;
+    private final OrderStatusUpdater orderStatusUpdater;
 
-    public OrderAdminServiceImpl(PurchaseOrderBaseService baseService,
+    public AdminOrderServiceImpl(PurchaseOrderBaseService baseService,
                                  OrderAdminMapper orderAdminMapper,
-                                 OrderStateService orderStateService,
+                                 OrderStatusUpdater orderStatusUpdater,
                                  OrderProductService orderProductService) {
         this.baseService = baseService;
         this.orderAdminMapper = orderAdminMapper;
-        this.orderStateService = orderStateService;
+        this.orderStatusUpdater = orderStatusUpdater;
         this.orderProductService = orderProductService;
     }
 
     /**
      * 管理员取消订单。
      *
-     * <p>恢复库存后通过 {@link OrderStateService} 执行状态变更，取消类型标记为 admin。</p>
+     * <p>恢复库存后通过 {@link OrderStatusUpdater} 执行状态变更，取消类型标记为 admin。</p>
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -56,7 +55,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.CANCELLED.getCode());
 
         orderProductService.restoreStockByOrderId(order.getId());
-        orderStateService.cancel(order, dto.getCancelReason(), "admin");
+        orderStatusUpdater.cancel(order, dto.getCancelReason(), "admin");
         log.info("管理员取消订单 orderId={}, reason={}", dto.getOrderId(), dto.getCancelReason());
     }
 
@@ -75,7 +74,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         if (dto.getApproved()) {
             OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REFUNDED.getCode());
             orderProductService.restoreStockByOrderId(order.getId());
-            orderStateService.approveRefund(order);
+            orderStatusUpdater.approveRefund(order);
         } else {
             Integer restoreStatus = order.getPreRefundStatus();
             if (restoreStatus == null) {
@@ -84,7 +83,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
                         : OrderStatus.SHIPPED.getCode();
             }
             OrderStateMachine.validate(order.getOrderStatus(), restoreStatus);
-            orderStateService.rejectRefund(order, restoreStatus, dto.getRejectReason());
+            orderStatusUpdater.rejectRefund(order, restoreStatus, dto.getRejectReason());
         }
         log.info("退款审核 orderId={}, approved={}", dto.getOrderId(), dto.getApproved());
     }
@@ -101,7 +100,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REJECTED.getCode());
 
         orderProductService.restoreStockByOrderId(order.getId());
-        orderStateService.directRefund(order, dto.getCancelReason());
+        orderStatusUpdater.directRefund(order, dto.getCancelReason());
         log.info("直接退款 orderId={}, reason={}", dto.getOrderId(), dto.getCancelReason());
     }
 
@@ -121,7 +120,7 @@ public class OrderAdminServiceImpl implements IOrderAdminService {
             return;
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-        orderStateService.paySuccess(order, LocalDateTime.now());
+        orderStatusUpdater.paySuccess(order, LocalDateTime.now());
 
         int count = orderAdminMapper.batchMarkProductsAsSold(order.getId());
         log.info("支付成功 orderNo={}, 已更新{}件商品为已售出", orderNo, count);

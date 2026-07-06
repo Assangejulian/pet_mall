@@ -11,7 +11,7 @@ import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.entity.OrderItem;
 import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.mapper.OrderQueryMapper;
-import com.pat.order.service.OrderQueryService;
+import com.pat.order.service.IOrderQueryService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * 查询结果会富化地址快照、收货人姓名等信息。</p>
  */
 @Service
-public class OrderQueryServiceImpl implements OrderQueryService {
+public class OrderQueryServiceImpl implements IOrderQueryService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderQueryMapper orderQueryMapper;

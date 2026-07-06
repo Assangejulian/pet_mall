@@ -25,15 +25,15 @@ import java.util.List;
  * 防止用户后续修改地址影响历史订单。</p>
  */
 @Service
-public class OrderPersistenceService {
+public class OrderCreationService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderItemMapper orderItemMapper;
     private final UserAddressMapper addressMapper;
 
-    public OrderPersistenceService(PurchaseOrderBaseService baseService,
-                                   OrderItemMapper orderItemMapper,
-                                   UserAddressMapper addressMapper) {
+    public OrderCreationService(PurchaseOrderBaseService baseService,
+                                OrderItemMapper orderItemMapper,
+                                UserAddressMapper addressMapper) {
         this.baseService = baseService;
         this.orderItemMapper = orderItemMapper;
         this.addressMapper = addressMapper;

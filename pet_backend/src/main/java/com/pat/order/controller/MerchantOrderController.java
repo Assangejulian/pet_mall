@@ -6,8 +6,8 @@ import com.pat.common.domain.Result;
 import com.pat.common.util.UserHolder;
 import com.pat.order.domain.dto.OrderShipDTO;
 import com.pat.order.domain.entity.PurchaseOrder;
-import com.pat.order.service.OrderQueryService;
-import com.pat.order.service.OrderShipService;
+import com.pat.order.service.IOrderQueryService;
+import com.pat.order.service.IOrderShipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,11 +20,11 @@ import java.util.Map;
 @Tag(name = "订单管理（商家端）", description = "商家查看自己店铺的订单、发货")
 public class MerchantOrderController {
 
-    private final OrderQueryService orderQueryService;
-    private final OrderShipService orderShipService;
+    private final IOrderQueryService orderQueryService;
+    private final IOrderShipService orderShipService;
 
-    public MerchantOrderController(OrderQueryService orderQueryService,
-                                   OrderShipService orderShipService) {
+    public MerchantOrderController(IOrderQueryService orderQueryService,
+                                   IOrderShipService orderShipService) {
         this.orderQueryService = orderQueryService;
         this.orderShipService = orderShipService;
     }

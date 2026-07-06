@@ -18,10 +18,10 @@ import com.pat.order.service.IOrderItemService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.order.service.support.OrderAmountCalculator;
-import com.pat.order.service.support.OrderPersistenceService;
+import com.pat.order.service.support.OrderCreationService;
 import com.pat.order.service.support.OrderProductService;
 import com.pat.order.service.support.OrderEvaluateService;
-import com.pat.order.service.support.OrderStateService;
+import com.pat.order.service.support.OrderStatusUpdater;
 import com.pat.payment.domain.dto.PaymentContext;
 import com.pat.payment.domain.vo.OrderPaymentVO;
 import com.pat.payment.service.impl.PaymentServiceRouter;
@@ -43,34 +43,34 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.service.PaymentCallback {
+public class CustomerOrderServiceImpl implements IOrderUserService, com.pat.payment.service.PaymentCallback {
 
     private final OrderProductService orderProductService;
     private final IOrderItemService orderItemService;
     private final OrderAmountCalculator amountCalculator;
-    private final OrderPersistenceService orderPersistenceService;
+    private final OrderCreationService orderCreationService;
     private final OrderEvaluateService orderEvaluateService;
-    private final OrderStateService orderStateService;
+    private final OrderStatusUpdater orderStatusUpdater;
     private final UserService userService;
     private final ICartService cartService;
     private final PurchaseOrderBaseService baseService;
     private final PaymentServiceRouter paymentServiceRouter;
 
-    public OrderUserServiceImpl(OrderProductService orderProductService,
-                                IOrderItemService orderItemService,
-                                OrderAmountCalculator amountCalculator,
-                                OrderPersistenceService orderPersistenceService,
-                                OrderStateService orderStateService,
-                                OrderEvaluateService orderEvaluateService,
-                                UserService userService,
-                                ICartService cartService,
-                                PurchaseOrderBaseService baseService,
-                                PaymentServiceRouter paymentServiceRouter) {
+    public CustomerOrderServiceImpl(OrderProductService orderProductService,
+                                    IOrderItemService orderItemService,
+                                    OrderAmountCalculator amountCalculator,
+                                    OrderCreationService orderCreationService,
+                                    OrderStatusUpdater orderStatusUpdater,
+                                    OrderEvaluateService orderEvaluateService,
+                                    UserService userService,
+                                    ICartService cartService,
+                                    PurchaseOrderBaseService baseService,
+                                    PaymentServiceRouter paymentServiceRouter) {
         this.orderProductService = orderProductService;
         this.orderItemService = orderItemService;
         this.amountCalculator = amountCalculator;
-        this.orderPersistenceService = orderPersistenceService;
-        this.orderStateService = orderStateService;
+        this.orderCreationService = orderCreationService;
+        this.orderStatusUpdater = orderStatusUpdater;
         this.orderEvaluateService = orderEvaluateService;
         this.userService = userService;
         this.cartService = cartService;
@@ -108,12 +108,12 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         Long userId = requireUserId();
 
         var validated = orderProductService.validateAndDeduct(dto.getItems());
-        String addressSnapshot = orderPersistenceService.snapshotAddressById(dto.getAddressId());
+        String addressSnapshot = orderCreationService.snapshotAddressById(dto.getAddressId());
 
         User user = userService.getById(userId);
         var amount = amountCalculator.calculate(validated.getTotal(), user.getMemberLevel());
 
-        Long orderId = orderPersistenceService.save(userId, dto, validated.getOrderItems(), addressSnapshot,
+        Long orderId = orderCreationService.save(userId, dto, validated.getOrderItems(), addressSnapshot,
                 amount.getTotalAmount(), amount.getDiscountAmount(), amount.getPayAmount());
 
         cartService.cleanByProductIds(userId,
@@ -180,7 +180,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
     public PurchaseOrder confirmReceive(Long id) {
         PurchaseOrder order = getOwnedOrder(id);
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.RECEIVED.getCode());
-        orderStateService.receive(order);
+        orderStatusUpdater.receive(order);
         return order;
     }
 
@@ -196,7 +196,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.EVALUATED.getCode());
 
         LocalDateTime now = orderEvaluateService.updateEvaluations(order.getId(), dto.getItems());
-        orderStateService.evaluate(order, now);
+        orderStatusUpdater.evaluate(order, now);
     }
 
     /**
@@ -212,7 +212,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
 
         orderProductService.restoreStockByOrderId(orderId);
 
-        orderStateService.cancel(order, reason, "user");
+        orderStatusUpdater.cancel(order, reason, "user");
         log.info("用户取消订单 orderId={}, reason={}", orderId, reason);
     }
 
@@ -230,7 +230,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
             throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.REFUNDING.getCode());
-        orderStateService.applyRefund(order, reason);
+        orderStatusUpdater.applyRefund(order, reason);
     }
 
     // ===================== 支付回调 =====================
@@ -255,7 +255,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
             return;
         }
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.PAID.getCode());
-        orderStateService.paySuccess(order, payTime != null ? payTime : LocalDateTime.now());
+        orderStatusUpdater.paySuccess(order, payTime != null ? payTime : LocalDateTime.now());
         log.info("支付回调更新订单状态成功 orderNo={}", orderNo);
     }
 }
