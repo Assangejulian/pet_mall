@@ -8,7 +8,8 @@ Page({
     payMethod: "mock",
     paying: false,
     alipayUrl: "",
-    showAlipay: false
+    showAlipay: false,
+    _pollTimer: null
   },
 
   onLoad: function(options) {
@@ -69,9 +70,10 @@ Page({
 
       if (that.data.payMethod === "alipay") {
         if (res && res.payUrl) {
-          var baseUrl = getApp().globalData.baseUrl || "http://127.0.0.1:8080";
+          var baseUrl = getApp().globalData.baseUrl || "http://116cfb72.r31.cpolar.top";
           var qrSrc = baseUrl + "/api/qrcode?url=" + encodeURIComponent(res.payUrl);
           that.setData({ alipayUrl: qrSrc, showAlipay: true });
+          that.startPoll();
         } else {
           wx.showToast({ title: "支付宝支付暂不可用，请稍后重试", icon: "none" });
           that.setData({ paying: false });
@@ -93,13 +95,32 @@ Page({
   },
 
   closeAlipay: function() {
+    this.stopPoll();
     this.setData({ showAlipay: false, paying: false });
   },
 
-  openAlipay: function() {
-    var url = this.data.alipayUrl;
-    this.setData({ showAlipay: false, paying: false });
-    if (!url) return;
-    wx.navigateTo({ url: "/subpages/order/webview/webview?url=" + encodeURIComponent(url) });
+  startPoll: function() {
+    var that = this;
+    var timer = setInterval(function() {
+      orderApi.detail(that.data.orderId).then(function(res) {
+        if (res && (res.status === 1 || res.orderStatus === 1 || res.status > 0)) {
+          that.stopPoll();
+          wx.showToast({ title: "支付成功", icon: "success" });
+          setTimeout(function() { wx.redirectTo({ url: "/subpages/order/list" }); }, 1500);
+        }
+      }).catch(function() {});
+    }, 3000);
+    that.setData({ _pollTimer: timer });
+  },
+
+  stopPoll: function() {
+    if (this.data._pollTimer) {
+      clearInterval(this.data._pollTimer);
+      this.setData({ _pollTimer: null });
+    }
+  },
+
+  onUnload: function() {
+    this.stopPoll();
   }
 });
