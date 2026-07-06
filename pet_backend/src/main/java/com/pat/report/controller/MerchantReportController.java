@@ -55,7 +55,9 @@ public class MerchantReportController {
     public Result<UserReportVO> userStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        return Result.success(reportService.getMerchantUserStatistics(begin, end));
+        Long userId = UserHolder.getUserId();
+        List<Long> storeIds = storeService.getStoreIdsByUserId(userId);
+        return Result.success(reportService.getMerchantUserStatistics(begin, end, storeIds));
     }
 
     @Operation(summary = "商家订单统计")

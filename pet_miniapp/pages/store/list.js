@@ -1,12 +1,5 @@
 var storeApi = require("../../utils/api/store");
 
-var fallbackStores = [
-  { id: 201, storeName: "暖窝宠物·思明店", storePhone: "0592-1234567", storeDesc: "专业宠物用品与美容服务", province: "福建省", city: "厦门市", district: "思明区", address: "禾祥西路128号", rating: "4.8", distance: 1.2, tags: ["思明区", "宠物用品", "美容"], image: "/images/mock/cat-cover.jpg", status: 1, longitude: 118.092, latitude: 24.468 },
-  { id: 202, storeName: "暖窝宠物·湖里店", storePhone: "0592-2345678", storeDesc: "宠物寄养与训练中心", province: "福建省", city: "厦门市", district: "湖里区", address: "华昌路56号", rating: "4.6", distance: 3.5, tags: ["湖里区", "寄养", "训练"], image: "/images/mock/golden.jpg", status: 1, longitude: 118.105, latitude: 24.515 },
-  { id: 203, storeName: "暖窝宠物·集美店", storePhone: "0592-3456789", storeDesc: "宠物医院与健康咨询", province: "福建省", city: "厦门市", district: "集美区", address: "石鼓路88号", rating: "4.7", distance: 5.8, tags: ["集美区", "医疗", "咨询"], image: "/images/mock/blue-cat.jpg", status: 1, longitude: 118.098, latitude: 24.574 },
-  { id: 204, storeName: "暖窝宠物·翔安店", storePhone: "0592-4567890", storeDesc: "宠物食品与玩具专卖", province: "福建省", city: "厦门市", district: "翔安区", address: "新兴路12号", rating: "4.5", distance: 12.3, tags: ["翔安区", "食品", "玩具"], image: "/images/mock/corgi.jpg", status: 1, longitude: 118.248, latitude: 24.618 }
-];
-
 function extractRows(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
@@ -117,7 +110,7 @@ Page({
       },
       fail: function() {
         if (cached && cached.lat && cached.lng) return;
-        that.useFallback("无法获取定位，已显示全部营业门店");
+        that.loadAllStores("无法获取定位，已显示全部营业门店");
       }
     });
   },
@@ -125,7 +118,7 @@ Page({
   searchNearby: function() {
     var that = this;
     if (that.data.currentLat === null || that.data.currentLng === null) {
-      that.useFallback("无法获取定位，已显示全部营业门店");
+      that.loadAllStores("无法获取定位，已显示全部营业门店");
       return;
     }
     that.safeSetData({ loading: true, errorText: "" });
@@ -146,25 +139,21 @@ Page({
       }
     }).catch(function() {
       if (!that.isActiveRequest(seq)) return;
-      that.useFallback("附近门店查询失败，已显示全部营业门店");
+      that.loadAllStores("附近门店查询失败，已显示全部营业门店");
     });
   },
 
-  useFallback: function(message) {
+  loadAllStores: function(message) {
     var that = this;
     var seq = that.nextRequestSeq();
     that.safeSetData({ loading: true });
     storeApi.search({ current: 1, size: 50 }).then(function(res) {
       if (!that.isActiveRequest(seq)) return;
       var stores = extractRows(res).map(normalizeStore);
-      if (stores.length) {
-        that.applyStores(stores, message || "");
-      } else {
-        that.applyStores(fallbackStores.map(normalizeStore), message || "暂无门店数据，展示示例门店");
-      }
+      that.applyStores(stores, stores.length ? (message || "") : "暂无门店数据");
     }).catch(function() {
       if (!that.isActiveRequest(seq)) return;
-      that.applyStores(fallbackStores.map(normalizeStore), message || "无法连接后端，展示示例门店");
+      that.applyStores([], message || "无法连接后端");
     });
   },
 

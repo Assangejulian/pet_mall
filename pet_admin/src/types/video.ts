@@ -1,1 +1,1 @@
-export interface Video { id: string; userId?: string; title: string; description?: string; url?: string; cover?: string; productId?: string; playCount?: number; likes?: number; commentCount?: number; duration: number; status: number; createTime: string }
+export interface Video { id: string; userId?: string; title: string; description?: string; url?: string; cover?: string; productId?: string; playCount?: number; likes?: number; commentCount?: number; duration?: number; status: number; createTime: string }

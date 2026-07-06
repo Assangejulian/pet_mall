@@ -16,6 +16,7 @@ import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -64,15 +65,40 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateStore(Long id, StoreDTO param, Long merchantUserId) {
-        fillCoordinates(param);
-        if (merchantUserId != null) {
-            requireOwnedStore(id, merchantUserId);
+        if (param == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "门店资料不能为空");
         }
-        Store entity = Store.from(param);
-        entity.setId(id);
-        entity.setDeleted(null);
-        return updateById(entity);
+        fillCoordinates(param);
+        if (merchantUserId == null) {
+            Store entity = Store.from(param);
+            entity.setId(id);
+            entity.setDeleted(null);
+            return updateById(entity);
+        }
+
+        requireOwnedStore(id, merchantUserId);
+        LambdaUpdateWrapper<Store> wrapper = new LambdaUpdateWrapper<Store>()
+                .set(param.getStoreName() != null, Store::getStoreName, param.getStoreName())
+                .set(param.getStoreLogo() != null, Store::getStoreLogo, param.getStoreLogo())
+                .set(param.getStorePhone() != null, Store::getStorePhone, param.getStorePhone())
+                .set(param.getStoreDesc() != null, Store::getStoreDesc, param.getStoreDesc())
+                .set(param.getProvince() != null, Store::getProvince, param.getProvince())
+                .set(param.getCity() != null, Store::getCity, param.getCity())
+                .set(param.getDistrict() != null, Store::getDistrict, param.getDistrict())
+                .set(param.getAddress() != null, Store::getAddress, param.getAddress())
+                .set(param.getLongitude() != null, Store::getLongitude, param.getLongitude())
+                .set(param.getLatitude() != null, Store::getLatitude, param.getLatitude())
+                .set(Store::getStatus, 0)
+                .set(Store::getAuditUserId, null)
+                .set(Store::getAuditTime, null)
+                .set(Store::getAuditRemark, null)
+                .set(Store::getCloseReason, null)
+                .eq(Store::getId, id)
+                .eq(Store::getUserId, merchantUserId)
+                .eq(Store::getDeleted, 0);
+        return baseMapper.update(null, wrapper) == 1;
     }
 
     private void fillCoordinates(StoreDTO param) {
@@ -115,9 +141,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (store.getStatus() != 1) {
             throw new BusinessException(ErrorCode.UPDATE_FAILED, "只有营业中店铺可以关店或删除");
         }
-        Long onlineCount = countOnlineProducts(storeId);
-        if (onlineCount != null && onlineCount > 0) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "门店仍有上架商品，不能关店");
+        Long activeCount = countActiveProducts(storeId);
+        if (activeCount != null && activeCount > 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "门店仍有关联商品，不能关店或删除");
         }
     }
 
@@ -161,14 +187,25 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : null;
         String city = StringUtils.hasText(query.getCity()) ? query.getCity() : null;
 
-        long total = baseMapper.countNearby(lat, lng, radiusKm, keyword, city);
+        Long totalValue = baseMapper.countNearby(lat, lng, radiusKm, keyword, city);
+        long total = totalValue == null ? 0L : totalValue;
         if (total == 0) {
             Page<NearbyStoreRow> empty = new Page<>(current, size, 0);
             empty.setRecords(Collections.emptyList());
             return empty;
         }
 
-        long offset = (current - 1) * size;
+        long offset;
+        try {
+            offset = Math.multiplyExact(current - 1, size);
+        } catch (ArithmeticException e) {
+            offset = total;
+        }
+        if (offset >= total) {
+            Page<NearbyStoreRow> empty = new Page<>(current, size, total);
+            empty.setRecords(Collections.emptyList());
+            return empty;
+        }
         List<NearbyStoreRow> rows = baseMapper.searchNearbyPage(lat, lng, radiusKm, keyword, city, offset, size);
 
         Page<NearbyStoreRow> result = new Page<>(current, size, total);
@@ -178,6 +215,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public List<Product> getStoreProducts(Long storeId) {
+        if (storeId == null) return List.of();
         return baseMapper.selectStoreProducts(storeId);
     }
 
@@ -270,7 +308,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     }
 
     private Store requireStore(Long storeId) {
-        return requireStore(storeId, ErrorCode.NOT_FOUND, "店铺不存在");
+        return requireStore(storeId, ErrorCode.NOT_FOUND, "商店不存在");
     }
 
     private Store requireStore(Long storeId, ErrorCode errorCode, String message) {

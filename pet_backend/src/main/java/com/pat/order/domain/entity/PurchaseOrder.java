@@ -27,6 +27,8 @@ public class PurchaseOrder extends BaseEntity {
     private LocalDateTime cancelTime;
     private LocalDateTime payTime;
     private LocalDateTime shipTime;
+    private String logisticsCarrier;
+    private String logisticsNo;
     private LocalDateTime receiveTime;
     private LocalDateTime evaluateTime;
     private LocalDateTime refundApplyTime;

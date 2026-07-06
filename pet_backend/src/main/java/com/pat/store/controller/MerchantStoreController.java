@@ -11,6 +11,7 @@ import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.StoreVO;
 import com.pat.store.service.IStoreService;
+import com.pat.store.helper.MapHelper;
 import com.pat.common.util.UserHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,9 +27,11 @@ import java.math.BigDecimal;
 public class MerchantStoreController {
 
     private final IStoreService storeService;
+    private final MapHelper mapHelper;
 
-    public MerchantStoreController(IStoreService storeService) {
+    public MerchantStoreController(IStoreService storeService, MapHelper mapHelper) {
         this.storeService = storeService;
+        this.mapHelper = mapHelper;
     }
 
     @Operation(summary = "商家端门店分页查询")
@@ -54,13 +57,25 @@ public class MerchantStoreController {
     @Operation(summary = "新增门店")
     @PostMapping
     public Result<Boolean> create(@RequestBody @Valid StoreDTO param) {
-        return Result.success(storeService.createStore(param, UserHolder.getUserId()));
+        if (param == null || !StringUtils.hasText(param.getStoreName())) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商店名称不能为空");
+        }
+        fillCoordinates(param);
+        Store store = merchantStore(param);
+        store.setUserId(UserHolder.getUserId());
+        store.setStatus(0);
+        store.setDeleted(0);
+        if (!storeService.save(store)) throw new BusinessException(ErrorCode.SAVE_FAILED, "商店新增失败");
+        return Result.success(true);
     }
 
     @Operation(summary = "修改门店")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid StoreDTO param) {
-        return Result.success(storeService.updateStore(id, param, UserHolder.getUserId()));
+        if (!storeService.updateStore(id, param, UserHolder.getUserId())) {
+            throw new BusinessException(ErrorCode.UPDATE_FAILED, "商店修改失败");
+        }
+        return Result.success(true);
     }
 
     @Operation(summary = "删除门店")
@@ -88,6 +103,28 @@ public class MerchantStoreController {
             default -> String.valueOf(store.getStatus());
         });
         return vo;
+    }
+
+    private void fillCoordinates(StoreDTO param) {
+        if (param.getLongitude() != null && param.getLatitude() != null) return;
+        if (!StringUtils.hasText(param.getAddress())) return;
+        BigDecimal[] coords = mapHelper.geocode(param.getProvince(), param.getCity(), param.getDistrict(), param.getAddress());
+        if (coords != null) { param.setLongitude(coords[0]); param.setLatitude(coords[1]); }
+    }
+
+    private Store merchantStore(StoreDTO param) {
+        Store store = new Store();
+        store.setStoreName(param.getStoreName());
+        store.setStoreLogo(param.getStoreLogo());
+        store.setStorePhone(param.getStorePhone());
+        store.setStoreDesc(param.getStoreDesc());
+        store.setProvince(param.getProvince());
+        store.setCity(param.getCity());
+        store.setDistrict(param.getDistrict());
+        store.setAddress(param.getAddress());
+        store.setLongitude(param.getLongitude());
+        store.setLatitude(param.getLatitude());
+        return store;
     }
 
 }

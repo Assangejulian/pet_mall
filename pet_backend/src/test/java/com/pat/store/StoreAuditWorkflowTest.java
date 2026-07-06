@@ -336,7 +336,7 @@ class StoreAuditWorkflowTest {
     void adminCreateStillKeepsOwnerFromRequest() {
         IStoreService storeService = mock(IStoreService.class);
         when(storeService.save(any(Store.class))).thenReturn(true);
-        StoreController controller = new StoreController(storeService);
+        StoreController controller = new StoreController(storeService, mock(com.pat.store.helper.MapHelper.class));
         StoreDTO dto = editableDto();
         dto.setUserId(22L);
         dto.setStatus(null);
@@ -358,7 +358,7 @@ class StoreAuditWorkflowTest {
 
     private Store captureAdminUpdate(IStoreService storeService, StoreDTO dto) {
         when(storeService.updateById(any(Store.class))).thenReturn(true);
-        StoreController controller = new StoreController(storeService);
+        StoreController controller = new StoreController(storeService, mock(com.pat.store.helper.MapHelper.class));
 
         controller.update(1L, dto);
 

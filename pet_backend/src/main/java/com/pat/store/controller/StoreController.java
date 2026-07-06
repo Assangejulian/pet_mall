@@ -11,6 +11,7 @@ import com.pat.common.exception.BusinessException;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.StoreVO;
+import com.pat.store.helper.MapHelper;
 import com.pat.store.service.IStoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,9 +26,11 @@ import org.springframework.web.bind.annotation.*;
 public class StoreController {
 
     private final IStoreService storeService;
+    private final MapHelper mapHelper;
 
-    public StoreController(IStoreService storeService) {
+    public StoreController(IStoreService storeService, MapHelper mapHelper) {
         this.storeService = storeService;
+        this.mapHelper = mapHelper;
     }
 
     @Operation(summary = "门店分页查询")
@@ -54,13 +57,36 @@ public class StoreController {
     @Operation(summary = "新增门店")
     @PostMapping
     public Result<Boolean> create(@RequestBody @Valid StoreDTO param) {
-        return Result.success(storeService.createStore(param, null));
+        if (param == null || param.getUserId() == null) {
+            throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "店主用户ID不能为空");
+        }
+        fillCoordinates(param);
+        Store store = Store.from(param);
+        store.setUserId(param.getUserId());
+        // 管理端创建也必须从待审核状态开始，任何请求体中的流程字段都不能生效。
+        store.setStatus(0);
+        store.setAuditUserId(null);
+        store.setAuditTime(null);
+        store.setAuditRemark(null);
+        store.setCloseReason(null);
+        store.setDeleted(0);
+        return Result.success(storeService.save(store));
     }
 
     @Operation(summary = "修改门店")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable Long id, @RequestBody @Valid StoreDTO param) {
-        return Result.success(storeService.updateStore(id, param, null));
+        fillCoordinates(param);
+        Store update = Store.from(param);
+        update.setId(id);
+        update.setUserId(null);
+        update.setStatus(null);
+        update.setAuditUserId(null);
+        update.setAuditTime(null);
+        update.setAuditRemark(null);
+        update.setCloseReason(null);
+        update.setDeleted(null);
+        return Result.success(storeService.updateById(update));
     }
 
     @Operation(summary = "删除门店")
@@ -76,6 +102,17 @@ public class StoreController {
         vo.setStatusText(StatusDisplayUtil.storeStatus(entity.getStatus()));
         vo.setProductCount(storeService.countActiveProducts(entity.getId()));
         return vo;
+    }
+
+    private void fillCoordinates(StoreDTO param) {
+        if (param.getLongitude() != null && param.getLatitude() != null) return;
+        if (!StringUtils.hasText(param.getAddress())) return;
+        java.math.BigDecimal[] coords = mapHelper.geocode(
+                param.getProvince(), param.getCity(), param.getDistrict(), param.getAddress());
+        if (coords != null) {
+            param.setLongitude(coords[0]);
+            param.setLatitude(coords[1]);
+        }
     }
 
 

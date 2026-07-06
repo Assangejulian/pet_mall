@@ -18,6 +18,8 @@
     <view class="tl-row"><text class="tl-label">下单时间</text><text class="tl-value">{{order.createTime}}</text></view>
     <view class="tl-row" wx:if="{{order.payTime}}"><text class="tl-label">支付时间</text><text class="tl-value">{{order.payTime}}</text></view>
     <view class="tl-row" wx:if="{{order.shipTime}}"><text class="tl-label">发货时间</text><text class="tl-value">{{order.shipTime}}</text></view>
+    <view class="tl-row" wx:if="{{order.logisticsCarrier}}"><text class="tl-label">物流公司</text><text class="tl-value">{{order.logisticsCarrier}}</text></view>
+    <view class="tl-row" wx:if="{{order.logisticsNo}}"><text class="tl-label">物流单号</text><text class="tl-value">{{order.logisticsNo}}</text></view>
     <view class="tl-row" wx:if="{{order.receiveTime}}"><text class="tl-label">收货时间</text><text class="tl-value">{{order.receiveTime}}</text></view>
     <view class="tl-row" wx:if="{{order.cancelReason}}"><text class="tl-label">取消原因</text><text class="tl-value warn">{{order.cancelReason}}</text></view>
   </view>

@@ -12,6 +12,7 @@ import com.pat.store.controller.MerchantStoreController;
 import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.service.IStoreService;
+import com.pat.store.helper.MapHelper;
 import com.pat.common.util.UserHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,8 @@ import static org.mockito.Mockito.when;
 class MerchantStoreControllerTest {
 
     private final IStoreService storeService = mock(IStoreService.class);
-    private final MerchantStoreController controller = new MerchantStoreController(storeService);
+    private final MerchantStoreController controller = new MerchantStoreController(
+            storeService, mock(MapHelper.class));
 
     @BeforeEach
     void setUp() {
@@ -79,8 +81,10 @@ class MerchantStoreControllerTest {
     @Test
     void merchantCannotUpdateAnotherMerchantsStore() {
         UserHolder.save("userId", 11L);
-        when(storeService.requireOwnedStore(2L, 11L)).thenThrow(forbidden());
-        assertThatThrownBy(() -> controller.update(2L, new StoreDTO())).isInstanceOf(BusinessException.class);
+        StoreDTO dto = new StoreDTO();
+        when(storeService.updateStore(2L, dto, 11L)).thenThrow(forbidden());
+        assertThatThrownBy(() -> controller.update(2L, dto)).isInstanceOf(BusinessException.class);
+        verify(storeService).updateStore(2L, dto, 11L);
         verify(storeService, never()).updateById(any());
     }
 
@@ -131,20 +135,16 @@ class MerchantStoreControllerTest {
     }
 
     @Test
-    void merchantStoreEditPreservesOwnerAndReturnsToPending() {
+    void merchantStoreEditDelegatesToBusinessServiceWithCurrentMerchant() {
         UserHolder.save("userId", 11L);
-        Store original = store(1L, 11L);
-        when(storeService.requireOwnedStore(1L, 11L)).thenReturn(original);
-        when(storeService.updateById(any(Store.class))).thenReturn(true);
+        when(storeService.updateStore(any(), any(), any())).thenReturn(true);
         StoreDTO dto = new StoreDTO();
         dto.setStoreName("new name");
         dto.setUserId(22L);
         dto.setStatus(1);
         controller.update(1L, dto);
-        ArgumentCaptor<Store> captor = ArgumentCaptor.forClass(Store.class);
-        verify(storeService).updateById(captor.capture());
-        assertThat(captor.getValue().getUserId()).isEqualTo(11L);
-        assertThat(captor.getValue().getStatus()).isZero();
+        verify(storeService).updateStore(1L, dto, 11L);
+        verify(storeService, never()).updateById(any());
     }
 
     @Test

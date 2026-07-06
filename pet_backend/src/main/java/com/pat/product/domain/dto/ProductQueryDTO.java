@@ -14,14 +14,31 @@ public class ProductQueryDTO {
     @Schema(description = "页码，默认1")
     private Long page;
 
+    @Min(value = 1, message = "页码不能小于1")
+    @Schema(description = "管理端兼容页码")
+    private Long current;
+
+    @Min(value = 1, message = "页码不能小于1")
+    @Schema(description = "旧前端兼容页码")
+    private Long pageNum;
+
     @Min(value = 1, message = "每页数量不能小于1")
     @Max(value = 100, message = "每页数量不能超过100")
     @Schema(description = "每页数量，默认10，最大100")
     private Long size;
 
+    @Min(value = 1, message = "每页数量不能小于1")
+    @Max(value = 100, message = "每页数量不能超过100")
+    @Schema(description = "旧前端兼容每页数量")
+    private Long pageSize;
+
     @Size(max = 200, message = "关键词长度不能超过200")
     @Schema(description = "搜索关键词")
     private String keyword;
+
+    @Size(max = 200, message = "商品名称长度不能超过200")
+    @Schema(description = "旧前端兼容商品名称")
+    private String productName;
 
     @Schema(description = "商店ID")
     private Long storeId;
@@ -30,6 +47,9 @@ public class ProductQueryDTO {
     @Max(value = 2, message = "商品类型只能为1或2")
     @Schema(description = "商品类型：1-宠物，2-宠物周边")
     private Integer productType;
+
+    @Schema(description = "管理端兼容商品类型")
+    private String type;
 
     @Size(max = 50, message = "分类长度不能超过50")
     @Schema(description = "分类")

@@ -177,8 +177,10 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public Map<String, Object> getDashboardStats(List<Long> storeIds, boolean isAdmin) {
         long productCount;
-        if (storeIds == null || storeIds.isEmpty()) {
+        if (isAdmin) {
             productCount = productService.count();
+        } else if (storeIds == null || storeIds.isEmpty()) {
+            productCount = 0L;
         } else {
             productCount = productService.lambdaQuery().in(Product::getStoreId, storeIds).count();
         }
@@ -188,14 +190,14 @@ public class ReportServiceImpl implements ReportService {
         Map<String, Integer> statusCount = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();
 
-        if (storeIds == null || storeIds.isEmpty()) {
+        if (isAdmin) {
             LambdaQueryWrapper<PurchaseOrder> qw = new LambdaQueryWrapper<>();
             qw.ge(PurchaseOrder::getCreateTime, today.atStartOfDay());
             todayOrders = orderBaseService.count(qw);
             totalRevenue = orderMapper.selectTotalRevenue();
             orderMapper.selectOrderStatusCount()
                     .forEach(row -> statusCount.put(String.valueOf(row.get("order_status")), ((Number) row.get("cnt")).intValue()));
-        } else {
+        } else if (storeIds != null && !storeIds.isEmpty()) {
             for (Long storeId : storeIds) {
                 todayOrders += reportMapper.selectMerchantTodayOrders(storeId,
                         LocalDateTime.of(today, LocalTime.MIN));
@@ -208,7 +210,7 @@ public class ReportServiceImpl implements ReportService {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("userCount", isAdmin ? userService.count() : 0);
-        data.put("storeCount", storeIds != null ? (long) storeIds.size() : storeService.count());
+        data.put("storeCount", isAdmin ? storeService.count() : (storeIds == null ? 0L : (long) storeIds.size()));
         data.put("productCount", productCount);
         data.put("todayOrders", todayOrders);
         data.put("totalRevenue", totalRevenue);
@@ -222,7 +224,9 @@ public class ReportServiceImpl implements ReportService {
         LocalDateTime beginTime = begin.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        List<Map<String, Object>> rows = reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds);
+        List<Map<String, Object>> rows = storeIds == null || storeIds.isEmpty()
+                ? List.of()
+                : reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds);
         Map<String, BigDecimal> map = rows.stream()
                 .collect(Collectors.toMap(
                         r -> r.get("date").toString(),
@@ -243,18 +247,48 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    public UserReportVO getMerchantUserStatistics(LocalDate begin, LocalDate end) {
-        // 商家用户统计复用全平台数据
-        return getUserStatistics(begin, end);
+    public UserReportVO getMerchantUserStatistics(LocalDate begin, LocalDate end, List<Long> storeIds) {
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.plusDays(1).atStartOfDay();
+        List<Map<String, Object>> rows = storeIds == null || storeIds.isEmpty()
+                ? List.of()
+                : reportMapper.selectMerchantDailyNewUsers(beginTime, endTime, storeIds);
+        long runningTotal = storeIds == null || storeIds.isEmpty()
+                ? 0L
+                : reportMapper.selectMerchantTotalUserCount(endTime, storeIds);
+        Map<String, Long> newUserMap = toMap(rows);
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            runningTotal -= newUserMap.getOrDefault(d.toString(), 0L);
+        }
+
+        List<String> dateList = new ArrayList<>();
+        List<String> newUserList = new ArrayList<>();
+        List<String> totalUserList = new ArrayList<>();
+        for (LocalDate d = begin; !d.isAfter(end); d = d.plusDays(1)) {
+            String date = d.toString();
+            long newUsers = newUserMap.getOrDefault(date, 0L);
+            runningTotal += newUsers;
+            dateList.add(date);
+            newUserList.add(String.valueOf(newUsers));
+            totalUserList.add(String.valueOf(runningTotal));
+        }
+        return UserReportVO.builder()
+                .dateList(String.join(",", dateList))
+                .newUserList(String.join(",", newUserList))
+                .totalUserList(String.join(",", totalUserList))
+                .build();
     }
 
     public OrderReportVO getMerchantOrderStatistics(LocalDate begin, LocalDate end, List<Long> storeIds) {
         LocalDateTime beginTime = begin.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        List<Map<String, Object>> totalRows = reportMapper.selectMerchantDailyOrderCount(beginTime, endTime, storeIds);
-        List<Map<String, Object>> validRows = reportMapper.selectMerchantDailyValidOrderCount(beginTime, endTime, storeIds);
-        List<Map<String, Object>> completedRows = reportMapper.selectMerchantDailyCompletedOrderCount(beginTime, endTime, storeIds);
+        List<Map<String, Object>> totalRows = storeIds == null || storeIds.isEmpty()
+                ? List.of() : reportMapper.selectMerchantDailyOrderCount(beginTime, endTime, storeIds);
+        List<Map<String, Object>> validRows = storeIds == null || storeIds.isEmpty()
+                ? List.of() : reportMapper.selectMerchantDailyValidOrderCount(beginTime, endTime, storeIds);
+        List<Map<String, Object>> completedRows = storeIds == null || storeIds.isEmpty()
+                ? List.of() : reportMapper.selectMerchantDailyCompletedOrderCount(beginTime, endTime, storeIds);
 
         Map<String, Long> totalMap = toMap(totalRows);
         Map<String, Long> validMap = toMap(validRows);
@@ -284,7 +318,9 @@ public class ReportServiceImpl implements ReportService {
         LocalDateTime beginTime = begin.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
 
-        List<Map<String, Object>> rows = reportMapper.selectMerchantSalesTop10(beginTime, endTime, storeIds);
+        List<Map<String, Object>> rows = storeIds == null || storeIds.isEmpty()
+                ? List.of()
+                : reportMapper.selectMerchantSalesTop10(beginTime, endTime, storeIds);
         List<String> nameList = new ArrayList<>();
         List<String> numberList = new ArrayList<>();
         for (Map<String, Object> row : rows) {

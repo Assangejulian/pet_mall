@@ -24,6 +24,8 @@ export interface Order {
   returnReason?: string
   returnApplyTime?: string
   shipTime?: string
+  logisticsCarrier?: string
+  logisticsNo?: string
   receiveTime?: string
   evaluateTime?: string
   items: OrderItem[]

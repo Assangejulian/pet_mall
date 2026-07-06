@@ -61,7 +61,7 @@
             <td class="time-cell">{{ item.createTime }}</td>
             <td class="actions">
               <button class="btn btn-sm btn-outline" @click="showDetail(item)">详情</button>
-              <button v-if="String(item.status) === '1'" class="btn btn-sm btn-primary" @click="shipOrder(item)">发货</button>
+              <button v-if="String(item.status) === '1'" class="btn btn-sm btn-primary" @click="openShipModal(item)">发货</button>
             </td>
           </tr>
           <tr v-if="!list.length">
@@ -94,6 +94,8 @@
               <div class="detail-row"><label>创建时间</label><span>{{ detail.createTime }}</span></div>
               <div class="detail-row" v-if="detail.payTime"><label>支付时间</label><span>{{ detail.payTime }}</span></div>
               <div class="detail-row" v-if="detail.shipTime"><label>发货时间</label><span>{{ detail.shipTime }}</span></div>
+              <div class="detail-row" v-if="detail.logisticsCarrier"><label>物流公司</label><span>{{ detail.logisticsCarrier }}</span></div>
+              <div class="detail-row" v-if="detail.logisticsNo"><label>物流单号</label><span>{{ detail.logisticsNo }}</span></div>
               <div class="detail-row" v-if="detail.receiveTime"><label>收货时间</label><span>{{ detail.receiveTime }}</span></div>
               <div class="detail-row" v-if="detail.cancelReason"><label>取消原因</label><span class="text-danger">{{ detail.cancelReason }}</span></div>
               <div class="detail-row" v-if="detail.returnReason"><label>退单理由</label><span class="text-danger">{{ detail.returnReason }}</span></div>
@@ -135,6 +137,32 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay" v-if="shipVisible" @click.self="closeShipModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>订单发货 — {{ shippingTarget?.orderNo }}</h3>
+          <button class="modal-close" @click="closeShipModal">✕</button>
+        </div>
+        <form class="modal-body ship-form" @submit.prevent="submitShip">
+          <label class="form-row">
+            <span>物流公司</span>
+            <input v-model.trim="shipForm.carrier" maxlength="100" placeholder="例如 顺丰速运" />
+          </label>
+          <label class="form-row">
+            <span>物流单号</span>
+            <input v-model.trim="shipForm.logisticsNo" maxlength="100" placeholder="请输入运单号" />
+          </label>
+          <p v-if="shipError" class="form-error">{{ shipError }}</p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" @click="closeShipModal">取消</button>
+            <button type="submit" class="btn btn-primary" :disabled="shipping">
+              {{ shipping ? '提交中...' : '确认发货' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -150,6 +178,11 @@ const currentPage = ref(1)
 const pageSize = 10
 const detail = ref<Order | null>(null)
 const detailVisible = ref(false)
+const shipVisible = ref(false)
+const shipping = ref(false)
+const shippingTarget = ref<Order | null>(null)
+const shipForm = ref({ carrier: "", logisticsNo: "" })
+const shipError = ref("")
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize) || 1)
 
@@ -179,10 +212,45 @@ function handleSearch() { currentPage.value = 1; fetchData() }
 function resetSearch() { statusFilter.value = ""; currentPage.value = 1; fetchData() }
 function goPage(p: number) { currentPage.value = p; fetchData() }
 
-async function shipOrder(item: Order) {
-  if (!confirm("确认发货？")) return
-  await shipMerchantOrder(item.id)
-  item.status = '2' as OrderStatus; await fetchData()
+function openShipModal(item: Order) {
+  shippingTarget.value = item
+  shipForm.value = {
+    carrier: item.logisticsCarrier || "",
+    logisticsNo: item.logisticsNo || ""
+  }
+  shipError.value = ""
+  shipVisible.value = true
+}
+
+function closeShipModal() {
+  if (shipping.value) return
+  shipVisible.value = false
+  shippingTarget.value = null
+  shipError.value = ""
+}
+
+async function submitShip() {
+  const carrier = shipForm.value.carrier.trim()
+  const logisticsNo = shipForm.value.logisticsNo.trim()
+  if (!carrier) { shipError.value = "请输入物流公司"; return }
+  if (!logisticsNo) { shipError.value = "请输入物流单号"; return }
+  if (carrier.length > 100 || logisticsNo.length > 100) {
+    shipError.value = "物流公司和物流单号长度不能超过100"
+    return
+  }
+  if (!shippingTarget.value) return
+  shipping.value = true
+  shipError.value = ""
+  try {
+    await shipMerchantOrder({ orderId: shippingTarget.value.id, carrier, logisticsNo })
+    shippingTarget.value.status = '2' as OrderStatus
+    shippingTarget.value.logisticsCarrier = carrier
+    shippingTarget.value.logisticsNo = logisticsNo
+    shipVisible.value = false
+    await fetchData()
+  } finally {
+    shipping.value = false
+  }
 }
 
 function showDetail(item: Order) {
@@ -227,6 +295,13 @@ onMounted(fetchData)
 .detail-row { display: flex; padding: 5px 0; font-size: 13px; }
 .detail-row label { width: 72px; color: #999; flex-shrink: 0; }
 .detail-row span { word-break: break-all; }
+
+.ship-form { display: flex; flex-direction: column; gap: 14px; }
+.form-row { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #555; }
+.form-row input { height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; font: inherit; }
+.form-row input:focus { outline: none; border-color: var(--primary); }
+.form-error { color: #e74c3c; font-size: 13px; margin: 0; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 
 .detail-items-section { margin-top: 8px; }
 .detail-items-section h4 { font-size: 14px; margin-bottom: 12px; color: #333; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }

@@ -28,6 +28,8 @@ import com.pat.payment.service.PaymentService;
 import com.pat.payment.service.impl.PaymentServiceRouter;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
+import com.pat.store.domain.entity.Store;
+import com.pat.store.service.IStoreService;
 import com.pat.user.domain.entity.UserAddress;
 import com.pat.user.mapper.UserAddressMapper;
 import com.pat.user.service.UserService;
@@ -46,7 +48,8 @@ import java.util.stream.Collectors;
 public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback {
 
     private final PurchaseOrderBaseService baseService;
-        private final ProductService productService;
+    private final ProductService productService;
+    private final IStoreService storeService;
     private final UserService userService;
     private final UserAddressMapper addressMapper;
     private final ICartService cartService;
@@ -54,14 +57,16 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
     private final PaymentServiceRouter paymentServiceRouter;
 
     public OrderUserServiceImpl(PurchaseOrderBaseService baseService,
-                                                                 ProductService productService,
+                                ProductService productService,
+                                IStoreService storeService,
                                 UserAddressMapper addressMapper,
                                 ICartService cartService,
                                 OrderItemMapper orderItemMapper,
                                 PaymentServiceRouter paymentServiceRouter,
                                 UserService userService) {
         this.baseService = baseService;
-                this.productService = productService;
+        this.productService = productService;
+        this.storeService = storeService;
         this.addressMapper = addressMapper;
         this.cartService = cartService;
         this.orderItemMapper = orderItemMapper;
@@ -99,7 +104,7 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
         OrderItemsResult itemsResult = buildOrderItems(items);
 
         // 2. 地址快照
-        String addressSnapshot = buildAddressSnapshot(dto.getAddressId());
+        String addressSnapshot = buildAddressSnapshot(dto.getAddressId(), userId);
 
         // 3. 保存订单 + 明细
         Long orderId = saveOrder(userId, dto, itemsResult.getOrderItems(), itemsResult.getTotal(), addressSnapshot);
@@ -114,12 +119,30 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
 
     private OrderItemsResult buildOrderItems(List<OrderCreateDTO.OrderItemDTO> items) {
         List<OrderItem> orderItems = new ArrayList<>();
+        List<Product> products = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
+
+        Long orderStoreId = null;
         for (OrderCreateDTO.OrderItemDTO item : items) {
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "购买数量必须大于0");
+            }
             Product product = productService.getById(item.getProductId());
             if (product == null) throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
             if (product.getStatus() == null || product.getStatus() != 1)
                 throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品已下架: " + product.getProductName());
+            if (orderStoreId == null) {
+                orderStoreId = product.getStoreId();
+            } else if (!Objects.equals(orderStoreId, product.getStoreId())) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "一张订单只能购买同一门店的商品，请分开结算");
+            }
+            products.add(product);
+        }
+        requireOperatingStore(orderStoreId);
+
+        for (int index = 0; index < items.size(); index++) {
+            OrderCreateDTO.OrderItemDTO item = items.get(index);
+            Product product = products.get(index);
             boolean stockOk = productService.deductStock(product.getId(), item.getQuantity());
             if (!stockOk) throw new BusinessException(500, "商品库存不足或已下架: " + product.getProductName(), null);
             OrderItem oi = new OrderItem();
@@ -134,9 +157,12 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
         return new OrderItemsResult(orderItems, total);
     }
 
-    private String buildAddressSnapshot(Long addressId) {
+    private String buildAddressSnapshot(Long addressId, Long userId) {
         UserAddress addr = addressMapper.selectById(addressId);
         if (addr == null) throw new BusinessException(ErrorCode.NOT_FOUND, "收货地址不存在");
+        if (!userId.equals(addr.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用该收货地址");
+        }
         LinkedHashMap<String, String> snapshot = new LinkedHashMap<>();
         snapshot.put("receiverName", addr.getReceiverName());
         snapshot.put("phone", addr.getPhone());
@@ -368,6 +394,22 @@ public class OrderUserServiceImpl implements IOrderUserService, PaymentCallback 
             productService.restoreStock(item.getProductId(), item.getQuantity());
             log.info("恢复库存 productId={}, quantity={}, orderId={}",
                     item.getProductId(), item.getQuantity(), orderId);
+        }
+    }
+
+    private void requireOperatingStore(Long storeId) {
+        if (storeId == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商品所属门店不存在");
+        }
+        Store store = storeService.getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "商品所属门店不存在");
+        }
+        if (store.getDeleted() != null && store.getDeleted() != 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品所属门店已删除，不能下单");
+        }
+        if (!Integer.valueOf(1).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品所属门店未营业，不能下单");
         }
     }
 

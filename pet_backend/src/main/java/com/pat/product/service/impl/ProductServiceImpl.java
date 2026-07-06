@@ -109,7 +109,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private Product mergeUpdateFields(Product old, ProductUpdateDTO dto, boolean sold) {
         boolean soldPet = sold && old.getProductType() == TYPE_PET;
         Long storeId = sold ? old.getStoreId()
-                : (dto.getStoreId() != null ? checkUpdateStore(dto.getStoreId(), old.getStoreId()) : old.getStoreId());
+                : (dto.getStoreId() != null
+                ? checkUpdateStore(dto.getStoreId(), old.getStoreId(), old.getId()) : old.getStoreId());
         Integer productType = (soldPet || dto.getProductType() == null) ? old.getProductType() : dto.getProductType();
         Integer stock = soldPet ? 0 : (dto.getStock() == null ? old.getStock() : dto.getStock());
         BigDecimal price = dto.getPrice() == null ? old.getPrice() : dto.getPrice();
@@ -119,8 +120,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return Product.mergeFrom(old, dto, storeId, productType, stock, price, status, images);
     }
 
-    private Long checkUpdateStore(Long newStoreId, Long oldStoreId) {
-        if (!newStoreId.equals(oldStoreId)) checkOperatingStore(newStoreId);
+    private Long checkUpdateStore(Long newStoreId, Long oldStoreId, Long productId) {
+        if (!newStoreId.equals(oldStoreId)) {
+            if (baseMapper.countOrderItemsByProductId(productId) > 0) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "已有历史订单的商品不能更换所属门店");
+            }
+            checkOperatingStore(newStoreId);
+        }
         return newStoreId;
     }
 
@@ -185,14 +191,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .eq(Product::getStatus, STATUS_ONLINE)
                 .inSql(Product::getStoreId, "SELECT id FROM store WHERE deleted = 0 AND status = 1");
-        return convertPage(page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper));
+        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
     }
     @Override
     public ProductPageVO pageAdminProducts(ProductQueryDTO query) {
         // 管理端列表不隐藏下架/已售出商品，方便后台查看和维护。
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
                 .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
-        Page<Product> result = page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper);
+        Page<Product> result = page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper);
         Map<Long, Store> storeMap = loadStoreMap(result.getRecords());
         return new ProductPageVO(result.getRecords().stream().map(product -> toVO(product, storeMap)).toList(),
                 result.getTotal(), result.getCurrent(), result.getSize());
@@ -219,14 +225,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (merchantUserId == null) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "未获取到当前商家");
         }
-        List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
-        if (storeIds.isEmpty()) {
-            return convertPage(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))));
-        }
         LambdaQueryWrapper<Product> wrapper = buildBaseWrapper(query)
-                .in(Product::getStoreId, storeIds)
+                .inSql(Product::getStoreId,
+                        "SELECT id FROM store WHERE deleted = 0 AND user_id = " + merchantUserId)
                 .eq(query.getStatus() != null, Product::getStatus, query.getStatus());
-        return convertPage(page(new Page<>((query.getPage() == null ? 1L : query.getPage()), (query.getSize() == null ? 10L : Math.min(query.getSize(), 100L))), wrapper));
+        return convertPage(page(new Page<>(resolvePageNum(query), resolvePageSize(query)), wrapper));
     }
     @Override
     public Product requireOwnedProduct(Long productId, Long merchantUserId) {
@@ -244,7 +247,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProductVO createMerchantProduct(ProductCreateDTO dto, Long merchantUserId) {
-        storeService.requireOwnedStore(dto != null ? dto.getStoreId() : null, merchantUserId);
+        requireMerchantStore(dto != null ? dto.getStoreId() : null, merchantUserId);
         return createProduct(dto);
     }
 
@@ -256,9 +259,20 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             ensureNotPlatformRestricted(product);
         }
         if (dto != null && dto.getStoreId() != null) {
-            storeService.requireOwnedStore(dto.getStoreId(), merchantUserId);
+            requireMerchantStore(dto.getStoreId(), merchantUserId);
         }
         return updateProduct(id, dto);
+    }
+
+    private Store requireMerchantStore(Long storeId, Long merchantUserId) {
+        if (storeId == null || merchantUserId == null) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商店");
+        }
+        Store store = storeService.getById(storeId);
+        if (store == null || !merchantUserId.equals(store.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该商店");
+        }
+        return store;
     }
 
     @Override
@@ -437,8 +451,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return 基础查询构造器
      */
     private LambdaQueryWrapper<Product> buildBaseWrapper(ProductQueryDTO query) {
-        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword().trim() : null;
-        Integer productType = query.getProductType();
+        String keyword = resolveKeyword(query);
+        Integer productType = resolveProductType(query);
         return new LambdaQueryWrapper<Product>()
                 .like(StringUtils.hasText(keyword), Product::getProductName, keyword)
                 .eq(query.getStoreId() != null, Product::getStoreId, query.getStoreId())
@@ -548,6 +562,33 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
+    private String resolveKeyword(ProductQueryDTO query) {
+        String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword() : query.getProductName();
+        return StringUtils.hasText(keyword) ? keyword.trim() : null;
+    }
+
+    private Integer resolveProductType(ProductQueryDTO query) {
+        if (query.getProductType() != null) return query.getProductType();
+        if (!StringUtils.hasText(query.getType())) return null;
+        return switch (query.getType().trim()) {
+            case "1", "宠物", "活体宠物" -> TYPE_PET;
+            case "2", "周边", "宠物周边", "宠物用品", "宠物用品/周边" -> TYPE_GOODS;
+            default -> throw new BusinessException(ErrorCode.FARAMS_ERROR,
+                    "商品类型只能为1、2、活体宠物或宠物用品/周边");
+        };
+    }
+
+    private long resolvePageNum(ProductQueryDTO query) {
+        if (query.getPage() != null) return query.getPage();
+        if (query.getCurrent() != null) return query.getCurrent();
+        return query.getPageNum() == null ? 1L : query.getPageNum();
+    }
+
+    private long resolvePageSize(ProductQueryDTO query) {
+        Long size = query.getSize() != null ? query.getSize() : query.getPageSize();
+        return size == null ? 10L : Math.min(size, 100L);
+    }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -556,7 +597,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return false;
         }
         int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
-                .setSql("stock = stock - {0}", quantity)
+                .setSql("status = CASE WHEN product_type = " + TYPE_PET
+                        + " AND stock = " + quantity + " THEN " + STATUS_SOLD
+                        + " ELSE status END, stock = stock - " + quantity)
                 .eq(Product::getId, productId)
                 .ge(Product::getStock, quantity)
                 .eq(Product::getStatus, STATUS_ONLINE));
@@ -564,13 +607,96 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean restoreStock(Long productId, Integer quantity) {
         if (productId == null || quantity == null || quantity <= 0) {
             return false;
         }
-        int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
-                .setSql("stock = stock + {0}", quantity)
-                .eq(Product::getId, productId));
-        return rows > 0;
+        Product current = baseMapper.selectById(productId);
+        if (current == null || Objects.equals(current.getDeleted(), 1)) {
+            return false;
+        }
+
+        // 普通用品维持原有的库存累加语义，且绝不改变商品状态。
+        if (!Objects.equals(current.getProductType(), TYPE_PET)) {
+            int rows = baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                    .setSql("stock = stock + " + quantity)
+                    .eq(Product::getId, productId)
+                    .ne(Product::getProductType, TYPE_PET));
+            return rows == 1;
+        }
+
+        // 活体库存只能从 0 原子恢复到 1；重复调用不会再次增加库存。
+        if (quantity != 1 || !Objects.equals(current.getStock(), 0)) {
+            return false;
+        }
+
+        // 订单占用后又被平台强制下架时，保留 OFFLINE 和全部限制字段，仅恢复库存。
+        if (Objects.equals(current.getStatus(), STATUS_OFFLINE)) {
+            if (!hasPlatformRestriction(current)) {
+                return false;
+            }
+            return restoreRestrictedOfflineLivePet(productId) == 1;
+        }
+        if (!Objects.equals(current.getStatus(), STATUS_SOLD)) {
+            return false;
+        }
+
+        Store store = storeService.getById(current.getStoreId());
+        boolean canReturnOnline = isOperatingStore(store) && !hasPlatformRestriction(current);
+        int rows = restoreSoldLivePet(productId,
+                canReturnOnline ? STATUS_ONLINE : STATUS_OFFLINE,
+                canReturnOnline);
+
+        // 门店或平台限制可能在读取后发生变化。在线条件更新失败时只允许保守恢复为下架。
+        if (rows == 0 && canReturnOnline) {
+            rows = restoreSoldLivePet(productId, STATUS_OFFLINE, false);
+        }
+        return rows == 1;
+    }
+
+    private int restoreRestrictedOfflineLivePet(Long productId) {
+        return baseMapper.update(null, new LambdaUpdateWrapper<Product>()
+                .set(Product::getStock, 1)
+                .eq(Product::getId, productId)
+                .eq(Product::getProductType, TYPE_PET)
+                .eq(Product::getStatus, STATUS_OFFLINE)
+                .eq(Product::getStock, 0)
+                .eq(Product::getDeleted, 0)
+                .and(restriction -> restriction
+                        .isNotNull(Product::getOfflineReason)
+                        .or().isNotNull(Product::getOfflineUserId)
+                        .or().isNotNull(Product::getOfflineTime)));
+    }
+
+    private int restoreSoldLivePet(Long productId, int targetStatus, boolean requireOnlineEligibility) {
+        LambdaUpdateWrapper<Product> update = new LambdaUpdateWrapper<Product>()
+                .set(Product::getStock, 1)
+                .set(Product::getStatus, targetStatus)
+                .eq(Product::getId, productId)
+                .eq(Product::getProductType, TYPE_PET)
+                .eq(Product::getStatus, STATUS_SOLD)
+                .eq(Product::getStock, 0)
+                .eq(Product::getDeleted, 0);
+        if (requireOnlineEligibility) {
+            update.exists("SELECT 1 FROM store s WHERE s.id = product.store_id"
+                            + " AND s.deleted = 0 AND s.status = " + STATUS_ONLINE)
+                    .isNull(Product::getOfflineReason)
+                    .isNull(Product::getOfflineUserId)
+                    .isNull(Product::getOfflineTime);
+        }
+        return baseMapper.update(null, update);
+    }
+
+    private boolean isOperatingStore(Store store) {
+        return store != null
+                && Objects.equals(store.getDeleted(), 0)
+                && Objects.equals(store.getStatus(), STATUS_ONLINE);
+    }
+
+    private boolean hasPlatformRestriction(Product product) {
+        return product.getOfflineReason() != null
+                || product.getOfflineUserId() != null
+                || product.getOfflineTime() != null;
     }
 }

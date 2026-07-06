@@ -92,6 +92,32 @@ public interface ReportMapper {
     // ===== Merchant report queries (filtered by storeIds) =====
 
     @Select("<script>" +
+            "SELECT first_order_date AS date, COUNT(*) AS cnt FROM (" +
+            "SELECT o.user_id, CAST(MIN(o.create_time) AS DATE) AS first_order_date " +
+            "FROM purchase_order o WHERE o.create_time &lt; #{endTime} " +
+            "AND EXISTS (SELECT 1 FROM order_item oi JOIN product p ON oi.product_id = p.id " +
+            "WHERE oi.order_id = o.id AND p.store_id IN " +
+            "<foreach collection='storeIds' item='sid' open='(' separator=',' close=')'>#{sid}</foreach>) " +
+            "GROUP BY o.user_id) first_orders " +
+            "WHERE first_order_date &gt;= CAST(#{beginTime} AS DATE) " +
+            "AND first_order_date &lt; CAST(#{endTime} AS DATE) " +
+            "GROUP BY first_order_date ORDER BY first_order_date" +
+            "</script>")
+    List<Map<String, Object>> selectMerchantDailyNewUsers(@Param("beginTime") LocalDateTime beginTime,
+                                                           @Param("endTime") LocalDateTime endTime,
+                                                           @Param("storeIds") List<Long> storeIds);
+
+    @Select("<script>" +
+            "SELECT COUNT(DISTINCT o.user_id) FROM purchase_order o " +
+            "WHERE o.create_time &lt; #{endTime} " +
+            "AND EXISTS (SELECT 1 FROM order_item oi JOIN product p ON oi.product_id = p.id " +
+            "WHERE oi.order_id = o.id AND p.store_id IN " +
+            "<foreach collection='storeIds' item='sid' open='(' separator=',' close=')'>#{sid}</foreach>)" +
+            "</script>")
+    long selectMerchantTotalUserCount(@Param("endTime") LocalDateTime endTime,
+                                      @Param("storeIds") List<Long> storeIds);
+
+    @Select("<script>" +
             "SELECT CAST(o.create_time AS DATE) AS date, COALESCE(SUM(o.total_amount), 0) AS turnover " +
             "FROM purchase_order o " +
             "WHERE o.order_status IN (3, 4) " +

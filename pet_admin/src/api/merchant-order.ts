@@ -11,7 +11,11 @@ export function listMerchantOrders(params: {
   return unwrap(merchantHttp.get("/order/search", { params }))
 }
 
-export function shipMerchantOrder(orderId: string): Promise<void> {
-  return unwrap(merchantHttp.put("/order/ship", { orderId }))
+export function shipMerchantOrder(data: {
+  orderId: string
+  carrier: string
+  logisticsNo: string
+}): Promise<void> {
+  return unwrap(merchantHttp.put("/order/ship", data))
 }
 

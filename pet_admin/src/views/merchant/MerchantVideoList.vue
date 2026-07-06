@@ -164,7 +164,7 @@ function emptyForm() {
   return { title: "", description: "", url: "", cover: "", productId: "", duration: 0 }
 }
 
-function formatDuration(seconds: number) {
+function formatDuration(seconds?: number) {
   if (!seconds) return "-"
   const m = Math.floor(seconds / 60)
   const s = seconds % 60

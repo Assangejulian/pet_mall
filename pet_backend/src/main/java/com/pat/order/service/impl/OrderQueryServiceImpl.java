@@ -13,7 +13,6 @@ import com.pat.order.domain.entity.PurchaseOrder;
 import com.pat.order.mapper.OrderQueryMapper;
 import com.pat.order.service.OrderQueryService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
-import com.pat.store.service.IStoreService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,14 +24,11 @@ public class OrderQueryServiceImpl implements OrderQueryService {
 
     private final PurchaseOrderBaseService baseService;
     private final OrderQueryMapper orderQueryMapper;
-    private final IStoreService storeService;
 
     public OrderQueryServiceImpl(PurchaseOrderBaseService baseService,
-                                 OrderQueryMapper orderQueryMapper,
-                                 IStoreService storeService) {
+                                 OrderQueryMapper orderQueryMapper) {
         this.baseService = baseService;
         this.orderQueryMapper = orderQueryMapper;
-        this.storeService = storeService;
     }
 
     @Override
@@ -41,12 +37,7 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         wrapper.orderByDesc("create_time");
 
         if (merchantUserId != null) {
-            List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
-            if (storeIds.isEmpty()) {
-                return new Page<Map<String, Object>>(page.getCurrent(), page.getSize()).setRecords(List.of());
-            }
-            String idsStr = storeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-            List<Long> orderIds = orderQueryMapper.selectOrderIdsByStoreIds(idsStr);
+            List<Long> orderIds = orderQueryMapper.selectOrderIdsByMerchantUserId(merchantUserId);
             if (orderIds.isEmpty()) {
                 return new Page<Map<String, Object>>(page.getCurrent(), page.getSize()).setRecords(List.of());
             }
@@ -65,7 +56,9 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         // 批量查订单项，避免 N+1
         List<Long> orderIds = result.getRecords().stream().map(PurchaseOrder::getId).collect(Collectors.toList());
         List<OrderItem> allItems = orderIds.isEmpty() ? List.of()
-                : orderQueryMapper.selectItemsByOrderIds(orderIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+                : merchantUserId == null
+                    ? orderQueryMapper.selectItemsByOrderIds(orderIds)
+                    : orderQueryMapper.selectMerchantItems(orderIds, merchantUserId);
 
         Map<Long, List<OrderItem>> itemsByOrderId = allItems.stream()
                 .collect(Collectors.groupingBy(OrderItem::getOrderId));
@@ -90,17 +83,16 @@ public class OrderQueryServiceImpl implements OrderQueryService {
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
 
         if (merchantUserId != null) {
-            List<Long> storeIds = storeService.getStoreIdsByUserId(merchantUserId);
-            if (!storeIds.isEmpty()) {
-                String idsStr = storeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-                List<Long> orderIds = orderQueryMapper.selectOrderIdsByStoreIds(idsStr);
-                if (!orderIds.contains(id)) {
-                    throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看该订单");
-                }
+            List<Long> orderIds = orderQueryMapper.selectOrderIdsByMerchantUserId(merchantUserId);
+            if (!orderIds.contains(id)) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看该订单");
             }
         }
 
-        List<OrderItem> items = orderQueryMapper.selectItemsByOrderIds(String.valueOf(id));
+        List<Long> detailIds = List.of(id);
+        List<OrderItem> items = merchantUserId == null
+                ? orderQueryMapper.selectItemsByOrderIds(detailIds)
+                : orderQueryMapper.selectMerchantItems(detailIds, merchantUserId);
         Map<String, Object> map = BeanUtil.beanToMap(order);
         map.put("id", String.valueOf(order.getId()));
         map.put("userId", String.valueOf(order.getUserId()));

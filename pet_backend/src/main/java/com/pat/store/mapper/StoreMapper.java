@@ -29,14 +29,14 @@ public interface StoreMapper extends BaseMapper<Store> {
             "s.store_logo AS storeLogo, s.store_phone AS storePhone, s.store_desc AS storeDesc, " +
             "s.province, s.city, s.district, s.address, " +
             "s.longitude, s.latitude, s.status, s.create_time AS createTime, s.update_time AS updateTime, " +
-            "(6371.0088 * ACOS(COS(RADIANS(#{lat})) * COS(RADIANS(s.latitude)) " +
-            "  * COS(RADIANS(s.longitude) - RADIANS(#{lng})) + SIN(RADIANS(#{lat})) * SIN(RADIANS(s.latitude)))) AS distanceKm " +
+            "(6371.0088 * ACOS(LEAST(1, GREATEST(-1, COS(RADIANS(#{lat})) * COS(RADIANS(s.latitude)) " +
+            "  * COS(RADIANS(s.longitude) - RADIANS(#{lng})) + SIN(RADIANS(#{lat})) * SIN(RADIANS(s.latitude)))))) AS distanceKm " +
             "FROM store s " +
             "WHERE s.status = 1 AND s.deleted = 0 AND s.longitude IS NOT NULL AND s.latitude IS NOT NULL " +
             "AND (s.store_name LIKE CONCAT('%', #{keyword}, '%') OR #{keyword} IS NULL) " +
             "AND (s.city = #{city} OR #{city} IS NULL) " +
-            "HAVING distanceKm < #{radiusKm} " +
-            "ORDER BY distanceKm " +
+            "HAVING distanceKm <= #{radiusKm} " +
+            "ORDER BY distanceKm, s.id " +
             "LIMIT #{offset}, #{limit}")
     List<NearbyStoreRow> searchNearbyPage(@Param("lat") Double lat, @Param("lng") Double lng,
                                           @Param("radiusKm") Double radiusKm,
@@ -45,13 +45,13 @@ public interface StoreMapper extends BaseMapper<Store> {
 
     /** 附近门店总数 */
     @Select("SELECT COUNT(*) FROM (SELECT s.id, " +
-            "(6371.0088 * ACOS(COS(RADIANS(#{lat})) * COS(RADIANS(s.latitude)) " +
-            "  * COS(RADIANS(s.longitude) - RADIANS(#{lng})) + SIN(RADIANS(#{lat})) * SIN(RADIANS(s.latitude)))) AS d " +
+            "(6371.0088 * ACOS(LEAST(1, GREATEST(-1, COS(RADIANS(#{lat})) * COS(RADIANS(s.latitude)) " +
+            "  * COS(RADIANS(s.longitude) - RADIANS(#{lng})) + SIN(RADIANS(#{lat})) * SIN(RADIANS(s.latitude)))))) AS d " +
             "FROM store s " +
             "WHERE s.status = 1 AND s.deleted = 0 AND s.longitude IS NOT NULL AND s.latitude IS NOT NULL " +
             "AND (s.store_name LIKE CONCAT('%', #{keyword}, '%') OR #{keyword} IS NULL) " +
             "AND (s.city = #{city} OR #{city} IS NULL) " +
-            "HAVING d < #{radiusKm}) t")
+            "HAVING d <= #{radiusKm}) t")
     Long countNearby(@Param("lat") Double lat, @Param("lng") Double lng,
                      @Param("radiusKm") Double radiusKm,
                      @Param("keyword") String keyword, @Param("city") String city);

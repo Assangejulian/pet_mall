@@ -10,7 +10,7 @@
     <div class="table-wrap">
       <table class="data-table"><thead><tr><th>门店</th><th>联系电话</th><th>地址</th><th>商品数</th><th>状态</th><th>审核/关闭说明</th><th>操作</th></tr></thead>
         <tbody>
-          <tr v-for="item in records" :key="item.id"><td>{{ item.storeName }}</td><td>{{ item.storePhone || '-' }}</td><td>{{ fullAddress(item) }}</td><td>{{ item.productCount ?? 0 }}</td><td><span class="badge" :class="statusBadge(item.status)">{{ storeStatusLabel(item.status) }}</span></td><td><span v-if="item.status===2 && item.closeReason">{{ item.closeReason }}</span><span v-else-if="item.auditRemark">{{ item.auditRemark }}<small v-if="item.auditTime" class="meta-time">{{ item.auditTime }}</small></span><span v-else>-</span></td><td class="actions"><button class="btn btn-outline btn-sm" @click="openEdit(item.id)">编辑</button><button class="btn btn-danger btn-sm" @click="remove(item)">删除</button></td></tr>
+          <tr v-for="item in records" :key="item.id"><td>{{ item.storeName }}</td><td>{{ item.storePhone || '-' }}</td><td>{{ fullAddress(item) }}</td><td>{{ item.productCount ?? 0 }}</td><td><span class="badge" :class="statusBadge(item.status)">{{ storeStatusLabel(item.status) }}</span></td><td><span v-if="item.status===2 && item.closeReason">关闭原因：{{ item.closeReason }}</span><template v-else-if="item.auditRemark || item.auditTime"><span>{{ item.auditRemark || auditTimeLabel(item.status) }}</span><small v-if="item.auditTime" class="meta-time">审核时间：{{ item.auditTime }}</small></template><span v-else>-</span></td><td class="actions"><button class="btn btn-outline btn-sm" @click="openEdit(item.id)">编辑</button><button class="btn btn-danger btn-sm" @click="remove(item)">删除</button></td></tr>
           <tr v-if="!loading && !records.length"><td colspan="7" class="empty-row">暂无门店</td></tr><tr v-if="loading"><td colspan="7" class="empty-row">加载中...</td></tr>
         </tbody>
       </table>
@@ -24,8 +24,13 @@
         <div class="form-row"><div class="form-group"><label>联系电话</label><input v-model.trim="form.storePhone" /></div><div class="form-group"><label>Logo URL</label><input v-model.trim="form.storeLogo" /></div></div>
         <div class="form-row"><div class="form-group"><label>省份</label><input v-model.trim="form.province" /></div><div class="form-group"><label>城市</label><input v-model.trim="form.city" /></div><div class="form-group"><label>区县</label><input v-model.trim="form.district" /></div></div>
         <div class="form-group"><label>详细地址 *</label><input v-model.trim="form.address" /></div>
+        <div class="form-row coordinate-row">
+          <div class="form-group"><label>经度 *</label><input v-model="form.longitude" type="number" min="-180" max="180" step="any" inputmode="decimal" placeholder="-180 至 180" /></div>
+          <div class="form-group"><label>纬度 *</label><input v-model="form.latitude" type="number" min="-90" max="90" step="any" inputmode="decimal" placeholder="-90 至 90" /></div>
+        </div>
+        <p class="coordinate-help">请从地图或坐标工具获取门店的真实经纬度。</p>
         <div class="form-group"><label>门店介绍</label><textarea v-model.trim="form.storeDesc" rows="3"></textarea></div>
-        <p class="hint">门店资料提交后将重新进入待审核状态</p>
+        <p class="hint">{{ editingId && editingStatus === 1 ? '保存后需要重新审核' : '门店资料提交后将重新进入待审核状态' }}</p>
       </div>
       <div class="modal-footer"><button class="btn btn-outline" @click="showModal=false">取消</button><button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? '保存中...' : '保存' }}</button></div>
     </div></div>
@@ -38,20 +43,21 @@ import { createMerchantStore, deleteMerchantStore, getMerchantStore, listMerchan
 import type { Store } from "../../types/store"
 import { statusBadge, storeStatusLabel } from "../../utils/status"
 import { notify } from "../../utils/notify"
+import { buildMerchantStorePayload, emptyMerchantStoreForm, type MerchantStoreForm } from "../../utils/merchantStoreForm"
 
-const emptyForm = (): MerchantStorePayload => ({ storeName: "", storeLogo: "", storePhone: "", storeDesc: "", province: "", city: "", district: "", address: "" })
 const records = ref<Store[]>([]); const total = ref(0); const page = ref(1); const size = 10; const loading = ref(false)
-const keyword = ref(""); const statusFilter = ref(-1); const showModal = ref(false); const editingId = ref(""); const saving = ref(false); const form = ref<MerchantStorePayload>(emptyForm())
+const keyword = ref(""); const statusFilter = ref(-1); const showModal = ref(false); const editingId = ref(""); const editingStatus = ref<number | null>(null); const saving = ref(false); const form = ref<MerchantStoreForm>(emptyMerchantStoreForm())
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size)))
 const fullAddress = (item: Store) => [item.province,item.city,item.district,item.address].filter(Boolean).join("") || "-"
+const auditTimeLabel = (status?: number) => status === 1 ? "审核通过" : status === 3 ? "审核驳回" : "审核记录"
 
 async function fetchData(){loading.value=true;try{const result=await listMerchantStores({current:page.value,size,keyword:keyword.value||undefined,status:statusFilter.value>=0?statusFilter.value:undefined});records.value=result.records;total.value=result.total}finally{loading.value=false}}
 function search(){page.value=1;fetchData()} function reset(){keyword.value="";statusFilter.value=-1;search()} function go(next:number){page.value=next;fetchData()}
-function openCreate(){editingId.value="";form.value=emptyForm();showModal.value=true}
-async function openEdit(id:string){const item=await getMerchantStore(id);editingId.value=id;form.value={storeName:item.storeName,storeLogo:item.storeLogo||"",storePhone:item.storePhone||"",storeDesc:item.storeDesc||"",province:item.province||"",city:item.city||"",district:item.district||"",address:item.address||"",longitude:item.longitude,latitude:item.latitude};showModal.value=true}
-async function save(){if(!form.value.storeName||!form.value.address){notify("请填写门店名称和详细地址","error");return}saving.value=true;try{if(editingId.value)await updateMerchantStore(editingId.value,form.value);else await createMerchantStore(form.value);showModal.value=false;notify("保存成功，门店将重新进入待审核状态");await fetchData()}finally{saving.value=false}}
+function openCreate(){editingId.value="";editingStatus.value=null;form.value=emptyMerchantStoreForm();showModal.value=true}
+async function openEdit(id:string){const item=await getMerchantStore(id);editingId.value=id;editingStatus.value=item.status;form.value={storeName:item.storeName,storeLogo:item.storeLogo||"",storePhone:item.storePhone||"",storeDesc:item.storeDesc||"",province:item.province||"",city:item.city||"",district:item.district||"",address:item.address||"",longitude:item.longitude,latitude:item.latitude};showModal.value=true}
+async function save(){if(!form.value.storeName||!form.value.address){notify("请填写门店名称和详细地址","error");return}const result=buildMerchantStorePayload(form.value);if(!result.ok){notify(result.message,"error");return}const payload:MerchantStorePayload=result.payload;saving.value=true;try{if(editingId.value)await updateMerchantStore(editingId.value,payload);else await createMerchantStore(payload);showModal.value=false;notify("保存成功，门店将重新进入待审核状态");await fetchData()}finally{saving.value=false}}
 async function remove(item:Store){if(!confirm(`确定删除门店「${item.storeName}」？`))return;await deleteMerchantStore(item.id);notify("删除成功");await fetchData()}
 onMounted(fetchData)
 </script>
 
-<style scoped>.push-right{margin-left:auto}.modal-card{width:min(620px,100%)}.form-row .form-group{flex:1}.meta-time{display:block;color:var(--text3);margin-top:4px}</style>
+<style scoped>.push-right{margin-left:auto}.modal-card{width:min(620px,100%)}.form-row .form-group{flex:1}.meta-time{display:block;color:var(--text3);margin-top:4px}.coordinate-row{margin-bottom:0}.coordinate-help{margin:-4px 0 16px;color:var(--text3);font-size:12px}</style>

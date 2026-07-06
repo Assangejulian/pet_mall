@@ -12,8 +12,8 @@ export interface MerchantStorePayload {
   city?: string
   district?: string
   address: string
-  longitude?: number
-  latitude?: number
+  longitude: number
+  latitude: number
 }
 
 export function listMerchantStores(params: { current: number; size: number; keyword?: string; status?: number }) {

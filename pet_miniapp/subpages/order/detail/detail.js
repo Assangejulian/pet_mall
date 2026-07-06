@@ -36,7 +36,10 @@ Page({
   payOrder: function() {
     var order = this.data.order;
     if (!order || !order.orderNo) return;
-    wx.navigateTo({ url: "/subpages/order/pay?orderId=" + order.id + "&orderNo=" + order.orderNo + "&amount=" + (order.payAmount || "0.00") });
+    wx.navigateTo({
+      url: "/subpages/order/pay?orderId=" + order.id + "&orderNo="
+        + encodeURIComponent(order.orderNo) + "&amount=" + encodeURIComponent(order.payAmount || "0.00")
+    });
   },
   confirmReceive: function() {
     var that = this; var order = this.data.order; if (!order || !order.id) return;

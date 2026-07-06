@@ -1,19 +1,26 @@
 package com.pat.store;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.pat.common.exception.BusinessException;
 import com.pat.product.domain.entity.Product;
+import com.pat.store.domain.dto.StoreDTO;
 import com.pat.store.domain.dto.NearbyQuery;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.domain.vo.NearbyStoreRow;
 import com.pat.store.mapper.StoreMapper;
 import com.pat.store.service.impl.StoreServiceImpl;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +42,9 @@ class StoreServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(storeService, "baseMapper", storeMapper);
+        if (TableInfoHelper.getTableInfo(Store.class) == null) {
+            TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), Store.class);
+        }
     }
 
     @Test
@@ -105,6 +115,61 @@ class StoreServiceImplTest {
 
         assertThat(storeService.getStoreProducts(1L)).extracting(Product::getId).containsExactly(9L);
         assertThat(storeService.getStoreProducts(null)).isEmpty();
+    }
+
+    @Test
+    void operatingStoreMerchantUpdateReturnsToPendingAndClearsAuditFields() {
+        assertMerchantUpdateResetsReviewFields(1);
+    }
+
+    @Test
+    void rejectedStoreMerchantUpdateReturnsToPendingAndClearsAuditFields() {
+        assertMerchantUpdateResetsReviewFields(3);
+    }
+
+    @Test
+    void otherMerchantCannotUpdateStoreBeforeAtomicWrite() {
+        Store store = store(1L);
+        store.setUserId(22L);
+        when(storeMapper.selectById(1L)).thenReturn(store);
+
+        assertThatThrownBy(() -> storeService.updateStore(1L, new StoreDTO(), 11L))
+                .isInstanceOf(BusinessException.class);
+        verify(storeMapper, never()).update(any(), any(Wrapper.class));
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void assertMerchantUpdateResetsReviewFields(Integer originalStatus) {
+        Store current = store(1L);
+        current.setUserId(11L);
+        current.setStatus(originalStatus);
+        current.setAuditUserId(99L);
+        current.setAuditTime(LocalDateTime.now().minusDays(1));
+        current.setAuditRemark("old audit remark");
+        current.setCloseReason("old close reason");
+        when(storeMapper.selectById(1L)).thenReturn(current);
+        when(storeMapper.update(any(), any(Wrapper.class))).thenReturn(1);
+
+        StoreDTO dto = new StoreDTO();
+        dto.setStoreName("new store name");
+        dto.setUserId(22L);
+        dto.setStatus(1);
+        dto.setAuditRemark("forged audit remark");
+        dto.setCloseReason("forged close reason");
+
+        assertThat(storeService.updateStore(1L, dto, 11L)).isTrue();
+
+        ArgumentCaptor<Wrapper<Store>> captor = ArgumentCaptor.forClass(Wrapper.class);
+        verify(storeMapper).update(org.mockito.ArgumentMatchers.isNull(), captor.capture());
+        LambdaUpdateWrapper<Store> wrapper = (LambdaUpdateWrapper<Store>) captor.getValue();
+        assertThat(wrapper.getSqlSet()).contains("store_name", "status", "audit_user_id",
+                "audit_time", "audit_remark", "close_reason");
+        assertThat(wrapper.getSqlSegment()).contains("id", "user_id", "deleted");
+        assertThat(wrapper.getParamNameValuePairs()).containsValue("new store name")
+                .containsValue(0)
+                .doesNotContainValue(22L)
+                .doesNotContainValue("forged audit remark")
+                .doesNotContainValue("forged close reason");
     }
 
     private NearbyQuery nearbyQuery() {

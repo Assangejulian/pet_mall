@@ -69,6 +69,13 @@ interface AdminStats {
   todayOrders: number; totalRevenue: number
 }
 
+interface DashboardCard {
+  label: string
+  value: number
+  unit: string
+  path?: string
+}
+
 const admin = useAdminStore()
 const stats = ref<AdminStats>({ userCount: 0, storeCount: 0, productCount: 0, todayOrders: 0, totalRevenue: 0 })
 const scopedCounts = ref({ stores: 0, products: 0 })
@@ -82,7 +89,7 @@ const description = computed(() =>
   admin.hasRole("merchant") ? "管理自己的门店与商品"
     : admin.hasRole("auditor") ? "查看平台审核与监管数据" : "系统数据总览")
 
-const cards = computed(() => admin.hasRole("admin") ? [
+const cards = computed<DashboardCard[]>(() => admin.hasRole("admin") ? [
   { label: "用户总数", value: stats.value.userCount, unit: "人" },
   { label: "门店总数", value: stats.value.storeCount, unit: "家" },
   { label: "商品总数", value: stats.value.productCount, unit: "件" },

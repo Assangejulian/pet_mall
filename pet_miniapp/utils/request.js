@@ -1,7 +1,7 @@
 var app = getApp();
 
 function getBaseUrl() {
-  return (app && app.globalData && app.globalData.baseUrl) || "http://localhost:8080";
+  return (app && app.globalData && app.globalData.baseUrl) || wx.getStorageSync("apiBaseUrl") || "";
 }
 
 function getToken() {
@@ -28,13 +28,18 @@ function buildQuery(url, params) {
  */
 function request(method, url, data) {
   return new Promise(function(resolve, reject) {
+    var baseUrl = getBaseUrl();
+    if (!baseUrl) {
+      reject(new Error("API 地址未配置，请设置本地存储 apiBaseUrl"));
+      return;
+    }
     // Request interceptor: 自动注入 token
     var token = getToken();
     var header = { "Content-Type": "application/json" };
     if (token) header["Authorization"] = "Bearer " + token;
 
     wx.request({
-      url: getBaseUrl() + url,
+      url: baseUrl + url,
       method: method,
       data: data,
       header: header,

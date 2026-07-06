@@ -25,7 +25,7 @@ public interface ReportService {
 
     TurnoverReportVO getMerchantTurnoverStatistics(LocalDate begin, LocalDate end, List<Long> storeIds);
 
-    UserReportVO getMerchantUserStatistics(LocalDate begin, LocalDate end);
+    UserReportVO getMerchantUserStatistics(LocalDate begin, LocalDate end, List<Long> storeIds);
 
     OrderReportVO getMerchantOrderStatistics(LocalDate begin, LocalDate end, List<Long> storeIds);
 

@@ -80,7 +80,7 @@ const editForm = reactive<Record<string, any>>({})
 
 const totalPages = computed(() => Math.ceil(store.total / pageSize))
 
-function formatDuration(s: number) {
+function formatDuration(s?: number) {
   if (!s) return "0:00"
   const m = Math.floor(s / 60)
   const sec = s % 60
