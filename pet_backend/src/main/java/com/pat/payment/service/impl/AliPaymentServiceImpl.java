@@ -29,7 +29,7 @@ public class AliPaymentServiceImpl implements PaymentService {
                     context.getOrderNo(), subject, "", context.getTotalAmount());
 
             log.info("支付宝扫码支付下单 orderNo={}, amount={}", context.getOrderNo(), context.getTotalAmount());
-            return new OrderPaymentVO(null, context.getOrderNo(),
+                        return new OrderPaymentVO(null, context.getOrderNo(),
                     PaymentStatus.PENDING_PAY, context.getTotalAmount(), null, null, qrCode);
         } catch (AlipayApiException e) {
             log.error("支付宝扫码下单异常 orderNo={}", context.getOrderNo(), e);

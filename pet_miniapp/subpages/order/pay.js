@@ -69,9 +69,9 @@ Page({
 
       if (that.data.payMethod === "alipay") {
         if (res && res.payUrl) {
-          that.setData({ alipayUrl: res.payUrl, showAlipay: true });
-        } else if (res && res.form) {
-          that.setData({ alipayUrl: res.form, showAlipay: true });
+          var baseUrl = getApp().globalData.baseUrl || "http://127.0.0.1:8080";
+          var qrSrc = baseUrl + "/api/qrcode?url=" + encodeURIComponent(res.payUrl);
+          that.setData({ alipayUrl: qrSrc, showAlipay: true });
         } else {
           wx.showToast({ title: "支付宝支付暂不可用，请稍后重试", icon: "none" });
           that.setData({ paying: false });

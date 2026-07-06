@@ -44,14 +44,14 @@
     <view class="btn-pay" bindtap="confirmPay">确认支付 ¥{{amount}}</view>
   </view>
 
-  <!-- 支付宝跳转确认弹窗 -->
+  <!-- 支付宝扫码支付弹窗 -->
   <view class="alipay-overlay" wx:if="{{showAlipay}}">
     <view class="alipay-card">
-      <text class="alipay-title">即将跳转到支付宝</text>
-      <text class="alipay-desc">请在支付宝中完成支付，支付后返回本页面查看结果</text>
+      <text class="alipay-title">支付宝扫码支付</text>
+      <text class="alipay-desc">请使用支付宝扫一扫完成支付</text>
+      <image class="alipay-qr" src="{{alipayUrl}}" mode="widthFix"></image>
       <view class="alipay-btns">
-        <view class="btn-cancel" bindtap="closeAlipay">取消</view>
-        <view class="btn-go" bindtap="openAlipay">去支付</view>
+        <view class="btn-cancel" bindtap="closeAlipay">关闭</view>
       </view>
     </view>
   </view>
