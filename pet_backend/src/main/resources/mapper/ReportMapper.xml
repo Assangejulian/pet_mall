@@ -8,7 +8,7 @@
         SELECT od.product_name AS name, SUM(od.quantity) AS number
         FROM order_item od
         INNER JOIN purchase_order o ON od.order_id = o.id
-        WHERE o.order_status IN (3, 4)
+        WHERE o.order_status IN (1, 2, 3, 4)
         <if test="beginTime != null">
             AND o.pay_time &gt;= #{beginTime}
         </if>

@@ -9,13 +9,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pat.common.domain.ErrorCode;
-import com.pat.product.helper.ProductStateMachine;
-import com.pat.common.exception.BusinessException;
 import com.pat.common.util.StatusDisplayUtil;
+import com.pat.common.exception.BusinessException;
+
 import com.pat.product.domain.dto.ProductCreateDTO;
 import com.pat.product.domain.dto.ProductQueryDTO;
 import com.pat.product.domain.dto.ProductUpdateDTO;
 import com.pat.product.domain.entity.Product;
+import com.pat.product.domain.enums.ProductStatus;
+import com.pat.product.domain.enums.ProductType;
+import com.pat.product.helper.ProductStateMachine;
 import com.pat.product.mapper.ProductMapper;
 import com.pat.product.mapper.ProductStoreLookupMapper;
 import com.pat.product.service.ProductService;
@@ -43,12 +46,12 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
 
-    private static final int TYPE_PET = 1;
-    private static final int TYPE_GOODS = 2;
+    private static final int TYPE_PET = ProductType.PET.getCode();
+    private static final int TYPE_GOODS = ProductType.SUPPLIES.getCode();
     // 状态常量已迁移至 ProductStateMachine
-    private static final int STATUS_OFFLINE = ProductStateMachine.OFFLINE;
-    private static final int STATUS_ONLINE  = ProductStateMachine.ONLINE;
-    private static final int STATUS_SOLD    = ProductStateMachine.SOLD;
+    private static final int STATUS_OFFLINE = ProductStatus.OFFLINE.getCode();
+    private static final int STATUS_ONLINE  = ProductStatus.ONLINE.getCode();
+    private static final int STATUS_SOLD    = ProductStatus.SOLD.getCode();
 
     private final ProductStoreLookupMapper productStoreLookupMapper;
     private final IStoreService storeService;
@@ -411,7 +414,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "商品状态不能为空");
         }
         // 状态值合法范围校验（精确流转由 ProductStateMachine.validate() 在各操作中控制）
-        if (status < ProductStateMachine.OFFLINE || status > ProductStateMachine.SOLD) {
+        if (status < ProductStatus.OFFLINE.getCode() || status > ProductStatus.SOLD.getCode()) {
             throw new BusinessException(ErrorCode.FARAMS_ERROR, "商品状态只能为0、1或2");
         }
         if (productType == TYPE_PET && stock > 1) {

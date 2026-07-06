@@ -324,3 +324,8 @@ LEFT JOIN (
     GROUP BY video_id
 ) c ON c.video_id = v.id
 SET v.comment_count = COALESCE(c.cnt, 0);
+
+
+
+ALTER TABLE purchase_order ADD COLUMN cancel_type VARCHAR(20) DEFAULT NULL COMMENT '取消类型' AFTER cancel_reason;
+ALTER TABLE purchase_order ADD COLUMN pre_refund_status INT DEFAULT NULL COMMENT '退款前状态' AFTER cancel_time;

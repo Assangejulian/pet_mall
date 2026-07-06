@@ -30,17 +30,17 @@ export interface ReportQuery {
 }
 
 export async function getTurnoverReport(params: ReportQuery): Promise<TurnoverReportVO> {
-  return unwrap<TurnoverReportVO>(http.get("/admin/report/turnover", { params }))
+  return unwrap<TurnoverReportVO>(http.get("/report/turnover", { params }))
 }
 
 export async function getUserReport(params: ReportQuery): Promise<UserReportVO> {
-  return unwrap<UserReportVO>(http.get("/admin/report/users", { params }))
+  return unwrap<UserReportVO>(http.get("/report/users", { params }))
 }
 
 export async function getOrderReport(params: ReportQuery): Promise<OrderReportVO> {
-  return unwrap<OrderReportVO>(http.get("/admin/report/orders", { params }))
+  return unwrap<OrderReportVO>(http.get("/report/orders", { params }))
 }
 
 export async function getSalesTop10(params: ReportQuery): Promise<SalesTop10ReportVO> {
-  return unwrap<SalesTop10ReportVO>(http.get("/admin/report/top10", { params }))
+  return unwrap<SalesTop10ReportVO>(http.get("/report/top10", { params }))
 }

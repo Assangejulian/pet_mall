@@ -15,7 +15,7 @@ public interface ReportMapper {
 
     @Select("SELECT CAST(create_time AS DATE) AS date, COALESCE(SUM(total_amount), 0) AS turnover " +
             "FROM purchase_order " +
-            "WHERE order_status IN (3, 4) " +
+            "WHERE order_status IN (1, 2, 3, 4) " +
             "AND create_time >= #{beginTime} AND create_time < #{endTime} " +
             "GROUP BY CAST(create_time AS DATE) " +
             "ORDER BY date")

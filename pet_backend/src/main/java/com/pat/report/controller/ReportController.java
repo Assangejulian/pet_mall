@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/report")
@@ -54,6 +55,13 @@ public class ReportController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
         return Result.success(reportService.getSalesTop10(begin, end));
+    }
+
+
+    @GetMapping("/stats")
+    @Operation(summary = "获取管理员概览统计")
+    public Result<Map<String, Object>> stats() {
+        return Result.success(reportService.getDashboardStats(null, true));
     }
 
 }

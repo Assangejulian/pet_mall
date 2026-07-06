@@ -75,7 +75,8 @@ const scopedCounts = ref({ stores: 0, products: 0 })
 
 // 日期
 const today = new Date().toISOString().slice(0, 10)
-const begin = ref(today)
+const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const begin = ref(thirtyDaysAgo)
 const end = ref(today)
 
 const description = computed(() =>
@@ -83,11 +84,11 @@ const description = computed(() =>
     : admin.hasRole("auditor") ? "查看平台审核与监管数据" : "系统数据总览")
 
 const cards = computed(() => admin.hasRole("admin") ? [
-  { label: "用户总数", value: stats.value.userCount, unit: "人" },
-  { label: "门店总数", value: stats.value.storeCount, unit: "家" },
-  { label: "商品总数", value: stats.value.productCount, unit: "件" },
-  { label: "今日订单", value: stats.value.todayOrders, unit: "笔" },
-  { label: "总营收", value: stats.value.totalRevenue, unit: "元" },
+  { label: "用户总数", value: stats.value.userCount, unit: "人", path: "" },
+  { label: "门店总数", value: stats.value.storeCount, unit: "家", path: "" },
+  { label: "商品总数", value: stats.value.productCount, unit: "件", path: "" },
+  { label: "今日订单", value: stats.value.todayOrders, unit: "笔", path: "" },
+  { label: "总营收", value: stats.value.totalRevenue, unit: "元", path: "" },
 ] : admin.hasRole("merchant") ? [
   { label: "我的门店", value: stats.value.storeCount, unit: "家", path: "/merchant/store" },
   { label: "我的商品", value: stats.value.productCount, unit: "件", path: "/merchant/product" },
@@ -109,7 +110,7 @@ function parseNums(s: string): number[] { return parseCSV(s).map(Number) }
 
 const chartBase: echarts.EChartsOption = {
   tooltip: { trigger: "axis" },
-  grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+  grid: { left: "3%", right: "4%", bottom: "12%", containLabel: true },
 }
 
 async function loadTurnover() {
@@ -120,7 +121,7 @@ async function loadTurnover() {
   charts.push(instance)
   instance.setOption({
     ...chartBase,
-    xAxis: { type: "category", data: parseCSV(data.dateList) },
+    xAxis: { type: "category", data: parseCSV(data.dateList), axisLabel: { rotate: 45, hideOverlap: true, formatter: (v: string) => v.slice(5) } },
     yAxis: { type: "value", axisLabel: { formatter: (v: number) => "¥" + v } },
     series: [{ name: "营业额", type: "line", data: parseNums(data.turnoverList), smooth: true, areaStyle: { opacity: 0.15 }, lineStyle: { color: "#5b7b6a" }, itemStyle: { color: "#5b7b6a" } }],
   } as echarts.EChartsOption)
@@ -174,8 +175,8 @@ async function loadSales() {
   instance.setOption({
     ...chartBase,
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    grid: { left: "3%", right: "8%", bottom: "3%", containLabel: true },
-    xAxis: { type: "value", axisLabel: { formatter: (v: number) => v + "件" } },
+    grid: { left: "3%", right: "12%", bottom: "3%", containLabel: true },
+    xAxis: { type: "value", min: 0, minInterval: 1, axisLabel: { formatter: (v: number) => Number.isInteger(v) ? v + "件" : "" } },
     yAxis: { type: "category", data: names, axisLabel: { width: 80, overflow: "truncate" } },
     series: [{ name: "销量", type: "bar", data: nums, itemStyle: { color: "#5b7b6a", borderRadius: [0, 4, 4, 0] } }],
   } as echarts.EChartsOption)
@@ -222,6 +223,7 @@ watch([begin, end], () => { /* 仅通过按钮触发 */ })
 .chart-card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
 .chart-title { font-size: 14px; margin-bottom: 12px; color: var(--text1); }
 .chart-box { width: 100%; height: 320px; }
+.chart-box--tall { height: 400px; }
 .stat-card.clickable { cursor: pointer; transition: transform .15s, box-shadow .15s; }
 .stat-card.clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.10); }
 .card-arrow { color: var(--primary); font-size: 14px; margin-left: 6px; opacity: 0; transition: opacity .15s; }
