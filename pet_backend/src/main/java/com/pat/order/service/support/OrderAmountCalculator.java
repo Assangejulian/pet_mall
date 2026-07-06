@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 /**
- * 订单金额计算。
- * <p>只负责：原价合计 → 会员折扣 → 实付金额。</p>
+ * 订单金额计算器。
+ *
+ * <p>负责根据商品原价合计和会员等级计算最终金额。
+ * 金额计算链路：{@code totalAmount(原价合计) → discountAmount(优惠金额) → payAmount(实付金额)}。</p>
  */
 @Service
 public class OrderAmountCalculator {
@@ -22,8 +24,8 @@ public class OrderAmountCalculator {
     /**
      * 根据会员等级计算最终金额。
      *
-     * @param total      商品原价合计
-     * @param memberLevel 会员等级
+     * @param total       商品原价合计
+     * @param memberLevel 会员等级（0=普通, 1=银卡, 2=金卡）
      * @return 金额计算结果
      */
     public AmountResult calculate(BigDecimal total, Integer memberLevel) {
@@ -31,6 +33,7 @@ public class OrderAmountCalculator {
         return new AmountResult(total, dr.getDiscountAmount(), dr.getPayAmount());
     }
 
+    /** 金额计算结果。包含订单三个层次的金额。 */
     public static class AmountResult {
         private final BigDecimal totalAmount;
         private final BigDecimal discountAmount;
@@ -42,8 +45,11 @@ public class OrderAmountCalculator {
             this.payAmount = payAmount;
         }
 
+        /** 商品原价合计 */
         public BigDecimal getTotalAmount() { return totalAmount; }
+        /** 优惠金额 */
         public BigDecimal getDiscountAmount() { return discountAmount; }
+        /** 实付金额 */
         public BigDecimal getPayAmount() { return payAmount; }
     }
 }

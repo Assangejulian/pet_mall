@@ -18,8 +18,8 @@ import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.order.service.base.PurchaseOrderBaseService;
 import com.pat.order.service.support.OrderAmountCalculator;
-import com.pat.order.service.support.OrderProductService;
 import com.pat.order.service.support.OrderPersistenceService;
+import com.pat.order.service.support.OrderProductService;
 import com.pat.order.service.support.OrderStateService;
 import com.pat.payment.domain.dto.PaymentContext;
 import com.pat.payment.domain.vo.OrderPaymentVO;
@@ -35,6 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 用户端订单操作 —— 编排层。
+ *
+ * <p>职责是编排各领域 Service 完成订单业务流程，自身不包含具体业务实现。
+ * 每个 public 方法对应一个用户操作意图（下单、支付、取消等），编排粒度与用例一一对应。</p>
+ */
 @Slf4j
 @Service
 public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.service.PaymentCallback {
@@ -69,12 +75,15 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         this.paymentServiceRouter = paymentServiceRouter;
     }
 
+    // ===================== 内部工具方法 =====================
+
     private static Long requireUserId() {
         Long uid = UserHolder.getUserId();
         if (uid == null) throw new BusinessException(ErrorCode.FARAMS_NULL_ERROR, "用户未登录");
         return uid;
     }
 
+    /** 获取当前用户拥有的订单（校验归属权）。 */
     private PurchaseOrder getOwnedOrder(Long id) {
         Long userId = requireUserId();
         PurchaseOrder order = baseService.getById(id);
@@ -83,10 +92,13 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         return order;
     }
 
-    // =================================================================
-    //  编排：每行一个高层面意图
-    // =================================================================
+    // ===================== 编排方法 =====================
 
+    /**
+     * 创建订单（下单）。
+     *
+     * <p>编排 5 个步骤：校验商品并扣库存 → 地址快照 → 计算金额 → 保存订单 → 清购物车。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOrder(OrderCreateDTO dto) {
@@ -107,9 +119,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         return orderId;
     }
 
-    // =================================================================
-    //  查询
-    // =================================================================
+    // ===================== 查询 =====================
 
     @Override
     public IPage<PurchaseOrder> getUserOrderList(Integer orderStatus, Page<PurchaseOrder> page) {
@@ -135,10 +145,13 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
                 new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
     }
 
-    // =================================================================
-    //  支付
-    // =================================================================
+    // ===================== 支付 =====================
 
+    /**
+     * 支付订单。
+     *
+     * <p>校验订单状态后，通过 {@link PaymentServiceRouter} 路由到对应的支付渠道。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderPaymentVO payOrder(OrderPaymentDTO dto) {
@@ -157,9 +170,7 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         return paymentServiceRouter.getService(dto.getPayMethod()).pay(ctx);
     }
 
-    // =================================================================
-    //  状态变更（编排 + 委托 OrderStateService 执行）
-    // =================================================================
+    // ===================== 状态变更 =====================
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -170,13 +181,17 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         return order;
     }
 
+    /**
+     * 评价订单。
+     *
+     * <p>先逐项更新订单明细的评价内容，再推进订单状态到已评价。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void evaluateOrder(OrderEvaluateDTO dto) {
         PurchaseOrder order = getOwnedOrder(dto.getOrderId());
         OrderStateMachine.validate(order.getOrderStatus(), OrderStatus.EVALUATED.getCode());
 
-        // 逐项更新评价内容（业务特殊，保留在编排层）
         List<OrderItem> existingItems = orderItemMapper.selectList(
                 new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
         Map<Long, OrderItem> itemMap = existingItems.stream()
@@ -192,10 +207,14 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
                 }
             }
         }
-
         orderStateService.evaluate(order, now);
     }
 
+    /**
+     * 取消订单。
+     *
+     * <p>先恢复库存，再变更订单状态。支持待支付和已支付状态的订单取消。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(Long orderId, String reason) {
@@ -210,6 +229,11 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         log.info("用户取消订单 orderId={}, reason={}", orderId, reason);
     }
 
+    /**
+     * 申请退款。
+     *
+     * <p>保存退款前状态（preRefundStatus）用于管理员驳回时恢复，将订单推进到退款审核中状态。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void applyRefund(Long orderId, String reason) {
@@ -222,6 +246,13 @@ public class OrderUserServiceImpl implements IOrderUserService, com.pat.payment.
         orderStateService.applyRefund(order, reason);
     }
 
+    // ===================== 支付回调 =====================
+
+    /**
+     * 支付成功回调。
+     *
+     * <p>由支付渠道异步通知触发。包含幂等校验：已支付的订单直接跳过，防止重复回调导致异常。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void onPaymentSuccess(String orderNo, java.math.BigDecimal amount, LocalDateTime payTime) {

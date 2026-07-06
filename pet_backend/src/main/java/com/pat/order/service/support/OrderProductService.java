@@ -14,7 +14,9 @@ import java.util.List;
 
 /**
  * 商品校验与库存扣减。
- * <p>只负责：验证商品存在/上架、扣库存、构建 OrderItem。</p>
+ *
+ * <p>负责验证商品是否存在/上架、扣减库存，以及取消订单时恢复库存。
+ * 库存操作与订单流程紧密绑定，与 {@link com.pat.product.service.ProductService} 配合完成最终一致性。</p>
  */
 @Service
 public class OrderProductService {
@@ -26,7 +28,14 @@ public class OrderProductService {
     }
 
     /**
-     * 校验商品并扣减库存，返回 OrderItem 列表及总金额。
+     * 校验商品并扣减库存。
+     *
+     * <p>遍历下单商品列表，逐一校验商品存在性和上架状态，执行原子库存扣减。
+     * 任一商品校验失败则抛出异常中断整个下单流程。</p>
+     *
+     * @param items 下单商品列表
+     * @return 校验结果，包含 OrderItem 列表和原价合计
+     * @throws BusinessException 商品不存在、已下架或库存不足时抛出
      */
     public ValidateResult validateAndDeduct(List<OrderCreateDTO.OrderItemDTO> items) {
         List<OrderItem> orderItems = new ArrayList<>();
@@ -59,7 +68,9 @@ public class OrderProductService {
     }
 
     /**
-     * 恢复库存（取消订单时调用）。
+     * 恢复库存（取消订单、退款时调用）。
+     *
+     * @param items 订单明细列表
      */
     public void restoreStock(List<OrderItem> items) {
         for (OrderItem item : items) {
@@ -67,6 +78,7 @@ public class OrderProductService {
         }
     }
 
+    /** 商品校验结果。包含构建完成的 OrderItem 列表和原价合计金额。 */
     public static class ValidateResult {
         private final List<OrderItem> orderItems;
         private final BigDecimal total;
@@ -76,7 +88,9 @@ public class OrderProductService {
             this.total = total;
         }
 
+        /** 用于落库的订单明细列表 */
         public List<OrderItem> getOrderItems() { return orderItems; }
+        /** 商品原价合计金额 */
         public BigDecimal getTotal() { return total; }
     }
 }

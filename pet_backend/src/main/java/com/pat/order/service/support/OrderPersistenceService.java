@@ -20,7 +20,9 @@ import java.util.List;
 
 /**
  * 订单持久化。
- * <p>只负责：地址快照、保存订单头 + 订单明细。</p>
+ *
+ * <p>负责地址快照生成和订单数据落库。地址快照用于在订单创建后冻结收货地址，
+ * 防止用户后续修改地址影响历史订单。</p>
  */
 @Service
 public class OrderPersistenceService {
@@ -39,6 +41,10 @@ public class OrderPersistenceService {
 
     /**
      * 根据地址 ID 查询并生成地址快照 JSON。
+     *
+     * @param addressId 收货地址 ID
+     * @return JSON 格式的地址快照
+     * @throws BusinessException 地址不存在时抛出
      */
     public String snapshotAddressById(Long addressId) {
         UserAddress addr = addressMapper.selectById(addressId);
@@ -54,7 +60,16 @@ public class OrderPersistenceService {
     }
 
     /**
-     * 保存订单头 + 明细，返回订单 ID。
+     * 保存订单头 + 明细。
+     *
+     * @param userId         用户 ID
+     * @param dto            下单参数
+     * @param orderItems     OrderItem 列表
+     * @param addressSnapshot 地址快照 JSON
+     * @param totalAmount    商品原价合计
+     * @param discountAmount 优惠金额
+     * @param payAmount      实付金额
+     * @return 新订单 ID
      */
     public Long save(Long userId, OrderCreateDTO dto,
                      List<OrderItem> orderItems,
