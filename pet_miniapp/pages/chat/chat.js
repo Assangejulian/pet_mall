@@ -264,6 +264,30 @@ function normalizeMessages(messages) {
   });
 }
 
+function isConfirmText(text) {
+  const value = String(text || "").trim().toLowerCase();
+  return ["确认", "确定", "好的", "好", "可以", "执行", "同意", "ok", "yes"].indexOf(value) !== -1;
+}
+
+function findLatestPendingAction(messages) {
+  const list = messages || [];
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    if (list[index].pendingAction && list[index].pendingAction.id) {
+      return list[index].pendingAction;
+    }
+  }
+  return null;
+}
+
+function actionSuccessText(action) {
+  const type = action && action.type;
+  if (type === "ADD_CART") return "已执行：商品已加入购物车。";
+  if (type === "UPDATE_CART") return "已执行：购物车已更新。";
+  if (type === "DELETE_CART") return "已执行：购物车商品已删除。";
+  if (type === "CREATE_ORDER") return "已执行：订单已创建。";
+  return "已执行确认操作。";
+}
+
 Page({
   data: {
     title: "暖窝智能客服",
@@ -287,7 +311,8 @@ Page({
     streamingStarted: false,
     historyOpen: false,
     chatSessions: [],
-    currentSessionKey: ""
+    currentSessionKey: "",
+    latestPendingAction: null
   },
 
   onLoad(options) {
@@ -303,7 +328,8 @@ Page({
       modelMode: currentSession ? currentSession.modelMode || "flash" : "flash",
       modelLabel: currentSession && currentSession.modelMode === "pro" ? "Pro" : "Flash",
       chatSessions,
-      currentSessionKey: currentSession ? currentSession.id : ""
+      currentSessionKey: currentSession ? currentSession.id : "",
+      latestPendingAction: currentSession ? findLatestPendingAction(currentSession.messages) : null
     });
     this.scrollBottom();
   },
@@ -388,6 +414,11 @@ Page({
       return;
     }
 
+    if (this.data.latestPendingAction && isConfirmText(text)) {
+      this.sendPendingActionConfirmation(text, this.data.latestPendingAction.id);
+      return;
+    }
+
     const userMsg = { id: Date.now(), from: "me", text, time: "刚刚" };
     const aiMsg = { id: Date.now() + 1, from: "ai", text: "", time: "刚刚" };
     this.setData({
@@ -461,7 +492,7 @@ Page({
           completed = true;
           const finalReply = data.reply ? data.reply : reply;
           if (finalReply) {
-            this.updateAiMessage(aiId, finalReply);
+            this.updateAiMessage(aiId, finalReply, data.pendingActions || []);
           }
           if (data.sessionId) {
             this.saveSession(data.sessionId);
@@ -486,7 +517,7 @@ Page({
         if (data.sessionId) {
           this.saveSession(data.sessionId);
         }
-        this.updateAiMessage(aiId, reply);
+        this.updateAiMessage(aiId, reply, data.pendingActions || []);
       },
       fail: () => {
         wx.showToast({ title: "后端连接失败，已使用兜底回复", icon: "none" });
@@ -523,21 +554,102 @@ Page({
     this.persistCurrentSession();
   },
 
-  updateAiMessage(id, text) {
+  updateAiMessage(id, text, pendingActions) {
+    const hasPendingUpdate = arguments.length >= 3;
+    const nextPendingAction = hasPendingUpdate && pendingActions && pendingActions.length ? pendingActions[0] : null;
     const messages = this.data.messages.map((item) => {
       if (item.id !== id) return item;
-      return Object.assign({}, item, {
+      const next = Object.assign({}, item, {
         text,
         html: markdownToHtml(text),
         rich: item.from === "ai"
       });
+      if (hasPendingUpdate) {
+        next.pendingAction = nextPendingAction;
+      }
+      return next;
     });
     this.setData({
       messages,
       lastId: "msg-" + id,
-      streamingStarted: !!text || this.data.streamingStarted
+      streamingStarted: !!text || this.data.streamingStarted,
+      latestPendingAction: hasPendingUpdate ? nextPendingAction : this.data.latestPendingAction
     });
     this.persistCurrentSession();
+  },
+
+  sendPendingActionConfirmation(text, actionId) {
+    if (this.data.loading || !actionId) return;
+    const action = this.data.latestPendingAction || findLatestPendingAction(this.data.messages);
+    const userMsg = { id: Date.now(), from: "me", text, time: "刚刚" };
+    const aiMsg = { id: Date.now() + 1, from: "ai", text: "正在执行确认操作...", time: "刚刚", rich: false };
+    this.setData({
+      messages: this.clearPendingActions(this.data.messages).concat(userMsg, aiMsg),
+      input: "",
+      showCommands: false,
+      showToolPanel: false,
+      loading: true,
+      streamingStarted: true,
+      lastId: "msg-" + aiMsg.id,
+      latestPendingAction: null
+    });
+    this.persistCurrentSession(text);
+    this.scrollBottom();
+    this.confirmPendingAction(actionId, aiMsg.id, action);
+  },
+
+  tapConfirmPendingAction(event) {
+    if (this.data.loading) return;
+    const actionId = event.currentTarget.dataset.actionId;
+    if (!actionId) return;
+    const action = this.data.latestPendingAction || findLatestPendingAction(this.data.messages);
+    const aiMsg = { id: Date.now(), from: "ai", text: "正在执行确认操作...", time: "刚刚", rich: false };
+    this.setData({
+      messages: this.clearPendingActions(this.data.messages).concat(aiMsg),
+      loading: true,
+      streamingStarted: true,
+      lastId: "msg-" + aiMsg.id,
+      latestPendingAction: null
+    });
+    this.persistCurrentSession();
+    this.scrollBottom();
+    this.confirmPendingAction(actionId, aiMsg.id, action);
+  },
+
+  confirmPendingAction(actionId, aiId, action) {
+    wx.request({
+      url: app.globalData.baseUrl + "/api/ai/action/confirm",
+      method: "POST",
+      header: this.buildHeaders(),
+      data: {
+        actionId,
+        userId: app.globalData.user && app.globalData.user.id
+      },
+      success: (res) => {
+        const body = res.data || {};
+        if (body.code === 200 || body.code === undefined) {
+          this.updateAiMessage(aiId, actionSuccessText(action));
+          return;
+        }
+        this.updateAiMessage(aiId, body.message || "确认操作失败，请稍后再试。");
+      },
+      fail: () => {
+        this.updateAiMessage(aiId, "确认操作失败：后端连接失败，请检查服务是否正常。");
+      },
+      complete: () => {
+        this.setData({ loading: false, latestPendingAction: null });
+        this.scrollBottom();
+      }
+    });
+  },
+
+  clearPendingActions(messages) {
+    return (messages || []).map((item) => {
+      if (!item.pendingAction) return item;
+      const next = Object.assign({}, item);
+      delete next.pendingAction;
+      return next;
+    });
   },
 
   clearChat() {
@@ -621,7 +733,8 @@ Page({
       contextLabel: session.contextLabel || this.data.contextLabel,
       historyOpen: false,
       loading: false,
-      streamingStarted: false
+      streamingStarted: false,
+      latestPendingAction: findLatestPendingAction(session.messages)
     });
     this.scrollBottom();
   },

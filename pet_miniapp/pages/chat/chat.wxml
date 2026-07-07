@@ -70,6 +70,10 @@
             <rich-text wx:if="{{item.rich}}" nodes="{{item.html}}"></rich-text>
             <block wx:else>{{item.text}}</block>
           </view>
+          <view wx:if="{{item.pendingAction}}" class="pending-action">
+            <view class="pending-copy">需要确认后才会执行该操作</view>
+            <view class="pending-button" catchtap="tapConfirmPendingAction" data-action-id="{{item.pendingAction.id}}">确认执行</view>
+          </view>
           <text class="time">{{item.time}}</text>
         </view>
       </view>

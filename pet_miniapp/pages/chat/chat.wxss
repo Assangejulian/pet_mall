@@ -412,6 +412,33 @@
   border-top-right-radius: 8rpx;
 }
 
+.pending-action {
+  margin-top: 12rpx;
+  padding: 14rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(232, 146, 124, 0.28);
+}
+
+.pending-copy {
+  color: #8f7366;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.pending-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 58rpx;
+  margin-top: 10rpx;
+  border-radius: 18rpx;
+  background: #241912;
+  color: #fff;
+  font-size: 25rpx;
+  font-weight: 900;
+}
+
 .time {
   display: block;
   margin-top: 8rpx;
