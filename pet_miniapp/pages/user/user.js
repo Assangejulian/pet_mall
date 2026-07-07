@@ -1,8 +1,11 @@
 var app = getApp();
+var userApi = require("../../utils/api/user");
 
 Page({
   data: {
     userName: "",
+    avatar: "",
+    memberLevelName: "",
     isLogin: false,
     tabs: [
       { s: "0", i: "O", l: "待付款" },
@@ -21,10 +24,35 @@ Page({
       isLogin: !!token,
       userName: name || (token ? "用户" : "")
     });
+    if (token) {
+      this.loadProfile();
+    }
+  },
+
+  loadProfile: function () {
+    var t = this;
+    userApi.getProfile().then(function (data) {
+      t.setData({
+        userName: data.username || t.data.userName,
+        avatar: data.avatar || "",
+        memberLevelName: data.levelName || "暖窝会员"
+      });
+      // 更新全局用户信息
+      if (app.globalData.user) {
+        app.globalData.user.name = data.username;
+      }
+    }).catch(function () {
+      // 静默失败，使用已有数据
+    });
   },
 
   goLogin: function () {
     wx.navigateTo({ url: "/subpages/login/login" });
+  },
+
+  goProfile: function () {
+    if (!this.data.isLogin) return this.goLogin();
+    wx.navigateTo({ url: "/subpages/profile/edit/edit" });
   },
 
   goOrders: function (e) {
@@ -56,7 +84,7 @@ Page({
           app.globalData.user = null;
           wx.removeStorageSync("token");
           wx.removeStorageSync("userId");
-          that.setData({ isLogin: false, userName: "" });
+          that.setData({ isLogin: false, userName: "", avatar: "", memberLevelName: "" });
           wx.showToast({ title: "已退出", icon: "none" });
         }
       }

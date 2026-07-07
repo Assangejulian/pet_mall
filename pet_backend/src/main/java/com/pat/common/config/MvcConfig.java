@@ -87,7 +87,8 @@ public class MvcConfig implements WebMvcConfigurer {
                     "/api/comment/**",
                     "/api/upload",
                     "/api/upload/**",
-                    "/api/video/**"
+                    "/api/video/**",
+                    "/api/user/profile"
                 )
                 .order(1);
 

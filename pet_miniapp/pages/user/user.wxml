@@ -11,14 +11,18 @@
 
   <!-- 已登录 -->
   <view wx:else>
-    <view class="profile">
+    <view class="profile" bindtap="goProfile">
       <view class="pf-bg"></view>
       <view class="pf-inner">
-        <view class="pf-avatar">{{userName[0]||'?'}}</view>
+        <view class="pf-avatar" wx:if="{{avatar}}">
+          <image class="pf-avatar-img" src="{{avatar}}" mode="aspectFill" />
+        </view>
+        <view class="pf-avatar" wx:else>{{userName[0]||'?'}}</view>
         <view class="pf-info">
           <text class="pf-name serif">{{userName||'用户'}}</text>
-          <text class="pf-sub">暖窝会员</text>
+          <text class="pf-sub">{{memberLevelName || '暖窝会员'}}</text>
         </view>
+        <text class="pf-arrow">></text>
       </view>
     </view>
 
@@ -33,6 +37,7 @@
     </view>
 
     <view class="card">
+      <view class="mi" bindtap="goProfile"><text>个人资料</text><text class="ar">></text></view>
       <view class="mi" bindtap="goAddr"><text>收货地址</text><text class="ar">></text></view>
       <view class="mi" bindtap="goStores"><text>附近门店</text><text class="ar">></text></view>
       <view class="mi" bindtap="goVideos"><text>暖窝视频</text><text class="ar">></text></view>
