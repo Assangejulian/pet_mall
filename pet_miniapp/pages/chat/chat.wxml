@@ -72,6 +72,10 @@
           </view>
           <view wx:if="{{item.pendingAction}}" class="pending-action">
             <view class="pending-copy">需要确认后才会执行该操作</view>
+            <view wx:if="{{item.pendingAction.payload.productName}}" class="pending-product">
+              <text class="pending-product-name">{{item.pendingAction.payload.productName}}</text>
+              <text class="pending-product-meta">x {{item.pendingAction.payload.quantity || 1}}</text>
+            </view>
             <view class="pending-button" catchtap="tapConfirmPendingAction" data-action-id="{{item.pendingAction.id}}">确认执行</view>
           </view>
           <text class="time">{{item.time}}</text>

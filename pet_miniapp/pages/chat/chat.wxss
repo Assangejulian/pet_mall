@@ -426,6 +426,34 @@
   line-height: 1.35;
 }
 
+.pending-product {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  margin-top: 10rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 16rpx;
+  background: #fffaf4;
+  color: #241912;
+}
+
+.pending-product-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 25rpx;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-product-meta {
+  color: #8f7366;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
 .pending-button {
   display: flex;
   align-items: center;

@@ -6,6 +6,7 @@ import com.pat.common.domain.Result;
 import com.pat.common.exception.BusinessException;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.entity.Cart;
+import com.pat.order.domain.vo.CartVO;
 import com.pat.order.service.ICartService;
 import com.pat.order.service.IOrderUserService;
 import com.pat.product.domain.entity.Product;
@@ -87,12 +88,30 @@ public class PendingAiActionService {
         AiChatResponse.PendingAction action = stored.action();
         Map<String, Object> payload = asMap(action.getPayload());
         return switch (action.getType()) {
-            case ADD_CART -> Result.success(addCart(userId, payload));
-            case UPDATE_CART -> Result.success(updateCart(userId, payload));
-            case DELETE_CART -> Result.success(deleteCart(userId, payload));
-            case CREATE_ORDER -> Result.success(orderUserService.createOrder(buildOrderCreateDTO(payload)));
+            case ADD_CART -> Result.success(actionResult(action, addCart(userId, payload)));
+            case UPDATE_CART -> Result.success(actionResult(action, updateCart(userId, payload)));
+            case DELETE_CART -> Result.success(actionResult(action, deleteCart(userId, payload)));
+            case CREATE_ORDER -> Result.success(actionResult(action, orderUserService.createOrder(buildOrderCreateDTO(payload))));
             default -> Result.error(400, "Unsupported action type: " + action.getType());
         };
+    }
+
+    private Map<String, Object> actionResult(AiChatResponse.PendingAction action, Object result) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("actionId", action.getId());
+        response.put("type", action.getType());
+        response.put("payload", action.getPayload());
+        response.put("result", result);
+        if (isCartAction(action.getType())) {
+            List<CartVO> cartItems = cartService.getCurrentUserCart();
+            response.put("cartItems", cartItems);
+            response.put("cartCount", cartItems.size());
+        }
+        return response;
+    }
+
+    private boolean isCartAction(String type) {
+        return ADD_CART.equals(type) || UPDATE_CART.equals(type) || DELETE_CART.equals(type);
     }
 
     private Cart addCart(Long userId, Map<String, Object> payload) {

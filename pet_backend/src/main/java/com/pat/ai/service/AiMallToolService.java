@@ -160,14 +160,90 @@ public class AiMallToolService {
             return json(records);
         }
 
-        @Tool(name = "request_add_to_cart", value = "Prepare adding a product to cart. This only creates a pending action and requires user confirmation.")
+        @Tool(name = "request_add_named_product_to_cart", value = "Prepare adding a product to cart by exact product name or keyword from the user's request. Use this instead of request_add_to_cart when the user names a product.")
+        public String requestAddNamedProductToCart(@P("Exact product name or keyword from user's request") String keyword,
+                                                   @P(value = "Quantity, default 1", required = false) Integer quantity) {
+            if (!StringUtils.hasText(keyword)) {
+                return json(Map.of("error", "product keyword is required"));
+            }
+
+            ProductQueryDTO query = new ProductQueryDTO();
+            query.setKeyword(keyword.trim());
+            query.setPage(1L);
+            query.setSize(5L);
+            List<ProductVO> records = productService.pagePublicProducts(query).getRecords();
+            if (records == null || records.isEmpty()) {
+                return json(Map.of("error", "no matching public product found", "keyword", keyword));
+            }
+
+            ProductVO matched = findProductMatch(keyword, records);
+            if (matched == null) {
+                return json(Map.of(
+                        "error", "multiple products matched; ask user to choose one product id",
+                        "keyword", keyword,
+                        "candidates", records
+                ));
+            }
+            return pendingAddToCart(matched, quantity);
+        }
+
+        @Tool(name = "request_add_to_cart", value = "Prepare adding a product to cart by verified product id from search_products/get_product_detail. This only creates a pending action and requires user confirmation.")
         public String requestAddToCart(@P("Product id") Long productId,
+                                       @P(value = "Expected product name from user's request, required when user named a product", required = false) String expectedProductName,
                                        @P(value = "Quantity, default 1", required = false) Integer quantity) {
+            ProductVO product = productService.getPublicDetail(productId);
+            if (StringUtils.hasText(expectedProductName) && !matchesProductName(expectedProductName, product)) {
+                return json(Map.of(
+                        "error", "product id does not match requested product name",
+                        "expectedProductName", expectedProductName,
+                        "actualProduct", product
+                ));
+            }
+            return pendingAddToCart(product, quantity);
+        }
+
+        private ProductVO findProductMatch(String keyword, List<ProductVO> records) {
+            List<ProductVO> exactMatches = records.stream()
+                    .filter(product -> matchesProductName(keyword, product))
+                    .toList();
+            if (exactMatches.size() == 1) {
+                return exactMatches.get(0);
+            }
+            return records.size() == 1 ? records.get(0) : null;
+        }
+
+        private boolean matchesProductName(String expectedName, ProductVO product) {
+            if (product == null || !StringUtils.hasText(expectedName)) {
+                return false;
+            }
+            String expected = normalizeName(expectedName);
+            String productName = normalizeName(product.getProductName());
+            String displayName = normalizeName(product.getName());
+            return (StringUtils.hasText(productName) && (productName.contains(expected) || expected.contains(productName)))
+                    || (StringUtils.hasText(displayName) && (displayName.contains(expected) || expected.contains(displayName)));
+        }
+
+        private String normalizeName(String value) {
+            if (!StringUtils.hasText(value)) {
+                return "";
+            }
+            return value.replaceAll("[\\s，。,.、的]", "")
+                    .replace("一只", "")
+                    .replace("一个", "")
+                    .replace("加入购物车", "")
+                    .replace("放入购物车", "")
+                    .trim();
+        }
+
+        private String pendingAddToCart(ProductVO product, Integer quantity) {
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("productId", productId);
+            payload.put("productId", product.getId());
             payload.put("quantity", quantity == null ? 1 : quantity);
+            payload.put("productName", product.getProductName());
+            payload.put("price", product.getPrice());
+            payload.put("image", product.getMainImage());
             return pending(PendingAiActionService.ADD_CART, "Add to cart",
-                    "Add product " + productId + " x " + payload.get("quantity") + " to cart", payload);
+                    "Add " + product.getProductName() + " x " + payload.get("quantity") + " to cart", payload);
         }
 
         @Tool(name = "request_update_cart", value = "Prepare updating a cart item. This only creates a pending action and requires user confirmation.")
