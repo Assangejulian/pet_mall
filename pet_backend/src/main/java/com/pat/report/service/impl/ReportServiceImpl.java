@@ -184,66 +184,75 @@ public class ReportServiceImpl implements ReportService {
         } else {
             productCount = productService.lambdaQuery().in(Product::getStoreId, storeIds).count();
         }
+        TodayStats todayStats = loadTodayStats(storeIds);
+        long videoCount = loadVideoCount(storeIds, isAdmin);
+        BigDecimal periodRevenue = loadPeriodRevenue(storeIds, begin, end);
 
-        long todayOrders = 0L;
-        BigDecimal totalRevenue = BigDecimal.ZERO;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("userCount", isAdmin ? userService.count() : 0);
+        data.put("storeCount", storeIds != null ? (long) storeIds.size() : storeService.count());
+        data.put("productCount", productCount);
+        data.put("videoCount", videoCount);
+        data.put("todayOrders", todayStats.orders());
+        data.put("totalRevenue", todayStats.revenue());
+        data.put("periodRevenue", periodRevenue);
+        data.put("orderStatusCount", todayStats.statusCount());
+        return data;
+    }
+
+    private TodayStats loadTodayStats(List<Long> storeIds) {
+        long orders = 0L;
+        BigDecimal revenue = BigDecimal.ZERO;
         Map<String, Integer> statusCount = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();
 
         if (storeIds == null || storeIds.isEmpty()) {
             LambdaQueryWrapper<PurchaseOrder> qw = new LambdaQueryWrapper<>();
             qw.ge(PurchaseOrder::getCreateTime, today.atStartOfDay());
-            todayOrders = orderBaseService.count(qw);
-            totalRevenue = orderMapper.selectTotalRevenue();
+            orders = orderBaseService.count(qw);
+            revenue = orderMapper.selectTotalRevenue();
             orderMapper.selectOrderStatusCount()
                     .forEach(row -> statusCount.put(String.valueOf(row.get("order_status")), ((Number) row.get("cnt")).intValue()));
         } else {
             for (Long storeId : storeIds) {
-                todayOrders += reportMapper.selectMerchantTodayOrders(storeId,
+                orders += reportMapper.selectMerchantTodayOrders(storeId,
                         LocalDateTime.of(today, LocalTime.MIN));
-                totalRevenue = totalRevenue.add(reportMapper.selectMerchantRevenue(storeId));
+                revenue = revenue.add(reportMapper.selectMerchantRevenue(storeId));
                 reportMapper.selectMerchantOrderStatusCount(storeId).forEach(row ->
                         statusCount.merge(String.valueOf(row.get("order_status")),
                                 ((Number) row.get("cnt")).intValue(), Integer::sum));
             }
         }
+        return new TodayStats(orders, revenue, statusCount);
+    }
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        // video count
-        long videoCount;
+    private long loadVideoCount(List<Long> storeIds, boolean isAdmin) {
         if (isAdmin) {
-            videoCount = videoService.count();
-        } else if (storeIds != null && !storeIds.isEmpty()) {
-            videoCount = reportMapper.selectMerchantVideoCount(storeIds);
-        } else {
-            videoCount = 0L;
+            return videoService.count();
         }
+        if (storeIds != null && !storeIds.isEmpty()) {
+            return reportMapper.selectMerchantVideoCount(storeIds);
+        }
+        return 0L;
+    }
 
-        // period revenue
+    private BigDecimal loadPeriodRevenue(List<Long> storeIds, LocalDate begin, LocalDate end) {
         if (begin == null) begin = LocalDate.now().withDayOfMonth(1);
         if (end == null) end = LocalDate.now();
         LocalDateTime beginTime = begin.atStartOfDay();
         LocalDateTime endTime = end.plusDays(1).atStartOfDay();
-        BigDecimal periodRevenue;
+        BigDecimal revenue;
         if (storeIds == null || storeIds.isEmpty()) {
-            periodRevenue = reportMapper.selectPeriodTurnover(beginTime, endTime);
+            revenue = reportMapper.selectPeriodTurnover(beginTime, endTime);
         } else {
-            periodRevenue = reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds).stream()
+            revenue = reportMapper.selectMerchantDailyTurnover(beginTime, endTime, storeIds).stream()
                 .map(r -> (BigDecimal) r.get("turnover"))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
-        if (periodRevenue == null) periodRevenue = BigDecimal.ZERO;
-
-        data.put("userCount", isAdmin ? userService.count() : 0);
-        data.put("storeCount", storeIds != null ? (long) storeIds.size() : storeService.count());
-        data.put("productCount", productCount);
-        data.put("videoCount", videoCount);
-        data.put("todayOrders", todayOrders);
-        data.put("totalRevenue", totalRevenue);
-        data.put("periodRevenue", periodRevenue);
-        data.put("orderStatusCount", statusCount);
-        return data;
+        return revenue != null ? revenue : BigDecimal.ZERO;
     }
+
+    private record TodayStats(long orders, BigDecimal revenue, Map<String, Integer> statusCount) {}
 
     // ===== Merchant report methods =====
 

@@ -12,6 +12,7 @@ import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
+import java.util.Set;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
@@ -75,6 +76,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         objectMapper.writeValue(res.getWriter(), Result.error(code, msg));
     }
 
+    private static final Set<String> PUBLIC_VIDEO_PATHS = Set.of(
+            "/api/video/feed", "/api/video/list", "/api/video/search");
+
     private boolean isPublicVideoRead(HttpServletRequest req) {
         if (!"GET".equalsIgnoreCase(req.getMethod())) {
             return false;
@@ -86,7 +90,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             path = path.substring(contextPath.length());
         }
 
-        if (path.equals("/api/video/feed") || path.equals("/api/video/list") || path.equals("/api/video/search")) {
+        if (PUBLIC_VIDEO_PATHS.contains(path)) {
             return true;
         }
         if (path.startsWith("/api/video/play/")) {
@@ -102,7 +106,6 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         return rest.endsWith("/comments") && hasSinglePathSegment(rest.substring(0, rest.length() - "/comments".length()));
     }
-
     private boolean hasSinglePathSegment(String value) {
         return value != null && !value.isBlank() && !value.contains("/");
     }

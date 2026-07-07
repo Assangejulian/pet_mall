@@ -114,9 +114,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return toVO(getActiveProduct(id));
     }
 
-    /**
-     * Merge updated fields: sold products keep immutable identity fields.
-     */
     private Product mergeUpdateFields(Product old, ProductUpdateDTO dto, boolean sold) {
         boolean soldPet = sold && old.getProductType() == TYPE_PET;
         Long storeId = sold ? old.getStoreId()

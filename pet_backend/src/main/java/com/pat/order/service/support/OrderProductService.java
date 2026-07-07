@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * ÉÌÆ·Ğ£ÑéÓë¿â´æ¿Û³ı¡£
+ * å•†å“æ ¡éªŒä¸åº“å­˜æ‰£é™¤ã€‚
  *
- * <p>¸ºÔğÑéÖ¤ÉÌÆ·ÊÇ·ñ´æÔÚ/ÉÏ¼Ü¡¢Redis Ô¤¿Û¿â´æ + DB ×îÖÕ¿Û³ı£¬
- * ÒÔ¼°È¡Ïû¶©µ¥Ê±»Ö¸´¿â´æ£¨Redis + DB Ë«Ğ´£©¡£</p>
+ * <p>è´Ÿè´£éªŒè¯å•†å“æ˜¯å¦å­˜åœ¨/ä¸Šæ¶ã€Redis é¢„æ‰£åº“å­˜ + DB æœ€ç»ˆæ‰£é™¤ï¼Œ
+ * ä»¥åŠå–æ¶ˆè®¢å•æ—¶æ¢å¤åº“å­˜ï¼ˆRedis + DB åŒå†™ï¼‰ã€‚</p>
  */
 @Service
 public class OrderProductService {
@@ -47,84 +47,91 @@ public class OrderProductService {
     }
 
     /**
-     * Ğ£ÑéÉÌÆ·²¢¿Û³ı¿â´æ£¨Redis Ô¤¿Û -> DB ×îÖÕ¿Û³ı£©¡£
+     * æ ¡éªŒå•†å“å¹¶æ‰£é™¤åº“å­˜ï¼ˆRedis é¢„æ‰£ -> DB æœ€ç»ˆæ‰£é™¤ï¼‰ã€‚
      */
     public ValidateResult validateAndDeduct(List<OrderCreateDTO.OrderItemDTO> items) {
-        List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal total = BigDecimal.ZERO;
-
-        Long orderStoreId = null;
-        for (OrderCreateDTO.OrderItemDTO item : items) {
-            if (item.getQuantity() == null || item.getQuantity() <= 0) {
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "¹ºÂòÊıÁ¿±ØĞë´óÓÚ0");
-            }
-            Product product = productService.getById(item.getProductId());
-            if (product == null) {
-                throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·²»´æÔÚ");
-            }
-            if (product.getStatus() == null || product.getStatus() != 1) {
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ÒÑÏÂ¼Ü: " + product.getProductName());
-            }
-            if (orderStoreId == null) {
-                orderStoreId = product.getStoreId();
-            } else if (!Objects.equals(orderStoreId, product.getStoreId())) {
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "Ò»ÕÅ¶©µ¥Ö»ÄÜ¹ºÂòÍ¬Ò»ÃÅµêµÄÉÌÆ·£¬Çë·Ö¿ª½áËã");
-            }
-        }
+        Long orderStoreId = validateItems(items);
         requireOperatingStore(orderStoreId);
 
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
         for (OrderCreateDTO.OrderItemDTO item : items) {
-            Product product = productService.getById(item.getProductId());
-
-            // Step 1: Redis Ô¤¿Û¿â´æ£¨µÚÒ»µÀ·ÀÏß£©
-            boolean redisOk = stockDeductionService.preDeduct(product.getId(), item.getQuantity());
-            if (!redisOk) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "¿â´æ²»×ã£¨ÊÛóÀ£©: " + product.getProductName());
-            }
-
-            // Step 2: DB ×îÖÕ¿Û³ı£¨µÚ¶şµÀ·ÀÏß£¬³Ö¾Ã»¯¶µµ×£©
-            try {
-                boolean dbOk = productService.deductStock(product.getId(), item.getQuantity());
-                if (!dbOk) {
-                    // DB ¿Û¼õÊ§°Ü£¬¹é»¹ Redis Ô¤¿Û
-                    stockDeductionService.restore(product.getId(), item.getQuantity());
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "¿â´æ²»×ã»òÒÑÏÂ¼Ü: " + product.getProductName());
-                }
-            } catch (BusinessException e) {
-                throw e;
-            } catch (Exception e) {
-                // Î´ÖªÒì³££¨Èç DB Á¬½Ó³¬Ê±£©£¬¹é»¹ Redis Ô¤¿Û
-                stockDeductionService.restore(product.getId(), item.getQuantity());
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "ÏÂµ¥Ê§°Ü£¬ÇëÖØÊÔ: " + product.getProductName());
-            }
-
-            OrderItem oi = new OrderItem();
-            oi.setProductId(product.getId());
-            oi.setProductName(product.getProductName());
-            oi.setProductImage(product.getMainImage());
-            oi.setPrice(product.getPrice());
-            oi.setQuantity(item.getQuantity());
+            OrderItem oi = deductForItem(item);
             orderItems.add(oi);
-
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            total = total.add(oi.getPrice().multiply(BigDecimal.valueOf(oi.getQuantity())));
         }
         return new ValidateResult(orderItems, total);
     }
 
+    private Long validateItems(List<OrderCreateDTO.OrderItemDTO> items) {
+        Long orderStoreId = null;
+        for (OrderCreateDTO.OrderItemDTO item : items) {
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "è´­ä¹°æ•°é‡å¿…é¡»å¤§äº0");
+            }
+            Product product = productService.getById(item.getProductId());
+            if (product == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "å•†å“ä¸å­˜åœ¨");
+            }
+            if (product.getStatus() == null || product.getStatus() != 1) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "å•†å“å·²ä¸‹æ¶: " + product.getProductName());
+            }
+            if (orderStoreId == null) {
+                orderStoreId = product.getStoreId();
+            } else if (!Objects.equals(orderStoreId, product.getStoreId())) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "ä¸€å¼ è®¢å•åªèƒ½è´­ä¹°åŒä¸€é—¨åº—çš„å•†å“ï¼Œè¯·åˆ†å¼€ç»“ç®—");
+            }
+        }
+        return orderStoreId;
+    }
+
+    private OrderItem deductForItem(OrderCreateDTO.OrderItemDTO item) {
+        Product product = productService.getById(item.getProductId());
+
+        // Step 1: Redis é¢„æ‰£åº“å­˜ï¼ˆç¬¬ä¸€é“é˜²çº¿ï¼‰
+        boolean redisOk = stockDeductionService.preDeduct(product.getId(), item.getQuantity());
+        if (!redisOk) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "åº“å­˜ä¸è¶³ï¼ˆå”®ç½„ï¼‰: " + product.getProductName());
+        }
+
+        // Step 2: DB æœ€ç»ˆæ‰£é™¤ï¼ˆç¬¬äºŒé“é˜²çº¿ï¼ŒæŒä¹…åŒ–å…œåº•ï¼‰
+        try {
+            boolean dbOk = productService.deductStock(product.getId(), item.getQuantity());
+            if (!dbOk) {
+                // DB æ‰£å‡å¤±è´¥ï¼Œå½’è¿˜ Redis é¢„æ‰£
+                stockDeductionService.restore(product.getId(), item.getQuantity());
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "åº“å­˜ä¸è¶³æˆ–å·²ä¸‹æ¶: " + product.getProductName());
+            }
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            // æœªçŸ¥å¼‚å¸¸ï¼ˆå¦‚ DB è¿æ¥è¶…æ—¶ï¼‰ï¼Œå½’è¿˜ Redis é¢„æ‰£
+            stockDeductionService.restore(product.getId(), item.getQuantity());
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "ä¸‹å•å¤±è´¥ï¼Œè¯·é‡è¯•: " + product.getProductName());
+        }
+
+        OrderItem oi = new OrderItem();
+        oi.setProductId(product.getId());
+        oi.setProductName(product.getProductName());
+        oi.setProductImage(product.getMainImage());
+        oi.setPrice(product.getPrice());
+        oi.setQuantity(item.getQuantity());
+        return oi;
+    }
     /**
-     * »Ö¸´¿â´æ£¨È¡Ïû¶©µ¥¡¢ÍË¿îÊ±µ÷ÓÃ£©¡£
-     * Redis ¿â´æ + DB ¿â´æÍ¬Ê±»Ö¸´¡£
+     * æ¢å¤åº“å­˜ï¼ˆå–æ¶ˆè®¢å•ã€é€€æ¬¾æ—¶è°ƒç”¨ï¼‰ã€‚
+     * Redis åº“å­˜ + DB åº“å­˜åŒæ—¶æ¢å¤ã€‚
      */
     public void restoreStock(List<OrderItem> items) {
         for (OrderItem item : items) {
             stockDeductionService.restore(item.getProductId(), item.getQuantity());
             productService.restoreStock(item.getProductId(), item.getQuantity());
-            log.info("»Ö¸´¿â´æ productId={}, quantity={}", item.getProductId(), item.getQuantity());
+            log.info("æ¢å¤åº“å­˜ productId={}, quantity={}", item.getProductId(), item.getQuantity());
         }
     }
 
     /**
-     * ¸ù¾İ¶©µ¥ ID »Ö¸´¿â´æ£¨È¡Ïû¶©µ¥¡¢ÍË¿îÊ±µ÷ÓÃ£©¡£
+     * æ ¹æ®è®¢å• ID æ¢å¤åº“å­˜ï¼ˆå–æ¶ˆè®¢å•ã€é€€æ¬¾æ—¶è°ƒç”¨ï¼‰ã€‚
      */
     public void restoreStockByOrderId(Long orderId) {
         List<OrderItem> items = orderItemMapper.selectList(
@@ -134,21 +141,21 @@ public class OrderProductService {
 
     private void requireOperatingStore(Long storeId) {
         if (storeId == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·ËùÊôÃÅµê²»´æÔÚ");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "å•†å“æ‰€å±é—¨åº—ä¸å­˜åœ¨");
         }
         Store store = storeService.getById(storeId);
         if (store == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·ËùÊôÃÅµê²»´æÔÚ");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "å•†å“æ‰€å±é—¨åº—ä¸å­˜åœ¨");
         }
         if (store.getDeleted() != null && store.getDeleted() != 0) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ËùÊôÃÅµêÒÑÉ¾³ı£¬²»ÄÜÏÂµ¥");
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "å•†å“æ‰€å±é—¨åº—å·²åˆ é™¤ï¼Œä¸èƒ½ä¸‹å•");
         }
         if (!Integer.valueOf(1).equals(store.getStatus())) {
-            throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ËùÊôÃÅµêÎ´ÓªÒµ£¬²»ÄÜÏÂµ¥");
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "å•†å“æ‰€å±é—¨åº—æœªè¥ä¸šï¼Œä¸èƒ½ä¸‹å•");
         }
     }
 
-    /** ÉÌÆ·Ğ£Ñé½á¹û¡£ */
+    /** å•†å“æ ¡éªŒç»“æœã€‚ */
     public static class ValidateResult {
         private final List<OrderItem> orderItems;
         private final BigDecimal total;
