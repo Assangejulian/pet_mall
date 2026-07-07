@@ -9,6 +9,8 @@ import com.pat.order.mapper.OrderItemMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.product.domain.entity.Product;
 import com.pat.product.service.ProductService;
+import com.pat.store.domain.entity.Store;
+import com.pat.store.service.IStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,12 +18,13 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * å•†å“æ ¡éªŒä¸åº“å­˜æ‰£é™¤ã€‚
+ * ÉÌÆ·Ğ£ÑéÓë¿â´æ¿Û³ı¡£
  *
- * <p>è´Ÿè´£éªŒè¯å•†å“æ˜¯å¦å­˜åœ¨/ä¸Šæ¶ã€Redis é¢„æ‰£åº“å­˜ + DB æœ€ç»ˆæ‰£é™¤ï¼Œ
- * ä»¥åŠå–æ¶ˆè®¢å•æ—¶æ¢å¤åº“å­˜ï¼ˆRedis + DB åŒå†™ï¼‰ã€‚</p>
+ * <p>¸ºÔğÑéÖ¤ÉÌÆ·ÊÇ·ñ´æÔÚ/ÉÏ¼Ü¡¢Redis Ô¤¿Û¿â´æ + DB ×îÖÕ¿Û³ı£¬
+ * ÒÔ¼°È¡Ïû¶©µ¥Ê±»Ö¸´¿â´æ£¨Redis + DB Ë«Ğ´£©¡£</p>
  */
 @Service
 public class OrderProductService {
@@ -31,51 +34,68 @@ public class OrderProductService {
     private final ProductService productService;
     private final OrderItemMapper orderItemMapper;
     private final StockDeductionService stockDeductionService;
+    private final IStoreService storeService;
 
     public OrderProductService(ProductService productService,
                                OrderItemMapper orderItemMapper,
-                               StockDeductionService stockDeductionService) {
+                               StockDeductionService stockDeductionService,
+                               IStoreService storeService) {
         this.productService = productService;
         this.orderItemMapper = orderItemMapper;
         this.stockDeductionService = stockDeductionService;
+        this.storeService = storeService;
     }
 
     /**
-     * æ ¡éªŒå•†å“å¹¶æ‰£é™¤åº“å­˜ï¼ˆRedis é¢„æ‰£ -> DB æœ€ç»ˆæ‰£é™¤ï¼‰ã€‚
+     * Ğ£ÑéÉÌÆ·²¢¿Û³ı¿â´æ£¨Redis Ô¤¿Û -> DB ×îÖÕ¿Û³ı£©¡£
      */
     public ValidateResult validateAndDeduct(List<OrderCreateDTO.OrderItemDTO> items) {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
 
+        Long orderStoreId = null;
         for (OrderCreateDTO.OrderItemDTO item : items) {
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "¹ºÂòÊıÁ¿±ØĞë´óÓÚ0");
+            }
             Product product = productService.getById(item.getProductId());
             if (product == null) {
-                throw new BusinessException(ErrorCode.NOT_FOUND, "å•†å“ä¸å­˜åœ¨");
+                throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·²»´æÔÚ");
             }
             if (product.getStatus() == null || product.getStatus() != 1) {
-                throw new BusinessException(ErrorCode.FARAMS_ERROR, "å•†å“å·²ä¸‹æ¶: " + product.getProductName());
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ÒÑÏÂ¼Ü: " + product.getProductName());
             }
+            if (orderStoreId == null) {
+                orderStoreId = product.getStoreId();
+            } else if (!Objects.equals(orderStoreId, product.getStoreId())) {
+                throw new BusinessException(ErrorCode.FARAMS_ERROR, "Ò»ÕÅ¶©µ¥Ö»ÄÜ¹ºÂòÍ¬Ò»ÃÅµêµÄÉÌÆ·£¬Çë·Ö¿ª½áËã");
+            }
+        }
+        requireOperatingStore(orderStoreId);
 
-            // Step 1: Redis é¢„æ‰£åº“å­˜ï¼ˆç¬¬ä¸€é“é˜²çº¿ï¼‰
+        for (OrderCreateDTO.OrderItemDTO item : items) {
+            Product product = productService.getById(item.getProductId());
+
+            // Step 1: Redis Ô¤¿Û¿â´æ£¨µÚÒ»µÀ·ÀÏß£©
             boolean redisOk = stockDeductionService.preDeduct(product.getId(), item.getQuantity());
             if (!redisOk) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "åº“å­˜ä¸è¶³ï¼ˆå”®ç½„ï¼‰: " + product.getProductName());
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "¿â´æ²»×ã£¨ÊÛóÀ£©: " + product.getProductName());
             }
 
-            // Step 2: DB æœ€ç»ˆæ‰£é™¤ï¼ˆç¬¬äºŒé“é˜²çº¿ï¼ŒæŒä¹…åŒ–å…œåº•ï¼‰
+            // Step 2: DB ×îÖÕ¿Û³ı£¨µÚ¶şµÀ·ÀÏß£¬³Ö¾Ã»¯¶µµ×£©
             try {
                 boolean dbOk = productService.deductStock(product.getId(), item.getQuantity());
                 if (!dbOk) {
-                    // DB æ‰£å‡å¤±è´¥ï¼Œå½’è¿˜ Redis é¢„æ‰£
+                    // DB ¿Û¼õÊ§°Ü£¬¹é»¹ Redis Ô¤¿Û
                     stockDeductionService.restore(product.getId(), item.getQuantity());
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "åº“å­˜ä¸è¶³æˆ–å·²ä¸‹æ¶: " + product.getProductName());
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "¿â´æ²»×ã»òÒÑÏÂ¼Ü: " + product.getProductName());
                 }
             } catch (BusinessException e) {
                 throw e;
             } catch (Exception e) {
-                // æœªçŸ¥å¼‚å¸¸ï¼ˆå¦‚ DB è¿æ¥è¶…æ—¶ï¼‰ï¼Œå½’è¿˜ Redis é¢„æ‰£
+                // Î´ÖªÒì³££¨Èç DB Á¬½Ó³¬Ê±£©£¬¹é»¹ Redis Ô¤¿Û
                 stockDeductionService.restore(product.getId(), item.getQuantity());
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "ä¸‹å•å¤±è´¥ï¼Œè¯·é‡è¯•: " + product.getProductName());
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "ÏÂµ¥Ê§°Ü£¬ÇëÖØÊÔ: " + product.getProductName());
             }
 
             OrderItem oi = new OrderItem();
@@ -92,19 +112,19 @@ public class OrderProductService {
     }
 
     /**
-     * æ¢å¤åº“å­˜ï¼ˆå–æ¶ˆè®¢å•ã€é€€æ¬¾æ—¶è°ƒç”¨ï¼‰ã€‚
-     * Redis åº“å­˜ + DB åº“å­˜åŒæ—¶æ¢å¤ã€‚
+     * »Ö¸´¿â´æ£¨È¡Ïû¶©µ¥¡¢ÍË¿îÊ±µ÷ÓÃ£©¡£
+     * Redis ¿â´æ + DB ¿â´æÍ¬Ê±»Ö¸´¡£
      */
     public void restoreStock(List<OrderItem> items) {
         for (OrderItem item : items) {
             stockDeductionService.restore(item.getProductId(), item.getQuantity());
             productService.restoreStock(item.getProductId(), item.getQuantity());
-            log.info("æ¢å¤åº“å­˜ productId={}, quantity={}", item.getProductId(), item.getQuantity());
+            log.info("»Ö¸´¿â´æ productId={}, quantity={}", item.getProductId(), item.getQuantity());
         }
     }
 
     /**
-     * æ ¹æ®è®¢å• ID æ¢å¤åº“å­˜ï¼ˆå–æ¶ˆè®¢å•ã€é€€æ¬¾æ—¶è°ƒç”¨ï¼‰ã€‚
+     * ¸ù¾İ¶©µ¥ ID »Ö¸´¿â´æ£¨È¡Ïû¶©µ¥¡¢ÍË¿îÊ±µ÷ÓÃ£©¡£
      */
     public void restoreStockByOrderId(Long orderId) {
         List<OrderItem> items = orderItemMapper.selectList(
@@ -112,7 +132,23 @@ public class OrderProductService {
         restoreStock(items);
     }
 
-    /** å•†å“æ ¡éªŒç»“æœã€‚ */
+    private void requireOperatingStore(Long storeId) {
+        if (storeId == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·ËùÊôÃÅµê²»´æÔÚ");
+        }
+        Store store = storeService.getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "ÉÌÆ·ËùÊôÃÅµê²»´æÔÚ");
+        }
+        if (store.getDeleted() != null && store.getDeleted() != 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ËùÊôÃÅµêÒÑÉ¾³ı£¬²»ÄÜÏÂµ¥");
+        }
+        if (!Integer.valueOf(1).equals(store.getStatus())) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "ÉÌÆ·ËùÊôÃÅµêÎ´ÓªÒµ£¬²»ÄÜÏÂµ¥");
+        }
+    }
+
+    /** ÉÌÆ·Ğ£Ñé½á¹û¡£ */
     public static class ValidateResult {
         private final List<OrderItem> orderItems;
         private final BigDecimal total;

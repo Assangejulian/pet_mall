@@ -108,7 +108,7 @@ public class CustomerOrderServiceImpl implements IOrderUserService, com.pat.paym
         Long userId = requireUserId();
 
         var validated = orderProductService.validateAndDeduct(dto.getItems());
-        String addressSnapshot = orderCreationService.snapshotAddressById(dto.getAddressId());
+        String addressSnapshot = orderCreationService.snapshotAddressById(dto.getAddressId(), userId);
 
         User user = userService.getById(userId);
         var amount = amountCalculator.calculate(validated.getTotal(), user.getMemberLevel());

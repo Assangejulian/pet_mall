@@ -46,9 +46,12 @@ public class OrderCreationService {
      * @return JSON 格式的地址快照
      * @throws BusinessException 地址不存在时抛出
      */
-    public String snapshotAddressById(Long addressId) {
+    public String snapshotAddressById(Long addressId, Long userId) {
         UserAddress addr = addressMapper.selectById(addressId);
         if (addr == null) throw new BusinessException(ErrorCode.NOT_FOUND, "收货地址不存在");
+        if (!userId.equals(addr.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用该收货地址");
+        }
         LinkedHashMap<String, String> snapshot = new LinkedHashMap<>();
         snapshot.put("receiverName", addr.getReceiverName());
         snapshot.put("phone", addr.getPhone());
