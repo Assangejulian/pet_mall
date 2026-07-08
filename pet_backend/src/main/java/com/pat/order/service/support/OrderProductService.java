@@ -23,7 +23,7 @@ import java.util.Objects;
 /**
  * 商品校验与库存扣除。
  *
- * <p>负责验证商品是否存在/上架、Redis 预扣库存 + DB 最终扣除，
+ * <p>负责验证商品是否存在/上架、统一通过 StockDeductionService 扣减库存，
  * 以及取消订单时恢复库存（Redis + DB 双写）。</p>
  */
 @Service
@@ -47,7 +47,7 @@ public class OrderProductService {
     }
 
     /**
-     * 校验商品并扣除库存（Redis 预扣 -> DB 最终扣除）。
+     * 校验商品并扣除库存（委托 StockDeductionService 执行，DB 模式原子扣减，Redis 模式预扣）。
      */
     public ValidateResult validateAndDeduct(List<OrderCreateDTO.OrderItemDTO> items) {
         Long orderStoreId = validateItems(items);
@@ -98,26 +98,10 @@ public class OrderProductService {
             stockDeductionService.syncStock(product.getId(), dbStock != null ? dbStock : 0);
         }
 
-        // Step 1: Redis 预扣库存（第一道防线）
-        boolean redisOk = stockDeductionService.preDeduct(product.getId(), quantity);
-        if (!redisOk) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存不足（售罄）: " + product.getProductName());
-        }
-
-        // Step 2: DB 最终扣除（第二道防线，持久化兜底）
-        try {
-            boolean dbOk = productService.deductStock(product.getId(), item.getQuantity());
-            if (!dbOk) {
-                // DB 扣减失败，归还 Redis 预扣
-                stockDeductionService.restore(product.getId(), item.getQuantity());
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存不足或已下架: " + product.getProductName());
-            }
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            // 未知异常（如 DB 连接超时），归还 Redis 预扣
-            stockDeductionService.restore(product.getId(), item.getQuantity());
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "下单失败，请重试: " + product.getProductName());
+        // 扣减库存（委托 StockDeductionService，DB 模式下原子扣减，Redis 模式下预扣）
+        boolean deducted = stockDeductionService.preDeduct(product.getId(), quantity);
+        if (!deducted) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存不足或已下架: " + product.getProductName());
         }
 
         OrderItem oi = new OrderItem();
@@ -135,7 +119,6 @@ public class OrderProductService {
     public void restoreStock(List<OrderItem> items) {
         for (OrderItem item : items) {
             stockDeductionService.restore(item.getProductId(), item.getQuantity());
-            productService.restoreStock(item.getProductId(), item.getQuantity());
             log.info("恢复库存 productId={}, quantity={}", item.getProductId(), item.getQuantity());
         }
     }

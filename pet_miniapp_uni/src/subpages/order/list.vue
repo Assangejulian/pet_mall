@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page">
     <scroll-view class="tabs" scroll-x>
       <view v-for="tab in tabList" :key="tab.v" class="tab" :class="{on:active===tab.v}" @tap="switchTab" :data-v="tab.v">{{tab.l}}</view>
@@ -35,7 +35,7 @@ export default {
   onShow() { this.loadOrders(); },
   methods: {
     loadOrders() {
-      orderApi.listByStatus(this.active).then(res => {
+      orderApi.listByStatus(this.active, { _t: Date.now() }).then(res => {
         this.orders = Array.isArray(res) ? res : (res.records || []);
       }).catch(() => { this.orders = []; });
     },
