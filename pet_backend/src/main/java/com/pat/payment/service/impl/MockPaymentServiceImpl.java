@@ -7,6 +7,7 @@ import com.pat.payment.domain.vo.OrderPaymentVO;
 import com.pat.payment.service.PaymentCallback;
 import com.pat.payment.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,11 +16,19 @@ import java.time.LocalDateTime;
 @Service("mockPaymentService")
 public class MockPaymentServiceImpl implements PaymentService {
 
+    private final PaymentCallback paymentCallback;
+
+    public MockPaymentServiceImpl(@Lazy PaymentCallback paymentCallback) {
+        this.paymentCallback = paymentCallback;
+    }
+
     @Override
     public OrderPaymentVO pay(PaymentContext context) {
         log.info("模拟支付下单 orderNo={}", context.getOrderNo());
+        // 直接同步回调，更新订单状态为已支付
+        paymentCallback.onPaymentSuccess(context.getOrderNo(), context.getTotalAmount(), LocalDateTime.now());
         return new OrderPaymentVO(null, context.getOrderNo(),
-                PaymentStatus.PENDING_PAY, context.getTotalAmount(), null, null, null);
+                PaymentStatus.PAID, context.getTotalAmount(), null, null, null);
     }
 
     @Override
