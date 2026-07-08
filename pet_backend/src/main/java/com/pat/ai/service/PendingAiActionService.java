@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.pat.ai.domain.vo.AiChatResponse;
 import com.pat.common.domain.Result;
 import com.pat.common.exception.BusinessException;
+import com.pat.common.util.UserHolder;
 import com.pat.order.domain.dto.OrderCreateDTO;
 import com.pat.order.domain.entity.Cart;
 import com.pat.order.domain.vo.CartVO;
@@ -77,8 +78,12 @@ public class PendingAiActionService {
         if (userId == null) {
             return Result.error(401, "Please login first");
         }
-        StoredAction stored = pendingActions.remove(actionId);
-        if (stored == null || stored.expiresAt().isBefore(Instant.now())) {
+        StoredAction stored = pendingActions.get(actionId);
+        if (stored == null) {
+            return Result.error(410, "Action expired, please ask AI to generate it again");
+        }
+        if (stored.expiresAt().isBefore(Instant.now())) {
+            pendingActions.remove(actionId);
             return Result.error(410, "Action expired, please ask AI to generate it again");
         }
         if (!stored.userId().equals(userId)) {
@@ -87,13 +92,27 @@ public class PendingAiActionService {
 
         AiChatResponse.PendingAction action = stored.action();
         Map<String, Object> payload = asMap(action.getPayload());
-        return switch (action.getType()) {
-            case ADD_CART -> Result.success(actionResult(action, addCart(userId, payload)));
-            case UPDATE_CART -> Result.success(actionResult(action, updateCart(userId, payload)));
-            case DELETE_CART -> Result.success(actionResult(action, deleteCart(userId, payload)));
-            case CREATE_ORDER -> Result.success(actionResult(action, orderUserService.createOrder(buildOrderCreateDTO(payload))));
-            default -> Result.error(400, "Unsupported action type: " + action.getType());
-        };
+        boolean createdUserContext = UserHolder.getUserId() == null;
+        if (createdUserContext) {
+            UserHolder.save("userId", userId);
+        }
+        try {
+            Result<?> result = switch (action.getType()) {
+                case ADD_CART -> Result.success(actionResult(action, addCart(userId, payload)));
+                case UPDATE_CART -> Result.success(actionResult(action, updateCart(userId, payload)));
+                case DELETE_CART -> Result.success(actionResult(action, deleteCart(userId, payload)));
+                case CREATE_ORDER -> Result.success(actionResult(action, orderUserService.createOrder(buildOrderCreateDTO(payload))));
+                default -> Result.error(400, "Unsupported action type: " + action.getType());
+            };
+            if (result.getCode() != null && result.getCode() == 200) {
+                pendingActions.remove(actionId);
+            }
+            return result;
+        } finally {
+            if (createdUserContext) {
+                UserHolder.remove();
+            }
+        }
     }
 
     private Map<String, Object> actionResult(AiChatResponse.PendingAction action, Object result) {
@@ -142,8 +161,7 @@ public class PendingAiActionService {
     }
 
     private Cart updateCart(Long userId, Map<String, Object> payload) {
-        Long cartId = longValue(payload.get("cartId"));
-        Cart cart = requireUserCart(userId, cartId);
+        Cart cart = requirePayloadCart(userId, payload);
         if (payload.containsKey("quantity")) {
             cart.setQuantity(intValue(payload.get("quantity")));
         }
@@ -155,9 +173,8 @@ public class PendingAiActionService {
     }
 
     private Boolean deleteCart(Long userId, Map<String, Object> payload) {
-        Long cartId = longValue(payload.get("cartId"));
-        requireUserCart(userId, cartId);
-        return cartService.removeById(cartId);
+        Cart cart = requirePayloadCart(userId, payload);
+        return cartService.removeById(cart.getId());
     }
 
     @SuppressWarnings("unchecked")
@@ -199,6 +216,26 @@ public class PendingAiActionService {
             throw new BusinessException(404, "Cart item not found", null);
         }
         return cart;
+    }
+
+    private Cart requirePayloadCart(Long userId, Map<String, Object> payload) {
+        if (payload.containsKey("cartId") && payload.get("cartId") != null) {
+            Long cartId = longValue(payload.get("cartId"));
+            Cart cart = cartService.getById(cartId);
+            if (cart != null && userId.equals(cart.getUserId())) {
+                return cart;
+            }
+        }
+        if (payload.containsKey("productId") && payload.get("productId") != null) {
+            Long productId = longValue(payload.get("productId"));
+            Cart cart = cartService.getOne(new QueryWrapper<Cart>()
+                    .eq("user_id", userId)
+                    .eq("product_id", productId), false);
+            if (cart != null) {
+                return cart;
+            }
+        }
+        throw new BusinessException(404, "Cart item not found", null);
     }
 
     @SuppressWarnings("unchecked")

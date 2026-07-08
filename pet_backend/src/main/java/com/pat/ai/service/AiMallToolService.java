@@ -14,6 +14,8 @@ import com.pat.product.domain.vo.ProductVO;
 import com.pat.product.service.ProductService;
 import com.pat.store.domain.entity.Store;
 import com.pat.store.service.IStoreService;
+import com.pat.user.domain.entity.UserAddress;
+import com.pat.user.service.IUserAddressService;
 import com.pat.video.domain.entity.Comment;
 import com.pat.video.domain.entity.Video;
 import com.pat.video.service.ICommentService;
@@ -36,6 +38,7 @@ public class AiMallToolService {
     private final IVideoService videoService;
     private final ICommentService commentService;
     private final ICartService cartService;
+    private final IUserAddressService userAddressService;
     private final PendingAiActionService pendingActionService;
     private final ObjectMapper objectMapper;
 
@@ -44,6 +47,7 @@ public class AiMallToolService {
                              IVideoService videoService,
                              ICommentService commentService,
                              ICartService cartService,
+                             IUserAddressService userAddressService,
                              PendingAiActionService pendingActionService,
                              ObjectMapper objectMapper) {
         this.productService = productService;
@@ -51,6 +55,7 @@ public class AiMallToolService {
         this.videoService = videoService;
         this.commentService = commentService;
         this.cartService = cartService;
+        this.userAddressService = userAddressService;
         this.pendingActionService = pendingActionService;
         this.objectMapper = objectMapper;
     }
@@ -71,17 +76,33 @@ public class AiMallToolService {
                                      @P(value = "Product category, such as cat, dog, food, care", required = false) String category,
                                      @P(value = "Product type: 1 for pets, 2 for supplies", required = false) Integer productType,
                                      @P(value = "Page number, default 1", required = false) Integer page,
-                                     @P(value = "Page size, default 5", required = false) Integer size) {
+                                     @P(value = "Page size, default 20, max 50", required = false) Integer size) {
             ProductQueryDTO query = new ProductQueryDTO();
             query.setKeyword(keyword);
             query.setCategory(category);
             query.setProductType(productType);
             query.setPage(page == null ? 1L : page.longValue());
-            query.setSize(size == null ? 5L : Math.min(size.longValue(), 10L));
+            query.setSize(size == null ? 20L : Math.min(size.longValue(), 50L));
+            IPage<ProductVO> result = productService.pagePublicProducts(query);
+            return json(Map.of(
+                    "page", result.getCurrent(),
+                    "size", result.getSize(),
+                    "total", result.getTotal(),
+                    "hasMore", result.getCurrent() * result.getSize() < result.getTotal(),
+                    "records", result.getRecords()
+            ));
+        }
+
+        @Tool(name = "list_all_public_products", value = "List all currently public products. Use this when the user asks what products are available in total.")
+        public String listAllPublicProducts() {
+            ProductQueryDTO query = new ProductQueryDTO();
+            query.setPage(1L);
+            query.setSize(100L);
             IPage<ProductVO> result = productService.pagePublicProducts(query);
             return json(Map.of(
                     "total", result.getTotal(),
-                    "records", result.getRecords()
+                    "records", result.getRecords(),
+                    "truncated", result.getTotal() > result.getRecords().size()
             ));
         }
 
@@ -94,15 +115,18 @@ public class AiMallToolService {
         public String searchStores(@P(value = "Store keyword", required = false) String keyword,
                                    @P(value = "City name", required = false) String city,
                                    @P(value = "Page number, default 1", required = false) Integer page,
-                                   @P(value = "Page size, default 5", required = false) Integer size) {
+                                   @P(value = "Page size, default 20, max 50", required = false) Integer size) {
             QueryWrapper<Store> wrapper = new QueryWrapper<Store>()
                     .eq("status", 1)
                     .like(StringUtils.hasText(keyword), "store_name", keyword)
-                    .eq(StringUtils.hasText(city), "city", city)
+                    .like(StringUtils.hasText(city), "city", city)
                     .orderByDesc("create_time");
-            Page<Store> result = storeService.page(new Page<>(page == null ? 1 : page, size == null ? 5 : Math.min(size, 10)), wrapper);
+            Page<Store> result = storeService.page(new Page<>(page == null ? 1 : page, size == null ? 20 : Math.min(size, 50)), wrapper);
             return json(Map.of(
+                    "page", result.getCurrent(),
+                    "size", result.getSize(),
                     "total", result.getTotal(),
+                    "hasMore", result.getCurrent() * result.getSize() < result.getTotal(),
                     "records", result.getRecords()
             ));
         }
@@ -146,18 +170,7 @@ public class AiMallToolService {
             if (userId == null) {
                 return json(Map.of("error", "login required"));
             }
-            List<Cart> carts = cartService.list(new QueryWrapper<Cart>()
-                    .eq("user_id", userId)
-                    .orderByDesc("create_time"));
-            List<Map<String, Object>> records = new ArrayList<>();
-            for (Cart cart : carts) {
-                Map<String, Object> item = new LinkedHashMap<>();
-                item.put("cart", cart);
-                Product product = productService.getById(cart.getProductId());
-                item.put("product", product);
-                records.add(item);
-            }
-            return json(records);
+            return json(currentCartRecords());
         }
 
         @Tool(name = "request_add_named_product_to_cart", value = "Prepare adding a product to cart by exact product name or keyword from the user's request. Use this instead of request_add_to_cart when the user names a product.")
@@ -250,8 +263,13 @@ public class AiMallToolService {
         public String requestUpdateCart(@P("Cart item id") Long cartId,
                                         @P(value = "New quantity", required = false) Integer quantity,
                                         @P(value = "Checked state: 1 checked, 0 unchecked", required = false) Integer checked) {
+            Map<String, Object> cartRecord = findCartRecordByCartId(cartId);
+            if (cartRecord == null) {
+                return json(Map.of("error", "cart item not found", "cartId", cartId));
+            }
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("cartId", cartId);
+            copyCartProductPayload(payload, cartRecord);
             if (quantity != null) {
                 payload.put("quantity", quantity);
             }
@@ -264,10 +282,37 @@ public class AiMallToolService {
 
         @Tool(name = "request_delete_cart", value = "Prepare deleting a cart item. This only creates a pending action and requires user confirmation.")
         public String requestDeleteCart(@P("Cart item id") Long cartId) {
+            Map<String, Object> cartRecord = findCartRecordByCartId(cartId);
+            if (cartRecord == null) {
+                return json(Map.of("error", "cart item not found", "cartId", cartId));
+            }
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("cartId", cartId);
+            copyCartProductPayload(payload, cartRecord);
             return pending(PendingAiActionService.DELETE_CART, "Delete cart item",
                     "Delete cart item " + cartId, payload);
+        }
+
+        @Tool(name = "request_update_cart_by_product_name", value = "Prepare updating a cart item by product name. Use this when the user names the product instead of a cart item id.")
+        public String requestUpdateCartByProductName(@P("Product name or keyword in current cart") String keyword,
+                                                     @P(value = "New quantity", required = false) Integer quantity,
+                                                     @P(value = "Checked state: 1 checked, 0 unchecked", required = false) Integer checked) {
+            Map<String, Object> cartRecord = findSingleCartRecordByProductKeyword(keyword);
+            if (cartRecord == null) {
+                return json(Map.of("error", "matching cart item not found or ambiguous", "keyword", keyword, "cart", currentCartRecords()));
+            }
+            Cart cart = (Cart) cartRecord.get("cart");
+            return requestUpdateCart(cart.getId(), quantity, checked);
+        }
+
+        @Tool(name = "request_delete_cart_by_product_name", value = "Prepare deleting a cart item by product name. Use this when the user names the product instead of a cart item id.")
+        public String requestDeleteCartByProductName(@P("Product name or keyword in current cart") String keyword) {
+            Map<String, Object> cartRecord = findSingleCartRecordByProductKeyword(keyword);
+            if (cartRecord == null) {
+                return json(Map.of("error", "matching cart item not found or ambiguous", "keyword", keyword, "cart", currentCartRecords()));
+            }
+            Cart cart = (Cart) cartRecord.get("cart");
+            return requestDeleteCart(cart.getId());
         }
 
         @Tool(name = "request_create_order", value = "Prepare creating an order. This only creates a pending action and requires user confirmation. itemsJson must be a JSON array with productId and quantity.")
@@ -290,11 +335,119 @@ public class AiMallToolService {
                     "Create order with " + items.size() + " item(s)", payload);
         }
 
+        @Tool(name = "request_create_order_for_named_product", value = "Prepare creating an order for one named product. Uses user's default address when addressId is omitted.")
+        public String requestCreateOrderForNamedProduct(@P("Exact product name or keyword from user's request") String keyword,
+                                                        @P(value = "Quantity, default 1", required = false) Integer quantity,
+                                                        @P(value = "Address id, optional", required = false) Long addressId,
+                                                        @P(value = "Order remark, optional", required = false) String remark) {
+            if (userId == null) {
+                return json(Map.of("error", "login required"));
+            }
+            if (!StringUtils.hasText(keyword)) {
+                return json(Map.of("error", "product keyword is required"));
+            }
+            ProductQueryDTO query = new ProductQueryDTO();
+            query.setKeyword(keyword.trim());
+            query.setPage(1L);
+            query.setSize(5L);
+            List<ProductVO> records = productService.pagePublicProducts(query).getRecords();
+            ProductVO matched = records == null || records.isEmpty() ? null : findProductMatch(keyword, records);
+            if (matched == null) {
+                return json(Map.of("error", "matching product not found or ambiguous", "keyword", keyword, "candidates", records == null ? List.of() : records));
+            }
+            UserAddress address = addressId == null ? defaultAddress() : userAddressService.getById(addressId);
+            if (address == null || !userId.equals(address.getUserId())) {
+                return json(Map.of("error", "valid address required before creating order"));
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("productId", matched.getId());
+            item.put("productName", matched.getProductName());
+            item.put("quantity", quantity == null ? 1 : quantity);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("addressId", address.getId());
+            payload.put("items", List.of(item));
+            payload.put("addressSummary", address.getCity() + address.getDistrict() + address.getDetail());
+            if (StringUtils.hasText(remark)) {
+                payload.put("remark", remark);
+            }
+            return pending(PendingAiActionService.CREATE_ORDER, "Create order",
+                    "Create order for " + matched.getProductName() + " x " + item.get("quantity"), payload);
+        }
+
         private String pending(String type, String label, String summary, Map<String, Object> payload) {
             return json(Map.of(
                     "requiresConfirmation", true,
                     "pendingAction", pendingActionService.register(userId, type, label, summary, payload)
             ));
+        }
+
+        private UserAddress defaultAddress() {
+            if (userId == null) {
+                return null;
+            }
+            return userAddressService.lambdaQuery()
+                    .eq(UserAddress::getUserId, userId)
+                    .eq(UserAddress::getDefaulted, 1)
+                    .last("LIMIT 1")
+                    .one();
+        }
+
+        private List<Map<String, Object>> currentCartRecords() {
+            List<Cart> carts = cartService.list(new QueryWrapper<Cart>()
+                    .eq("user_id", userId)
+                    .orderByDesc("create_time"));
+            List<Map<String, Object>> records = new ArrayList<>();
+            for (Cart cart : carts) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("cart", cart);
+                Product product = productService.getById(cart.getProductId());
+                item.put("product", product);
+                records.add(item);
+            }
+            return records;
+        }
+
+        private Map<String, Object> findCartRecordByCartId(Long cartId) {
+            if (cartId == null) {
+                return null;
+            }
+            return currentCartRecords().stream()
+                    .filter(record -> cartId.equals(((Cart) record.get("cart")).getId()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        private Map<String, Object> findSingleCartRecordByProductKeyword(String keyword) {
+            if (!StringUtils.hasText(keyword)) {
+                return null;
+            }
+            List<Map<String, Object>> matches = currentCartRecords().stream()
+                    .filter(record -> matchesProductName(keyword, (Product) record.get("product")))
+                    .toList();
+            return matches.size() == 1 ? matches.get(0) : null;
+        }
+
+        private boolean matchesProductName(String expectedName, Product product) {
+            if (product == null || !StringUtils.hasText(expectedName)) {
+                return false;
+            }
+            String expected = normalizeName(expectedName);
+            String productName = normalizeName(product.getProductName());
+            return StringUtils.hasText(productName) && (productName.contains(expected) || expected.contains(productName));
+        }
+
+        private void copyCartProductPayload(Map<String, Object> payload, Map<String, Object> cartRecord) {
+            Cart cart = (Cart) cartRecord.get("cart");
+            Product product = (Product) cartRecord.get("product");
+            payload.put("productId", cart.getProductId());
+            payload.put("currentQuantity", cart.getQuantity());
+            if (product != null) {
+                payload.put("productName", product.getProductName());
+                payload.put("price", product.getPrice());
+                payload.put("image", product.getMainImage());
+            }
         }
     }
 

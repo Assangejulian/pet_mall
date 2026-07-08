@@ -34,6 +34,14 @@ public interface StockDeductionService {
     void syncStock(Long productId, Integer stock);
 
     /**
+     * 查询缓存中的库存。
+     *
+     * @param productId 商品 ID
+     * @return 缓存库存，未初始化时返回 null
+     */
+    Integer getStock(Long productId);
+
+    /**
      * 移除库存缓存（商品下架/删除时调用）。
      *
      * @param productId 商品 ID

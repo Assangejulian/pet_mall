@@ -2,7 +2,7 @@
   globalData: {
     // baseUrl: "http://127.0.0.1:8080",
     // 真机调试时改为电脑局域网 IP，模拟器用 127.0.0.1
-    baseUrl: "http://192.168.255.11:8080",
+    baseUrl: "http://172.20.10.2:8080",
     user: null,
     token: ""
   },

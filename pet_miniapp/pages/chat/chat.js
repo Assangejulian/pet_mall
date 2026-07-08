@@ -311,11 +311,20 @@ function isSuccessResponse(res, body) {
 }
 
 function sameId(left, right) {
+  if (left === undefined || left === null || right === undefined || right === null) return false;
   return String(left) === String(right);
 }
 
 function getActionPayload(action, data) {
   return (data && data.payload) || (action && action.payload) || {};
+}
+
+function getCartItemId(item) {
+  return item && (item.id || item.cartId);
+}
+
+function getResultCartId(data) {
+  return data && data.result && (data.result.id || data.result.cartId);
 }
 
 function isCartAction(action) {
@@ -326,19 +335,27 @@ function verifyCartAction(action, data, cartItems) {
   if (!isCartAction(action)) return true;
   const payload = getActionPayload(action, data);
   const list = cartItems || [];
+  const resultCartId = getResultCartId(data);
+  const expectedCartId = payload.cartId || resultCartId;
+  const expectedProductId = payload.productId || (data && data.result && data.result.productId);
   if (action.type === "ADD_CART") {
-    return list.some((item) => sameId(item.productId, payload.productId));
+    return list.some((item) => sameId(item.productId, expectedProductId));
   }
   if (action.type === "UPDATE_CART") {
     return list.some((item) => {
-      if (!sameId(item.id, payload.cartId)) return false;
+      if (expectedCartId && !sameId(getCartItemId(item), expectedCartId)) return false;
+      if (!expectedCartId && expectedProductId && !sameId(item.productId, expectedProductId)) return false;
       if (payload.quantity != null && Number(item.quantity) !== Number(payload.quantity)) return false;
       if (payload.checked != null && Number(item.checked) !== Number(payload.checked)) return false;
       return true;
     });
   }
   if (action.type === "DELETE_CART") {
-    return !list.some((item) => sameId(item.id, payload.cartId));
+    return !list.some((item) => {
+      if (expectedCartId) return sameId(getCartItemId(item), expectedCartId);
+      if (expectedProductId) return sameId(item.productId, expectedProductId);
+      return false;
+    });
   }
   return true;
 }
@@ -469,8 +486,9 @@ Page({
       return;
     }
 
-    if (this.data.latestPendingAction && isConfirmText(text)) {
-      this.sendPendingActionConfirmation(text, this.data.latestPendingAction.id);
+    const pendingAction = this.data.latestPendingAction || findLatestPendingAction(this.data.messages);
+    if (pendingAction && isConfirmText(text)) {
+      this.sendPendingActionConfirmation(text, pendingAction.id);
       return;
     }
 
