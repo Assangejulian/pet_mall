@@ -1,4 +1,4 @@
-.page { background: #f7f7f7; min-height: 100vh; padding-bottom: 120rpx; }
+.page { background: #f7f7f7; min-height: 100vh; padding-bottom: 160rpx; }
 .section { background: #fff; margin: 20rpx; border-radius: 16rpx; padding: 24rpx; display: flex; align-items: center; justify-content: space-between; }
 .address-sec .addr-info { flex: 1; }
 .user { font-size: 32rpx; font-weight: 600; margin-bottom: 8rpx; }
