@@ -2,9 +2,11 @@ package com.pat.common.service;
 
 import com.pat.common.constant.RedisConstants;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 /**
@@ -76,7 +78,12 @@ public class RedisStockService implements StockDeductionService {
      * @param stock     最新库存量
      */
     public void syncStock(Long productId, Integer stock) {
-        redisTemplate.opsForValue().set(stockKey(productId), stock);
+        byte[] key = stockKey(productId).getBytes(StandardCharsets.UTF_8);
+        byte[] value = String.valueOf(stock == null ? 0 : stock).getBytes(StandardCharsets.UTF_8);
+        redisTemplate.execute((RedisCallback<Void>) connection -> {
+            connection.stringCommands().set(key, value);
+            return null;
+        });
     }
 
     /**
@@ -86,9 +93,25 @@ public class RedisStockService implements StockDeductionService {
      * @return 库存量，未初始化返回 null
      */
     public Integer getStock(Long productId) {
+        byte[] key = stockKey(productId).getBytes(StandardCharsets.UTF_8);
+        byte[] raw = redisTemplate.execute((RedisCallback<byte[]>) connection -> connection.stringCommands().get(key));
+        if (raw != null) {
+            try {
+                return Integer.parseInt(new String(raw, StandardCharsets.UTF_8));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
         Object val = redisTemplate.opsForValue().get(stockKey(productId));
         if (val instanceof Number) {
             return ((Number) val).intValue();
+        }
+        if (val instanceof String str) {
+            try {
+                return Integer.parseInt(str);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
         }
         return null;
     }

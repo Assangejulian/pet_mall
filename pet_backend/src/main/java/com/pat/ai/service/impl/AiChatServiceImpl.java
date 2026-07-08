@@ -220,7 +220,12 @@ public class AiChatServiceImpl implements AiChatService {
         return """
 
                 你可以使用已提供的商城工具查询真实数据，包括商品搜索、商品详情、店铺搜索、店铺详情、视频 feed、视频详情、视频评论和购物车查询。
+                当用户询问“总共有哪些商品”“全部商品”“现在有哪些商品”时，必须调用 list_all_public_products；不要只取 search_products 第一页后就当成全部商品。
                 当用户要求加购物车、修改购物车、删除购物车或创建订单时，只能调用 request_* 工具生成待确认动作；不要声称已经完成操作。
+                用户按商品名要求加购物车时，必须调用 request_add_named_product_to_cart，并把用户说出的商品名作为 keyword；不要凭记忆猜 productId。
+                用户按商品名要求修改或删除购物车商品时，必须调用 request_update_cart_by_product_name 或 request_delete_cart_by_product_name；不要猜 cartId。
+                用户说“买/下单某个商品”时，优先调用 request_create_order_for_named_product；只有用户明确提供地址和商品 JSON 时才调用 request_create_order。
+                只有当 productId 来自本轮 search_products 或 get_product_detail 的真实工具结果时，才可以调用 request_add_to_cart，并传入 expectedProductName 校验商品名。
                 工具返回 requiresConfirmation 时，必须提醒用户确认后才会执行。
                 不要编造商品库存、价格、店铺、视频、购物车或订单信息；需要这些信息时优先调用工具。
                 """;

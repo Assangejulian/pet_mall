@@ -1,4 +1,13 @@
 const app = getApp();
+const cartApi = require("../../utils/api/cart");
+
+function getToken() {
+  return (app.globalData && app.globalData.token) || wx.getStorageSync("token") || "";
+}
+
+function getCurrentUserId() {
+  return (app.globalData && app.globalData.user && app.globalData.user.id) || wx.getStorageSync("userId") || null;
+}
 
 const quickPrompts = [
   "怎么给刚接回家的猫适应环境？",
@@ -281,11 +290,74 @@ function findLatestPendingAction(messages) {
 
 function actionSuccessText(action) {
   const type = action && action.type;
-  if (type === "ADD_CART") return "已执行：商品已加入购物车。";
+  const payload = (action && action.payload) || {};
+  if (type === "ADD_CART") return "已执行：" + (payload.productName || "商品") + "已加入购物车。";
   if (type === "UPDATE_CART") return "已执行：购物车已更新。";
   if (type === "DELETE_CART") return "已执行：购物车商品已删除。";
   if (type === "CREATE_ORDER") return "已执行：订单已创建。";
   return "已执行确认操作。";
+}
+
+function actionFailureText(action) {
+  const type = action && action.type;
+  if (type === "ADD_CART") return "确认接口返回成功，但购物车里没有找到要加入的商品，请稍后重试。";
+  if (type === "UPDATE_CART") return "确认接口返回成功，但购物车更新结果没有校验通过，请稍后重试。";
+  if (type === "DELETE_CART") return "确认接口返回成功，但购物车里仍能看到该商品，请稍后重试。";
+  return "确认接口返回成功，但操作结果没有校验通过，请稍后重试。";
+}
+
+function isSuccessResponse(res, body) {
+  return res && res.statusCode >= 200 && res.statusCode < 300 && body && body.code === 200;
+}
+
+function sameId(left, right) {
+  if (left === undefined || left === null || right === undefined || right === null) return false;
+  return String(left) === String(right);
+}
+
+function getActionPayload(action, data) {
+  return (data && data.payload) || (action && action.payload) || {};
+}
+
+function getCartItemId(item) {
+  return item && (item.id || item.cartId);
+}
+
+function getResultCartId(data) {
+  return data && data.result && (data.result.id || data.result.cartId);
+}
+
+function isCartAction(action) {
+  return action && ["ADD_CART", "UPDATE_CART", "DELETE_CART"].indexOf(action.type) !== -1;
+}
+
+function verifyCartAction(action, data, cartItems) {
+  if (!isCartAction(action)) return true;
+  const payload = getActionPayload(action, data);
+  const list = cartItems || [];
+  const resultCartId = getResultCartId(data);
+  const expectedCartId = payload.cartId || resultCartId;
+  const expectedProductId = payload.productId || (data && data.result && data.result.productId);
+  if (action.type === "ADD_CART") {
+    return list.some((item) => sameId(item.productId, expectedProductId));
+  }
+  if (action.type === "UPDATE_CART") {
+    return list.some((item) => {
+      if (expectedCartId && !sameId(getCartItemId(item), expectedCartId)) return false;
+      if (!expectedCartId && expectedProductId && !sameId(item.productId, expectedProductId)) return false;
+      if (payload.quantity != null && Number(item.quantity) !== Number(payload.quantity)) return false;
+      if (payload.checked != null && Number(item.checked) !== Number(payload.checked)) return false;
+      return true;
+    });
+  }
+  if (action.type === "DELETE_CART") {
+    return !list.some((item) => {
+      if (expectedCartId) return sameId(getCartItemId(item), expectedCartId);
+      if (expectedProductId) return sameId(item.productId, expectedProductId);
+      return false;
+    });
+  }
+  return true;
 }
 
 Page({
@@ -414,8 +486,9 @@ Page({
       return;
     }
 
-    if (this.data.latestPendingAction && isConfirmText(text)) {
-      this.sendPendingActionConfirmation(text, this.data.latestPendingAction.id);
+    const pendingAction = this.data.latestPendingAction || findLatestPendingAction(this.data.messages);
+    if (pendingAction && isConfirmText(text)) {
+      this.sendPendingActionConfirmation(text, pendingAction.id);
       return;
     }
 
@@ -532,7 +605,7 @@ Page({
 
   buildPayload(message) {
     return {
-      userId: app.globalData.user && app.globalData.user.id,
+      userId: getCurrentUserId(),
       sessionId: this.data.sessionId,
       modelMode: this.data.modelMode,
       petProfile: this.data.contextLabel,
@@ -541,9 +614,10 @@ Page({
   },
 
   buildHeaders() {
+    const token = getToken();
     return {
       "content-type": "application/json",
-      Authorization: app.globalData.token ? "Bearer " + app.globalData.token : ""
+      Authorization: token ? "Bearer " + token : ""
     };
   },
 
@@ -623,15 +697,21 @@ Page({
       header: this.buildHeaders(),
       data: {
         actionId,
-        userId: app.globalData.user && app.globalData.user.id
+        userId: getCurrentUserId()
       },
       success: (res) => {
         const body = res.data || {};
-        if (body.code === 200 || body.code === undefined) {
-          this.updateAiMessage(aiId, actionSuccessText(action));
+        if (!isSuccessResponse(res, body)) {
+          this.updateAiMessage(aiId, body.message || body.description || "确认操作失败，请稍后再试。");
           return;
         }
-        this.updateAiMessage(aiId, body.message || "确认操作失败，请稍后再试。");
+        this.verifyPendingActionResult(action, body.data)
+          .then((verified) => {
+            this.updateAiMessage(aiId, verified ? actionSuccessText(action) : actionFailureText(action));
+          })
+          .catch((err) => {
+            this.updateAiMessage(aiId, (err && err.message) || "操作已提交，但购物车结果核验失败，请刷新购物车后再看。");
+          });
       },
       fail: () => {
         this.updateAiMessage(aiId, "确认操作失败：后端连接失败，请检查服务是否正常。");
@@ -641,6 +721,16 @@ Page({
         this.scrollBottom();
       }
     });
+  },
+
+  verifyPendingActionResult(action, data) {
+    if (!isCartAction(action)) {
+      return Promise.resolve(true);
+    }
+    if (data && Array.isArray(data.cartItems)) {
+      return Promise.resolve(verifyCartAction(action, data, data.cartItems));
+    }
+    return cartApi.list().then((items) => verifyCartAction(action, data, items || []));
   },
 
   clearPendingActions(messages) {

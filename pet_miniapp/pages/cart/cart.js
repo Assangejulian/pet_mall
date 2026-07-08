@@ -11,7 +11,9 @@ Page({
   },
 
   onShow: function () {
-    this.setData({ isLogin: !!app.globalData.token });
+    var token = app.globalData.token || wx.getStorageSync("token") || "";
+    if (token && !app.globalData.token) app.globalData.token = token;
+    this.setData({ isLogin: !!token });
     this.load();
   },
 

@@ -88,6 +88,10 @@ public class OrderProductService {
     private OrderItem deductForItem(OrderCreateDTO.OrderItemDTO item) {
         Product product = productService.getById(item.getProductId());
 
+        if (stockDeductionService.getStock(product.getId()) == null) {
+            stockDeductionService.syncStock(product.getId(), product.getStock());
+        }
+
         // Step 1: Redis 预扣库存（第一道防线）
         boolean redisOk = stockDeductionService.preDeduct(product.getId(), item.getQuantity());
         if (!redisOk) {

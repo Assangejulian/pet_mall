@@ -94,6 +94,9 @@ INSERT IGNORE INTO product (id, store_id, product_name, product_type, category, 
  'https://images.unsplash.com/photo-1574231164645-d6f0e8553590?w=400',
  '["https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=400"]', 1, NULL);
 
+UPDATE product SET stock = 3, status = 1 WHERE id = 1 AND product_name = '金毛幼犬';
+UPDATE product SET stock = 2, status = 1 WHERE id = 4 AND product_name = '布偶猫';
+
 -- ========== 5. video ==========
 INSERT IGNORE INTO video (id, user_id, title, description, url, cover, product_id, play_count, likes, comment_count, duration, status) VALUES
 (1, 2, '金毛幼犬的日常撒欢', '每天早上都会叼着拖鞋来叫我起床，太治愈了。', '', 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400', 1, 12000, 2300, 156, 45, 1),
