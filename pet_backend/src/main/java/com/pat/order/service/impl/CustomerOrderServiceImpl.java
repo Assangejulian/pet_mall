@@ -130,7 +130,20 @@ public class CustomerOrderServiceImpl implements IOrderUserService, com.pat.paym
         QueryWrapper<PurchaseOrder> wrapper = new QueryWrapper<PurchaseOrder>()
                 .eq("user_id", userId).orderByDesc("create_time");
         if (orderStatus != null) wrapper.eq("order_status", orderStatus);
-        return baseService.page(page, wrapper);
+        IPage<PurchaseOrder> result = baseService.page(page, wrapper);
+
+        // 批量加载每笔订单的商品明细
+        List<PurchaseOrder> orders = result.getRecords();
+        if (!orders.isEmpty()) {
+            List<Long> orderIds = orders.stream().map(PurchaseOrder::getId).collect(Collectors.toList());
+            List<OrderItem> allItems = orderItemService.lambdaQuery()
+                    .in(OrderItem::getOrderId, orderIds).list();
+            java.util.Map<Long, List<OrderItem>> itemMap = allItems.stream()
+                    .collect(Collectors.groupingBy(OrderItem::getOrderId));
+            orders.forEach(o -> o.setItems(itemMap.getOrDefault(o.getId(), java.util.Collections.emptyList())));
+        }
+
+        return result;
     }
 
     @Override
