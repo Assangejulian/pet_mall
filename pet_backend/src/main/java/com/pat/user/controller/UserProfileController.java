@@ -7,9 +7,14 @@ import com.pat.user.domain.entity.User;
 import com.pat.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.Data;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -39,10 +44,43 @@ public class UserProfileController {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("userId", user.getId());
         map.put("username", user.getUsername());
+        map.put("realName", user.getRealName());
+        map.put("phone", user.getPhone());
+        map.put("email", user.getEmail());
+        map.put("birthday", user.getBirthday());
         map.put("avatar", user.getAvatar());
         map.put("memberLevel", user.getMemberLevel());
         map.put("levelName", discountCalculator.getLevelName(user.getMemberLevel()));
         map.put("discountDesc", discountCalculator.getDiscountDesc(user.getMemberLevel()));
         return Result.success(map);
+    }
+
+    @Operation(summary = "更新当前用户个人信息")
+    @PutMapping("/api/user/profile")
+    public Result<Void> updateProfile(@Valid @RequestBody ProfileUpdateDTO dto) {
+        Long userId = UserHolder.getUserId();
+        if (userId == null) {
+            return Result.error("用户未登录");
+        }
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        if (dto.getRealName() != null) user.setRealName(dto.getRealName());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getBirthday() != null) user.setBirthday(dto.getBirthday());
+        if (dto.getAvatar() != null) user.setAvatar(dto.getAvatar());
+        userService.updateById(user);
+        return Result.success(null);
+    }
+
+    @Data
+    public static class ProfileUpdateDTO {
+        private String realName;
+        private String phone;
+        private String email;
+        private LocalDate birthday;
+        private String avatar;
     }
 }

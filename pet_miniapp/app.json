@@ -23,7 +23,8 @@
         "address/list",
         "login/login",
         "login/face_capture",
-        "store/detail/detail"
+        "store/detail/detail",
+        "profile/edit/edit"
       ]
     }
   ],

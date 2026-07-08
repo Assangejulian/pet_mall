@@ -1,4 +1,4 @@
-﻿{
+{
   "pages": [
     {"path": "pages/index/index", "style": {"navigationBarTitleText": "暖窝视频","enablePullDownRefresh": true}},
     {"path": "pages/store/list", "style": {"navigationBarTitleText": "附近门店"}},
@@ -23,7 +23,8 @@
         {"path": "address/list", "style": {"navigationBarTitleText": "收货地址"}},
         {"path": "login/login", "style": {"navigationBarTitleText": "登录","navigationBarBackgroundColor":"#fff","navigationBarTextStyle":"black"}},
         {"path": "login/face_capture", "style": {"navigationBarTitleText": "人脸识别"}},
-        {"path": "store/detail/detail", "style": {"navigationBarTitleText": "门店详情","enablePullDownRefresh": true}}
+        {"path": "store/detail/detail", "style": {"navigationBarTitleText": "门店详情","enablePullDownRefresh": true}},
+        {"path": "profile/edit/edit", "style": {"navigationBarTitleText": "个人资料"}}
       ]
     }
   ],

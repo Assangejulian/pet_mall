@@ -17,5 +17,8 @@ module.exports = {
   },
   getProfile: function() {
     return request.get("/api/user/profile");
+  },
+  updateProfile: function(data) {
+    return request.put("/api/user/profile", data);
   }
 };
