@@ -1,4 +1,7 @@
-﻿spring:
+stock:
+  deduction: db
+
+spring:
   application:
     name: pet-store
   datasource:

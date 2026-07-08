@@ -88,12 +88,18 @@ public class OrderProductService {
     private OrderItem deductForItem(OrderCreateDTO.OrderItemDTO item) {
         Product product = productService.getById(item.getProductId());
 
+        Integer quantity = item.getQuantity();
+        if (quantity == null || quantity <= 0) {
+            throw new BusinessException(ErrorCode.FARAMS_ERROR, "购买数量不合法: " + product.getProductName());
+        }
+
         if (stockDeductionService.getStock(product.getId()) == null) {
-            stockDeductionService.syncStock(product.getId(), product.getStock());
+            Integer dbStock = product.getStock();
+            stockDeductionService.syncStock(product.getId(), dbStock != null ? dbStock : 0);
         }
 
         // Step 1: Redis 预扣库存（第一道防线）
-        boolean redisOk = stockDeductionService.preDeduct(product.getId(), item.getQuantity());
+        boolean redisOk = stockDeductionService.preDeduct(product.getId(), quantity);
         if (!redisOk) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存不足（售罄）: " + product.getProductName());
         }

@@ -4,6 +4,7 @@ import com.pat.common.constant.RedisConstants;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ import java.util.Collections;
  * DB 库存作为最终持久化依据，Redis 预扣只是流量缓冲层。</p>
  */
 @Service
+@ConditionalOnProperty(name = "stock.deduction", havingValue = "redis", matchIfMissing = true)
 public class RedisStockService implements StockDeductionService {
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -49,6 +51,9 @@ public class RedisStockService implements StockDeductionService {
      * @return true 扣减成功；false 库存不足或未初始化
      */
     public boolean preDeduct(Long productId, Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            return false;
+        }
         String key = stockKey(productId);
         Long result = redisTemplate.execute(
                 new DefaultRedisScript<>(LUA_DEDUCT, Long.class),

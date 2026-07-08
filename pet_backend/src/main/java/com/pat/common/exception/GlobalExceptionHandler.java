@@ -18,7 +18,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public Result<Void> handleRuntimeException(RuntimeException e) {
-        log.error("系统运行时异常", e);
-        return Result.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        log.error("系统运行时异常: {}", e.getMessage(), e);
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = e.getClass().getSimpleName() + " occurred";
+        }
+        return Result.error(ErrorCode.SYSTEM_ERROR, msg);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Result<Void> handleException(Exception e) {
+        log.error("未捕获的异常: {}", e.getMessage(), e);
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = e.getClass().getSimpleName() + " occurred";
+        }
+        return Result.error(ErrorCode.SYSTEM_ERROR, msg);
     }
 }
