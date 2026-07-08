@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 /**
  * 会员等级折扣配置
  * 0-普通  1-银卡  2-金卡  3-钻石
+ * @author 13372
  */
 public class MemberDiscount {
 

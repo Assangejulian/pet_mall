@@ -49,10 +49,8 @@ public class MvcConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    RoleInterceptor auditorRole() {
-        // 管理员也能访问审核接口
-        return new RoleInterceptor(objectMapper, Set.of("auditor", "admin"));
-    }
+    RoleInterceptor auditorRole() {return new RoleInterceptor(objectMapper, Set.of("auditor", "admin"));
+    }// 管理员也能访问审核接口
 
     @Bean
     RoleInterceptor merchantRole() {

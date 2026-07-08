@@ -76,8 +76,6 @@ public class AuthInterceptor implements HandlerInterceptor {
         objectMapper.writeValue(res.getWriter(), Result.error(code, msg));
     }
 
-    private static final Set<String> PUBLIC_VIDEO_PATHS = Set.of(
-            "/api/video/feed", "/api/video/list", "/api/video/search");
 
     private boolean isPublicVideoRead(HttpServletRequest req) {
         if (!"GET".equalsIgnoreCase(req.getMethod())) {
@@ -90,21 +88,15 @@ public class AuthInterceptor implements HandlerInterceptor {
             path = path.substring(contextPath.length());
         }
 
-        if (PUBLIC_VIDEO_PATHS.contains(path)) {
+        // 纯ID路径：/api/video/42
+        if (hasSinglePathSegment(path.substring("/api/video/".length()))) {
             return true;
         }
-        if (path.startsWith("/api/video/play/")) {
-            return hasSinglePathSegment(path.substring("/api/video/play/".length()));
-        }
-        if (!path.startsWith("/api/video/")) {
-            return false;
-        }
-
-        String rest = path.substring("/api/video/".length());
-        if (hasSinglePathSegment(rest)) {
-            return true;
-        }
-        return rest.endsWith("/comments") && hasSinglePathSegment(rest.substring(0, rest.length() - "/comments".length()));
+        // 评论路径：/api/video/42/comments
+        if (!path.startsWith("/api/video/")) return false;
+        if (!path.endsWith("/comments")) return false;
+        String idPart = path.substring("/api/video/".length(), path.length() - "/comments".length());
+        return hasSinglePathSegment(idPart);
     }
     private boolean hasSinglePathSegment(String value) {
         return value != null && !value.isBlank() && !value.contains("/");
