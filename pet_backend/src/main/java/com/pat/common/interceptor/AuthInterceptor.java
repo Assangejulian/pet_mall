@@ -88,15 +88,19 @@ public class AuthInterceptor implements HandlerInterceptor {
             path = path.substring(contextPath.length());
         }
 
+        if (!path.startsWith("/api/video/")) return false;
+
+        String subPath = path.substring("/api/video/".length());
         // 纯ID路径：/api/video/42
-        if (hasSinglePathSegment(path.substring("/api/video/".length()))) {
+        if (hasSinglePathSegment(subPath)) {
             return true;
         }
         // 评论路径：/api/video/42/comments
-        if (!path.startsWith("/api/video/")) return false;
-        if (!path.endsWith("/comments")) return false;
-        String idPart = path.substring("/api/video/".length(), path.length() - "/comments".length());
-        return hasSinglePathSegment(idPart);
+        if (subPath.endsWith("/comments")) {
+            String idPart = subPath.substring(0, subPath.length() - "/comments".length());
+            return hasSinglePathSegment(idPart);
+        }
+        return false;
     }
     private boolean hasSinglePathSegment(String value) {
         return value != null && !value.isBlank() && !value.contains("/");
